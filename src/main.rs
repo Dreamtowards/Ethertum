@@ -1,89 +1,13 @@
 
 use bevy::prelude::*;
-use bevy_atmosphere::prelude::*;
-use bevy_editor_pls::prelude::*;
-
 
 mod editor;
+mod world;
 
 fn main() {
-    let mut app = App::new();
-    
-    app.add_plugins((DefaultPlugins));
-
-    // Editor
-    app.add_plugins(EditorPlugin::default());
-
-    // Atmosphere
-    app.insert_resource(AtmosphereModel::default());
-    app.add_plugins(AtmospherePlugin);
-    
-    app.insert_resource(CycleTimer(Timer::new(
-            bevy::utils::Duration::from_millis(50), // Update our atmosphere every 50ms (in a real game, this would be much slower, but for the sake of an example we use a faster update)
-            TimerMode::Repeating,
-        )))
-        .add_systems(Startup, startup)
-        .add_systems(Update, daylight_cycle);
-    
-    app.run();
-}
-
-#[derive(Component)]
-struct Sun;
-
-// Timer for updating the daylight cycle (updating the atmosphere every frame is slow, so it's better to do incremental changes)
-#[derive(Resource)]
-struct CycleTimer(Timer);
-
-
-// We can edit the Atmosphere resource and it will be updated automatically
-fn daylight_cycle(
-    mut atmosphere: AtmosphereMut<Nishita>,
-    mut query: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
-    mut timer: ResMut<CycleTimer>,
-    time: Res<Time>,
-) {
-    timer.0.tick(time.delta());
-
-    if timer.0.finished() {
-        let t = time.elapsed_seconds_wrapped() / 22.0;
-        atmosphere.sun_position = Vec3::new(0., t.sin(), t.cos());
-
-        if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
-            light_trans.rotation = Quat::from_rotation_x(-t);
-            directional.illuminance = t.sin().max(0.0).powf(2.0) * 100000.0;
-        }
-    }
-}
-
-// Simple environment
-fn startup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    // Camera
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(5., 0., 5.),
-            ..default()
-        },
-        AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
-    ));
-
-    // Sun
-    commands.spawn((
-        DirectionalLightBundle {
-            ..Default::default()
-        },
-        Sun, // Marks the light as Sun
-    ));
-
-    // Simple transform shape just for reference
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(StandardMaterial::from(Color::rgb(0.8, 0.8, 0.8))),
-        ..Default::default()
-    });
-
+    App::new()
+        .add_plugins(DefaultPlugins)
+        .add_plugins(editor::EditorPlugin)
+        .add_plugins(world::WorldPlugin)
+        .run();
 }
