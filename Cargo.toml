@@ -1,0 +1,18 @@
+[package]
+name = "ethertia"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+bevy = "0.12"
+
+bevy_spectator = "0.4"
+bevy_atmosphere = "0.8"
+
+# bevy-inspector-egui = "0.21"
+bevy_editor_pls = "0.6"
+
+
+[workspace]
+resolver = "2" # Important! wgpu/bevy needs this!
