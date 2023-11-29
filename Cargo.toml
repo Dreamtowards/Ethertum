@@ -7,11 +7,19 @@ edition = "2021"
 
 bevy = "0.12"
 
-bevy_spectator = "0.4"
 bevy_atmosphere = "0.8"
 
 # bevy-inspector-egui = "0.21"
 bevy_editor_pls = "0.6"
+
+native-dialog = "0.6.4"
+sysinfo = "0.29.10"
+memory-stats = "1.1.0"
+
+log = "0.4.20"
+env_logger = "0.10.0"
+chrono = "0.4.31"
+anyhow = "1.0.75"  # error handling
 
 
 [workspace]
