@@ -1938,6 +1938,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bevy",
+ "bevy-inspector-egui",
  "bevy_atmosphere",
  "bevy_editor_pls",
  "bevy_egui",

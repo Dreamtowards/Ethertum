@@ -11,7 +11,7 @@ bevy_atmosphere = "0.8"
 
 bevy_egui = "0.23"
 
-# bevy-inspector-egui = "0.21"
+bevy-inspector-egui = "0.21"
 bevy_editor_pls = "0.6"
 
 native-dialog = "0.6.4"
