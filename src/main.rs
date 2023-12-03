@@ -1,12 +1,21 @@
 
-use bevy::prelude::*;
+use bevy::{prelude::*, window::WindowResolution};
 
 mod editor;
 mod world;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins
+            .set(WindowPlugin {
+               primary_window: Some(Window {
+                   resolution: WindowResolution::new(1280., 720.),
+                   title: "Ethertia 0.1.0 2023.12a".into(),
+                   ..default()
+               }),
+               ..default()
+            })
+        )
         .add_plugins(editor::EditorPlugin)
         .add_plugins(world::WorldPlugin)
         .run();

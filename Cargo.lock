@@ -1940,6 +1940,7 @@ dependencies = [
  "bevy",
  "bevy_atmosphere",
  "bevy_editor_pls",
+ "bevy_egui",
  "chrono",
  "env_logger",
  "log",
