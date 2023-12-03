@@ -197,7 +197,6 @@ fn tick_world(
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
         directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
         
-        // weird.
-        light_trans.rotation = Quat::from_euler(EulerRot::ZYX, 0., PI*0.5, -sun_ang);
+        light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.);
     }
 }
