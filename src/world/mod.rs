@@ -2,11 +2,15 @@
 use std::f32::consts::PI;
 
 use bevy::{prelude::*, utils::HashMap};
-use bevy_atmosphere::prelude::*;
 
+use bevy_atmosphere::prelude::*;
 
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+
+use bevy_xpbd_3d::parry::mass_properties::MassProperties;
+use bevy_xpbd_3d::prelude::*;
+
 
 
 pub struct WorldPlugin;
@@ -18,6 +22,10 @@ impl Plugin for WorldPlugin {
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
         
+        // Physics
+        app.add_plugins(PhysicsPlugins::default());
+
+        app.add_plugins(controller::CharacterControllerPlugin);
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
@@ -25,7 +33,6 @@ impl Plugin for WorldPlugin {
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
         
-
     }
 }
 
@@ -33,9 +40,11 @@ impl Plugin for WorldPlugin {
 mod chunk;
 use chunk::Chunk;
 
+use crate::controller::{self, CharacterControllerCamera};
+
 
 #[derive(Resource)]
-struct World {
+struct ChunkSystem {
 
     // ChunkSystem
     chunks: HashMap<IVec3, Chunk>,
@@ -43,16 +52,12 @@ struct World {
 
 }
 
-impl World {
+impl ChunkSystem {
     fn new() -> Self {
-        World { 
+        Self { 
             chunks: HashMap::new(), 
         }
     }
-
-    // fn daytime(&self) -> f32 {
-    //     self.worldinfo.daytime
-    // }
 }
 
 #[derive(Reflect, Resource, Default, InspectorOptions)]
@@ -117,6 +122,31 @@ fn startup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+
+    // Logical Player
+    let logical_player = commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Capsule {
+                radius: 0.4,
+                depth: 1.0,
+                ..default()
+            })),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            transform: Transform::from_xyz(0.0, 1.5, 0.0),
+            ..default()
+        },
+        RigidBody::Dynamic,
+        Collider::capsule(1., 0.4),
+        // Friction, Restitution
+        SleepingDisabled,
+        LockedAxes::ROTATION_LOCKED,
+        GravityScale(1.),
+        // Ccd, Mass
+        // LogicPlayerTag
+
+        controller::CharacterController::default(),
+    )).id();
+
     // Camera
     commands.spawn((
         Camera3dBundle {
@@ -124,6 +154,7 @@ fn startup(
             ..default()
         },
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+        CharacterControllerCamera,
     ));
 
     // Sun
@@ -138,24 +169,48 @@ fn startup(
         Sun, // Marks the light as Sun
     ));
 
-    // Simple transform shape just for reference
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(StandardMaterial::from(Color::rgb(0.8, 0.8, 0.8))),
-        ..default()
-    });
 
-    commands.spawn(SceneBundle {
-        scene: assets.load("spaceship.glb#Scene0"),
-        transform: Transform::from_xyz(0., 0., -10.),
-        ..default()
-    });
+    commands.spawn((
+        SceneBundle {
+            scene: assets.load("spaceship.glb#Scene0"),
+            transform: Transform::from_xyz(0., 0., -10.),
+            ..default()
+        },
+        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+        RigidBody::Static,
+    ));
 
-    // circular base
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Circle::new(40.0).into()),
-        material: materials.add(Color::WHITE.into()),
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+    // Floor
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(shape::Box::new(40., 0.001, 40.).into()),
+            material: materials.add(Color::WHITE.into()),
+            //transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            ..default()
+        },
+        RigidBody::Static,
+        Collider::cuboid(40., 0.001, 40.)
+    ));
+    // Cube
+    commands.spawn((
+        RigidBody::Dynamic,
+        AngularVelocity(Vec3::new(2.5, 3.4, 1.6)),
+        Collider::cuboid(1.0, 1.0, 1.0),
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            transform: Transform::from_xyz(0.0, 4.0, 0.0),
+            ..default()
+        },
+    ));
+    // Light
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 1500.0,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..default()
     });
 }
@@ -190,8 +245,10 @@ fn tick_world(
     worldinfo.daytime += dt_sec / worldinfo.daytime_length;
     worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
 
+    // SunPos
     let sun_ang = worldinfo.daytime * PI*2.;
 
+    // Atmosphere SunPos
     atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
 
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {

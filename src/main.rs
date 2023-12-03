@@ -4,6 +4,8 @@ use bevy::{prelude::*, window::WindowResolution};
 mod editor;
 mod world;
 
+mod controller;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins
