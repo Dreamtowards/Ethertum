@@ -1,4 +1,6 @@
 
+use std::f32::consts::PI;
+
 use bevy::{prelude::*, utils::HashMap};
 use bevy_atmosphere::prelude::*;
 
@@ -19,7 +21,6 @@ impl Plugin for WorldPlugin {
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
-        app.add_plugins(ResourceInspectorPlugin::<WorldInfo>::default());
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
@@ -39,7 +40,6 @@ struct World {
     // ChunkSystem
     chunks: HashMap<IVec3, Chunk>,
 
-    is_paused: bool,
 
 }
 
@@ -47,7 +47,6 @@ impl World {
     fn new() -> Self {
         World { 
             chunks: HashMap::new(), 
-            is_paused: false, 
         }
     }
 
@@ -64,7 +63,7 @@ struct WorldInfo {
 
     name: String,
 
-    #[inspector(min = 0.0, max = 1.2)]
+    #[inspector(min = 0.0, max = 1.0)]
     daytime: f32,
 
     // seconds a day time long
@@ -76,7 +75,10 @@ struct WorldInfo {
     time_created: u64,
     time_modified: u64,
     
-    tick_timer: Timer
+    tick_timer: Timer,
+
+    is_paused: bool,
+    paused_steps: i32,
 }
 
 impl WorldInfo {
@@ -94,7 +96,10 @@ impl WorldInfo {
             tick_timer: Timer::new(
                 bevy::utils::Duration::from_secs_f32(1. / 20.), // Update our atmosphere every 50ms (in a real game, this would be much slower, but for the sake of an example we use a faster update)
                 TimerMode::Repeating,
-            )
+            ),
+
+            is_paused: false,
+            paused_steps: 0,
         }
     }
 }
@@ -160,20 +165,39 @@ fn startup(
 fn tick_world(
     mut atmosphere: AtmosphereMut<Nishita>,
     mut query: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
-    mut world: ResMut<WorldInfo>,
+    mut worldinfo: ResMut<WorldInfo>,
     time: Res<Time>,
 ) {
-    world.tick_timer.tick(time.delta());
-
-    if !world.tick_timer.just_finished() {
+    worldinfo.tick_timer.tick(time.delta());
+    if !worldinfo.tick_timer.just_finished() {
         return;
     }
+
+    // Pause & Steps
+    if worldinfo.is_paused {
+        if (worldinfo.paused_steps > 0) {
+            worldinfo.paused_steps -= 1;
+        } else {
+            return;
+        }
+    }
     
-    let lit_rad = world.daytime.to_radians();
-    atmosphere.sun_position = Vec3::new(lit_rad.cos(), lit_rad.sin(), 0.);
+
+    let dt_sec = worldinfo.tick_timer.duration().as_secs_f32();  // constant time step?
+    worldinfo.time_inhabited += dt_sec;
+    
+    // DayTime
+    worldinfo.daytime += dt_sec / worldinfo.daytime_length;
+    worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
+
+    let sun_ang = worldinfo.daytime * PI*2.;
+
+    atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
 
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
-        light_trans.rotation = Quat::from_rotation_z(lit_rad);
-        directional.illuminance = lit_rad.sin().max(0.0).powf(2.0) * 100000.0;
+        directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
+        
+        // weird.
+        light_trans.rotation = Quat::from_euler(EulerRot::ZYX, 0., PI*0.5, -sun_ang);
     }
 }
