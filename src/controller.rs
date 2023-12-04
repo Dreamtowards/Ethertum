@@ -3,7 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{prelude::*, input::mouse::MouseMotion};
 use bevy_xpbd_3d::{
-    components::{LinearVelocity, GravityScale}, 
+    components::{LinearVelocity, GravityScale, Rotation}, plugins::spatial_query::ShapeHits, parry::na::ComplexField, 
 };
 
 pub struct CharacterControllerPlugin;
@@ -27,8 +27,9 @@ impl Plugin for CharacterControllerPlugin {
 pub struct CharacterControllerCamera;
 
 #[derive(Component, Reflect)]
+#[reflect(Component)]
 pub struct CharacterController {
-    // state
+    // State
     pitch: f32,
     yaw: f32,
 
@@ -37,12 +38,19 @@ pub struct CharacterController {
     // sneak: bool,
     // jump: bool,
 
+    // Readonly State
+    is_grounded: bool,
+
+    
+    // Control Param
+    max_slope_angle: f32,
+
+
     // Input
 
     pub enable_input: bool,
     // fly_speed: f32,
     // walk_speed: f32,
-
 
     // Tmp KeyConfig
     // key_forward: KeyCode,
@@ -65,6 +73,8 @@ impl Default for CharacterController {
             pitch: 0.,
             flying: false,
             enable_input: true,
+            is_grounded: false,
+            max_slope_angle: PI * 0.25
         }
     }
 }
@@ -79,7 +89,9 @@ fn ctl_input(
         &mut Transform,
         &mut CharacterController,
         &mut LinearVelocity,
-        &mut GravityScale
+        &mut GravityScale,
+        &ShapeHits,
+        &Rotation,
     )>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
@@ -91,7 +103,10 @@ fn ctl_input(
     for (mut trans, 
         mut ctl, 
         mut linvel, 
-        mut gravity_scale) in query.iter_mut() {
+        mut gravity_scale,
+        hits,
+        rotation,
+    ) in query.iter_mut() {
         if !ctl.enable_input {
             continue;
         }
@@ -111,24 +126,76 @@ fn ctl_input(
         if key_input.pressed(KeyCode::D) { movement.x += 1.; }
         if key_input.pressed(KeyCode::W) { movement.z -= 1.; }
         if key_input.pressed(KeyCode::S)  { movement.z += 1.; }
-        if key_input.pressed(KeyCode::ShiftLeft)  { movement.y -= 1.; }
-        if key_input.pressed(KeyCode::Space)    { movement.y += 1.; }
         
-        let sprint = key_input.pressed(KeyCode::ControlLeft);
-        let sneak = key_input.pressed(KeyCode::ShiftLeft);
-        let jump = key_input.pressed(KeyCode::Space);
-        
-        if key_input.pressed(KeyCode::L) {
+        let is_sprinting = key_input.pressed(KeyCode::ControlLeft);
+        let is_sneaking = key_input.pressed(KeyCode::ShiftLeft);
+
+        if key_input.just_pressed(KeyCode::L) {
             ctl.flying = !ctl.flying;
         }
-        
-        gravity_scale.0 = if ctl.flying {0.} else {1.};
 
+
+        // Flying
+        gravity_scale.0 = if ctl.flying {0.} else {2.};
+
+        if ctl.flying {
+            if key_input.pressed(KeyCode::ShiftLeft)  { movement.y -= 1.; }
+            if key_input.pressed(KeyCode::Space)    { movement.y += 1.; }
+        }
+
+        // Apply Yaw
+        let movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
         trans.rotation = Quat::from_rotation_y(ctl.yaw);
 
-        // apply Yaw
-        let movement = Mat3::from_rotation_y(ctl.yaw) * movement;
-        linvel.0 += movement * 0.2;
+
+        // Is Grouned
+        // The character is grounded if the shape caster has a hit with a normal
+        // that isn't too steep.
+        ctl.is_grounded = hits.iter().any(|hit| {
+            // if ctl.max_slope_angle == 0. {
+            //     true
+            // } else {
+                rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
+            // }
+        });
+        
+        // Jump
+        let jump = key_input.just_pressed(KeyCode::Space);
+        if  jump && ctl.is_grounded && !ctl.flying {
+            let jump_impulse = 8.;
+            linvel.0.y += jump_impulse;
+            info!("JMP");
+        }
+        
+        // Movement
+        let mut acceleration = 40.;
+        if is_sprinting {
+            acceleration *= 2.5;
+        } else if is_sneaking {
+            acceleration *= 0.3;
+        }
+        if ctl.flying {
+            linvel.0 += movement * acceleration * dt_sec;
+        } else {
+            if !ctl.is_grounded {
+                acceleration *= 0.1;  // LessMove on air
+            }
+            linvel.x += movement.x * acceleration * dt_sec;
+            linvel.z += movement.z * acceleration * dt_sec;
+        }
+
+        // Damping
+        // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
+        let damping_factor = 0.005.powf(dt_sec);
+        if ctl.flying || (ctl.is_grounded && !jump) {
+            linvel.0 *= damping_factor;
+        }
+        // if ctl.flying {
+            // linvel.0 *= damping_factor;
+        // } else if ctl.is_grounded {
+        //     linvel.x *= damping_factor;
+        //     linvel.z *= damping_factor;
+        // }
 
     }
 }
@@ -141,7 +208,7 @@ fn sync_camera(
     if let Ok((char_trans, ctl)) = char_query.get_single() {
         if let Ok(mut cam_trans) = cam_query.get_single_mut() {
 
-            cam_trans.translation = char_trans.translation;
+            cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
         }
     }

@@ -1,5 +1,5 @@
 
-use std::f32::consts::PI;
+use std::f32::consts::{PI, TAU};
 
 use bevy::{prelude::*, utils::HashMap, window::{CursorGrabMode, PrimaryWindow}};
 
@@ -149,6 +149,11 @@ fn startup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
+    let collider = Collider::capsule(1., 0.4);
+    // Create shape caster as a slightly smaller version of collider
+    let mut caster_shape = collider.clone();
+    caster_shape.set_scale(Vec3::ONE * 0.99, 10);
+
     // Logical Player
     commands.spawn((
         PbrBundle {
@@ -162,13 +167,21 @@ fn startup(
             ..default()
         },
         RigidBody::Dynamic,
-        Collider::capsule(1., 0.4),
+        collider,
         // Friction, Restitution
         SleepingDisabled,
         LockedAxes::ROTATION_LOCKED,
-        GravityScale(1.),
+        GravityScale(2.),
+        Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+        Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
         // Ccd, Mass
         // LogicPlayerTag
+        ShapeCaster::new(
+            caster_shape, 
+            Vec3::ZERO,
+            Quat::default(),
+            Vec3::NEG_Y
+        ).with_max_time_of_impact(0.2),
 
         controller::CharacterController::default(),
     )).with_children(|p| {
@@ -186,7 +199,10 @@ fn startup(
     // Camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(5., 0., 5.),
+            projection: Projection::Perspective(PerspectiveProjection {
+                fov: TAU / 4.6,
+                ..default()
+            }),
             ..default()
         },
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
