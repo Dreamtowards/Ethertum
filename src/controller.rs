@@ -77,6 +77,7 @@ fn ctl_input(
     time: Res<Time>,
     mut mouse_events: EventReader<MouseMotion>,
     mut query: Query<(
+        &mut Transform,
         &mut CharacterController,
         &mut LinearVelocity,
         &mut GravityScale
@@ -88,7 +89,8 @@ fn ctl_input(
     }
     let dt_sec = time.delta_seconds();
 
-    for (mut ctl, 
+    for (mut trans, 
+        mut ctl, 
         mut linvel, 
         mut gravity_scale) in query.iter_mut() {
         // if !ctl.enabled_input {
@@ -122,6 +124,8 @@ fn ctl_input(
         }
         
         gravity_scale.0 = if ctl.flying {0.} else {1.};
+
+        trans.rotation = Quat::from_rotation_y(ctl.yaw);
 
         // apply Yaw
         let movement = Mat3::from_rotation_y(ctl.yaw) * movement;

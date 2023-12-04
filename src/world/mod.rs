@@ -124,7 +124,7 @@ fn startup(
 ) {
 
     // Logical Player
-    let logical_player = commands.spawn((
+    commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
                 radius: 0.4,
@@ -145,7 +145,17 @@ fn startup(
         // LogicPlayerTag
 
         controller::CharacterController::default(),
-    )).id();
+    )).with_children(|p| {
+        p.spawn(SpotLightBundle {
+            spot_light: SpotLight {
+                intensity: 1500.0,
+                shadows_enabled: true,
+                ..default()
+            },
+            transform: Transform::from_xyz(0., 0., -0.5),
+            ..default()
+        });
+    });
 
     // Camera
     commands.spawn((
