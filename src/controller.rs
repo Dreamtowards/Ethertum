@@ -3,9 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{prelude::*, input::mouse::MouseMotion};
 use bevy_xpbd_3d::{
-    parry::{na::ComplexField, shape::Capsule}, 
-    components::{LinearVelocity, Collider, GravityScale}, 
-    plugins::setup::Physics
+    components::{LinearVelocity, GravityScale}, 
 };
 
 pub struct CharacterControllerPlugin;
@@ -41,7 +39,7 @@ pub struct CharacterController {
 
     // Input
 
-    // enabled_input: bool,
+    pub enable_input: bool,
     // fly_speed: f32,
     // walk_speed: f32,
 
@@ -66,6 +64,7 @@ impl Default for CharacterController {
             yaw: 0.,
             pitch: 0.,
             flying: false,
+            enable_input: true,
         }
     }
 }
@@ -93,9 +92,9 @@ fn ctl_input(
         mut ctl, 
         mut linvel, 
         mut gravity_scale) in query.iter_mut() {
-        // if !ctl.enabled_input {
-        //     continue;
-        // }
+        if !ctl.enable_input {
+            continue;
+        }
 
         // View Rotation
         let mouse_delta  = mouse_delta * 0.003;//ctl.mouse_sensitivity;

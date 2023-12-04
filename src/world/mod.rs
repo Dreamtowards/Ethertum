@@ -1,10 +1,11 @@
 
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap, window::{CursorGrabMode, PrimaryWindow}};
 
 use bevy_atmosphere::prelude::*;
 
+use bevy_editor_pls::editor::EditorEvent;
 use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 
@@ -29,6 +30,10 @@ impl Plugin for WorldPlugin {
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
+        
+        app.insert_resource(ClientInfo::default());
+        app.register_type::<ClientInfo>();
+        app.add_systems(Update, (editor_pause));
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
@@ -37,38 +42,59 @@ impl Plugin for WorldPlugin {
 }
 
 
-mod chunk;
-use chunk::Chunk;
+#[derive(Resource, Reflect, Default)]
+struct ClientInfo {
 
-use crate::controller::{self, CharacterControllerCamera};
-
-
-#[derive(Resource)]
-struct ChunkSystem {
-
-    // ChunkSystem
-    chunks: HashMap<IVec3, Chunk>,
-
+    /// Is Controlling Game, InGame
+    is_playing: bool,
 
 }
 
-impl ChunkSystem {
-    fn new() -> Self {
-        Self { 
-            chunks: HashMap::new(), 
+impl ClientInfo {
+
+    fn set_playing(self, playing: bool) {
+
+    }
+
+}
+
+fn editor_pause(
+    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
+    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
+) {
+    let mut window = window_query.single_mut();
+
+    for event in editor_events.read() {
+        match *event {
+            EditorEvent::Toggle { now_active } => {
+                let playing = !now_active;
+                window.cursor.grab_mode = if playing {CursorGrabMode::Locked} else {CursorGrabMode::None};
+                window.cursor.visible = !playing;
+                for mut controller in &mut controller_query {
+                    controller.enable_input = playing;
+                }
+            },
+            _ => ()
         }
     }
 }
 
-#[derive(Reflect, Resource, Default, InspectorOptions)]
-#[reflect(Resource, InspectorOptions)]
+
+
+
+
+
+use crate::controller::{self, CharacterControllerCamera, CharacterController};
+
+
+#[derive(Reflect, Resource, Default)]
 struct WorldInfo {
     
     seed: u64,
 
     name: String,
 
-    #[inspector(min = 0.0, max = 1.0)]
     daytime: f32,
 
     // seconds a day time long
@@ -192,15 +218,15 @@ fn startup(
 
     // Floor
     commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(shape::Box::new(40., 0.001, 40.).into()),
-            material: materials.add(Color::WHITE.into()),
-            //transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        SceneBundle {
+            scene: assets.load("playground.glb#Scene0"),
+            transform: Transform::from_xyz(0., 0., -10.),
             ..default()
         },
+        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
         RigidBody::Static,
-        Collider::cuboid(40., 0.001, 40.)
     ));
+
     // Cube
     commands.spawn((
         RigidBody::Dynamic,
@@ -220,7 +246,7 @@ fn startup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform::from_xyz(0., 0.0, 0.0),
         ..default()
     });
 }
@@ -240,7 +266,7 @@ fn tick_world(
 
     // Pause & Steps
     if worldinfo.is_paused {
-        if (worldinfo.paused_steps > 0) {
+        if  worldinfo.paused_steps > 0 {
             worldinfo.paused_steps -= 1;
         } else {
             return;
@@ -264,6 +290,7 @@ fn tick_world(
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
         directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
         
+        // or from000.looking_at()
         light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.);
     }
 }
