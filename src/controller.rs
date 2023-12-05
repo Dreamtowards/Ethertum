@@ -80,6 +80,8 @@ pub struct CharacterController {
 
     
     // Control Param
+    jump_impulse: f32,
+    acceleration: f32,
     max_slope_angle: f32,
 
 
@@ -111,6 +113,8 @@ impl Default for CharacterController {
             is_flying: false,
             enable_input: true,
             is_grounded: false,
+            jump_impulse: 7.,
+            acceleration: 60.,
             max_slope_angle: PI * 0.25
         }
     }
@@ -179,7 +183,7 @@ fn input_move(
 
         if ctl.is_flying {
             if key_input.pressed(KeyCode::ShiftLeft)  { movement.y -= 1.; }
-            if key_input.pressed(KeyCode::Space)    { movement.y += 1.; }
+            if key_input.pressed(KeyCode::Space)      { movement.y += 1.; }
         }
 
         // Apply Yaw
@@ -198,40 +202,66 @@ fn input_move(
             // }
         });
         
+        static mut last_jump: f32 = 0.;
+        let time_now = time.elapsed_seconds();
+
         // Jump
-        let jump = key_input.just_pressed(KeyCode::Space);
-        if  jump && ctl.is_grounded && !ctl.is_flying {
-            let jump_impulse = 8.;
-            linvel.0.y += jump_impulse;
+        let jump = key_input.pressed(KeyCode::Space);
+        
+        if key_input.just_pressed(KeyCode::Space) {
+            static mut LAST_FLY_JUMP: f32 = 0.;
+            if time_now - unsafe{LAST_FLY_JUMP} < 0.3 {
+                ctl.is_flying = !ctl.is_flying;
+            }
+            unsafe {LAST_FLY_JUMP = time_now;}
+        }
+        if ctl.is_grounded && ctl.is_flying {
+            ctl.is_flying = false;
+        }
+
+        if  jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe {last_jump} > 0.4  {
+            linvel.0.y += ctl.jump_impulse;
             info!("JMP");
+
+            unsafe {
+                last_jump = time_now;
+            }
         }
         
         // Movement
-        let mut acceleration = 30.;
+        let mut acceleration = ctl.acceleration;
         if is_sprinting {
-            acceleration *= 2.5;
-        } else if is_sneaking {
-            // !Minecraft [Sneak] * 0.3
-            acceleration *= 0.3;
-        } // else if using item: // Minecraft [UsingItem] * 0.2
+            acceleration *= 2.;
+        }
+
         if ctl.is_flying {
             linvel.0 += movement * acceleration * dt_sec;
         } else {
-            if !ctl.is_grounded {
-                acceleration *= 0.1;  // LessMove on air
-            }
+            if is_sneaking {
+                // !Minecraft [Sneak] * 0.3
+                acceleration *= 0.3;
+            } // else if using item: // Minecraft [UsingItem] * 0.2
+
+            // if !ctl.is_grounded {
+            //     acceleration *= 0.1;  // LessMove on air
+            // }
+
             linvel.x += movement.x * acceleration * dt_sec;
             linvel.z += movement.z * acceleration * dt_sec;
         }
 
         // Damping
-        // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
         if ctl.is_flying {
-            //let damping_factor = 0.05.powf(dt_sec);
-            linvel.0 *= 0.95;//damping_factor;
-        } else if ctl.is_grounded && !jump {
-            //let damping_factor = 0.005.powf(dt_sec);
-            linvel.0 *= 0.95;//damping_factor;
+            linvel.0 *= 0.01.powf(dt_sec);
+        } else {
+            let mut damping_factor = 0.0001.powf(dt_sec);
+            if !ctl.is_grounded {
+                damping_factor = 0.001.powf(dt_sec);
+            }
+
+            // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
+            linvel.x *= damping_factor;
+            linvel.z *= damping_factor;
         }
         // if ctl.flying {
         //     linvel.0 *= damping_factor;

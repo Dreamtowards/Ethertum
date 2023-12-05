@@ -27,15 +27,15 @@ impl Plugin for WorldPlugin {
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
-        // app.add_plugins(controller::CharacterControllerPlugin);
-        app.add_plugins(plugin::CharacterControllerPlugin);
+        app.add_plugins(controller::CharacterControllerPlugin);
+        // app.add_plugins(plugin::CharacterControllerPlugin);
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
         
         app.insert_resource(ClientInfo::default());
         app.register_type::<ClientInfo>();
-        app.add_systems(Update, (editor_pause, sync_camera));
+        app.add_systems(Update, editor_pause);
         app.add_systems(Update, client_inputs);
 
         app.add_systems(Startup, startup);
@@ -192,30 +192,30 @@ fn startup(
 
     // Logical Player
     commands.spawn((
-        // PbrBundle {
-        //     mesh: meshes.add(Mesh::from(shape::Capsule {
-        //         radius: 0.4,
-        //         depth: 1.0,
-        //         ..default()
-        //     })),
-        //     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        //     transform: Transform::from_xyz(0.0, 1.5, 0.0),
-        //     ..default()
-        // },
-        // CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
-
-        
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
                 radius: 0.4,
+                depth: 1.0,
                 ..default()
             })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
             transform: Transform::from_xyz(0.0, 1.5, 0.0),
             ..default()
         },
-        plugin::CharacterControllerBundle::new(Collider::capsule(1.0, 0.4), Vec3::NEG_Y * 9.81 * 2.0)
-            .with_movement(30.0, 0.92, 7.0, (30.0f32).to_radians()),
+        CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
+
+        
+        // PbrBundle {
+        //     mesh: meshes.add(Mesh::from(shape::Capsule {
+        //         radius: 0.4,
+        //         ..default()
+        //     })),
+        //     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+        //     transform: Transform::from_xyz(0.0, 1.5, 0.0),
+        //     ..default()
+        // },
+        // plugin::CharacterControllerBundle::new(Collider::capsule(1.0, 0.4), Vec3::NEG_Y * 9.81 * 2.0)
+        //     .with_movement(30.0, 0.92, 7.0, (30.0f32).to_radians()),
     )).with_children(|p| {
         p.spawn(SpotLightBundle {
             spot_light: SpotLight {
