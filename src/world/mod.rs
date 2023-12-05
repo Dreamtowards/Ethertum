@@ -85,7 +85,7 @@ fn editor_pause(
 
 
 
-use crate::controller::{self, CharacterControllerCamera, CharacterController};
+use crate::controller::{self, CharacterControllerCamera, CharacterController, CharacterControllerBundle};
 
 
 #[derive(Reflect, Resource, Default)]
@@ -166,24 +166,8 @@ fn startup(
             transform: Transform::from_xyz(0.0, 1.5, 0.0),
             ..default()
         },
-        RigidBody::Dynamic,
-        collider,
-        // Friction, Restitution
-        SleepingDisabled,
-        LockedAxes::ROTATION_LOCKED,
-        GravityScale(2.),
-        Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
-        Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
-        // Ccd, Mass
-        // LogicPlayerTag
-        ShapeCaster::new(
-            caster_shape, 
-            Vec3::ZERO,
-            Quat::default(),
-            Vec3::NEG_Y
-        ).with_max_time_of_impact(0.2),
-
-        controller::CharacterController::default(),
+        CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
+        
     )).with_children(|p| {
         p.spawn(SpotLightBundle {
             spot_light: SpotLight {

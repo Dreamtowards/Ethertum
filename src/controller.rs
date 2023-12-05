@@ -3,7 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{prelude::*, input::mouse::MouseMotion};
 use bevy_xpbd_3d::{
-    components::{LinearVelocity, GravityScale, Rotation}, plugins::spatial_query::ShapeHits, parry::na::ComplexField, 
+    components::*, plugins::spatial_query::{ShapeHits, ShapeCaster}, parry::na::ComplexField, 
 };
 
 pub struct CharacterControllerPlugin;
@@ -15,10 +15,47 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(Update, 
             (
-                ctl_input,
+                input_move,
                 sync_camera,
             ));
 
+    }
+}
+
+#[derive(Bundle)]
+pub struct CharacterControllerBundle {
+    character_controller: CharacterController,
+    rigid_body: RigidBody,
+    collider: Collider,
+    ground_caster: ShapeCaster,
+    sleeping_disabled: SleepingDisabled,
+    locked_axes: LockedAxes,
+    gravity_scale: GravityScale,
+    friction: Friction,
+    restitution: Restitution,
+}
+impl CharacterControllerBundle {
+    pub fn new(collider: Collider) -> Self {
+        // Create shape caster as a slightly smaller version of collider
+        let mut caster_shape = collider.clone();
+        caster_shape.set_scale(Vec3::ONE * 0.99, 10);
+
+        Self {
+            character_controller: CharacterController::default(),
+            rigid_body: RigidBody::Dynamic,
+            collider,
+            ground_caster: ShapeCaster::new(
+                caster_shape, 
+                Vec3::ZERO,
+                Quat::default(),
+                Vec3::NEG_Y
+            ).with_max_time_of_impact(0.2),
+            sleeping_disabled: SleepingDisabled,
+            locked_axes: LockedAxes::ROTATION_LOCKED,
+            gravity_scale: GravityScale(2.),
+            friction: Friction::ZERO.with_combine_rule(CoefficientCombine::Min),
+            restitution: Restitution::ZERO.with_combine_rule(CoefficientCombine::Min),
+        }
     }
 }
 
@@ -80,7 +117,7 @@ impl Default for CharacterController {
 }
 
 
-fn ctl_input(
+fn input_move(
     key_input: Res<Input<KeyCode>>,
     // phys_ctx: ,
     time: Res<Time>,
@@ -168,7 +205,7 @@ fn ctl_input(
         }
         
         // Movement
-        let mut acceleration = 40.;
+        let mut acceleration = 30.;
         if is_sprinting {
             acceleration *= 2.5;
         } else if is_sneaking {
@@ -186,12 +223,15 @@ fn ctl_input(
 
         // Damping
         // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
-        let damping_factor = 0.005.powf(dt_sec);
-        if ctl.flying || (ctl.is_grounded && !jump) {
+        if ctl.flying {
+            let damping_factor = 0.05.powf(dt_sec);
+            linvel.0 *= damping_factor;
+        } else if ctl.is_grounded && !jump {
+            let damping_factor = 0.005.powf(dt_sec);
             linvel.0 *= damping_factor;
         }
         // if ctl.flying {
-            // linvel.0 *= damping_factor;
+        //     linvel.0 *= damping_factor;
         // } else if ctl.is_grounded {
         //     linvel.x *= damping_factor;
         //     linvel.z *= damping_factor;
