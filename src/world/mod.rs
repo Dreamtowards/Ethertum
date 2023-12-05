@@ -12,6 +12,7 @@ use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_xpbd_3d::parry::mass_properties::MassProperties;
 use bevy_xpbd_3d::prelude::*;
 
+mod plugin;
 
 
 pub struct WorldPlugin;
@@ -26,14 +27,16 @@ impl Plugin for WorldPlugin {
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
-        app.add_plugins(controller::CharacterControllerPlugin);
+        // app.add_plugins(controller::CharacterControllerPlugin);
+        app.add_plugins(plugin::CharacterControllerPlugin);
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
         
         app.insert_resource(ClientInfo::default());
         app.register_type::<ClientInfo>();
-        app.add_systems(Update, (editor_pause));
+        app.add_systems(Update, (editor_pause, sync_camera));
+        app.add_systems(Update, client_inputs);
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
@@ -80,12 +83,45 @@ fn editor_pause(
     }
 }
 
+fn client_inputs(
+    key_input: Res<Input<KeyCode>>,
+    mouse_input: Res<Input<MouseButton>>,
+) {
+
+
+    // if player.is_using_item() {
+    //     if !keyUseItem {
+    //         stopUseItem;
+    //     }
+    // } else {
+
+    //     if mouse_input.just_pressed(MouseButton::Left) {
+    //         // Attack/Destroy
+    //         // if ENTITY
+    //         // attackEntity(hit.entity)
+    //         // BLOCK
+    //     } else if mouse_input.just_pressed(MouseButton::Right) {
+    //         // Use/Place
+    //         // if ENTITY
+    //         // interact
+    //         // if BLOCK
+    //         // if PlayerRightClick
+    //         //      swing_item
+
+
+    //     } else if mouse_input.just_pressed(MouseButton::Middle) {
+    //         // Pick
+
+    //     }
+    // }
+}
 
 
 
 
 
-use crate::controller::{self, CharacterControllerCamera, CharacterController, CharacterControllerBundle};
+
+use crate::controller::{self, CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
 
 
 #[derive(Reflect, Resource, Default)]
@@ -156,18 +192,30 @@ fn startup(
 
     // Logical Player
     commands.spawn((
+        // PbrBundle {
+        //     mesh: meshes.add(Mesh::from(shape::Capsule {
+        //         radius: 0.4,
+        //         depth: 1.0,
+        //         ..default()
+        //     })),
+        //     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+        //     transform: Transform::from_xyz(0.0, 1.5, 0.0),
+        //     ..default()
+        // },
+        // CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
+
+        
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
                 radius: 0.4,
-                depth: 1.0,
                 ..default()
             })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
             transform: Transform::from_xyz(0.0, 1.5, 0.0),
             ..default()
         },
-        CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
-        
+        plugin::CharacterControllerBundle::new(Collider::capsule(1.0, 0.4), Vec3::NEG_Y * 9.81 * 2.0)
+            .with_movement(30.0, 0.92, 7.0, (30.0f32).to_radians()),
     )).with_children(|p| {
         p.spawn(SpotLightBundle {
             spot_light: SpotLight {
@@ -292,5 +340,18 @@ fn tick_world(
         
         // or from000.looking_at()
         light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.);
+    }
+}
+
+
+fn sync_camera(
+    mut cam_query: Query<&mut Transform, With<CharacterControllerCamera>>,
+    char_query: Query<(&Transform, &plugin::CharacterController), Without<CharacterControllerCamera>>,
+) {
+    if let Ok((char_trans, ctl)) = char_query.get_single() {
+        if let Ok(mut cam_trans) = cam_query.get_single_mut() {
+
+            cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
+        }
     }
 }
