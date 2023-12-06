@@ -323,15 +323,12 @@ fn sync_camera(
             cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
 
-            static mut FOV_VAL: SmoothValue = SmoothValue{target: 0., current: 0.};
 
             fov_val.target = if ctl.is_sprinting {90.} else {70.};
             fov_val.current += time.delta_seconds() * 16. * (fov_val.target - fov_val.current);
 
             if let Projection::Perspective( pp) = proj.as_mut() {
-                let speed = (linvel.length() / 6.).clamp(1.0, 1.2);
-                pp.fov = fov_val.current.to_radians();//PI / 2.6 * speed;
-                // info!("Speed {}, {}", speed, linvel.length());
+                pp.fov = fov_val.current.to_radians();
             }
         }
     }

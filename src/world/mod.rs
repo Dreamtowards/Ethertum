@@ -1,7 +1,7 @@
 
 use std::f32::consts::{PI, TAU};
 
-use bevy::{prelude::*, utils::HashMap, window::{CursorGrabMode, PrimaryWindow}};
+use bevy::{prelude::*, utils::HashMap, window::{CursorGrabMode, PrimaryWindow}, pbr::{ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionSettings}, core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}};
 
 use bevy_atmosphere::prelude::*;
 
@@ -27,19 +27,27 @@ impl Plugin for WorldPlugin {
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
+
         app.add_plugins(controller::CharacterControllerPlugin);
-        // app.add_plugins(plugin::CharacterControllerPlugin);
+
+        // SSAO
+        app.add_plugins(TemporalAntiAliasPlugin);
+        app.insert_resource(AmbientLight {
+                brightness: 0.05,
+                ..default()
+            });
 
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
         
         app.insert_resource(ClientInfo::default());
         app.register_type::<ClientInfo>();
-        app.add_systems(Update, editor_pause);
-        app.add_systems(Update, client_inputs);
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
+
+        app.add_systems(Update, editor_pause);
+        app.add_systems(Update, client_inputs);
         
     }
 }
@@ -185,11 +193,6 @@ fn startup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
-    let collider = Collider::capsule(1., 0.4);
-    // Create shape caster as a slightly smaller version of collider
-    let mut caster_shape = collider.clone();
-    caster_shape.set_scale(Vec3::ONE * 0.99, 10);
-
     // Logical Player
     commands.spawn((
         PbrBundle {
@@ -235,11 +238,18 @@ fn startup(
                 fov: TAU / 4.6,
                 ..default()
             }),
+            camera: Camera {
+                hdr: true,
+                ..default()
+            },
             ..default()
         },
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
         CharacterControllerCamera,
-    ));
+
+    ))
+    .insert(ScreenSpaceAmbientOcclusionBundle::default())
+    .insert(TemporalAntiAliasBundle::default());
 
     // Sun
     commands.spawn((
@@ -287,16 +297,16 @@ fn startup(
             ..default()
         },
     ));
-    // Light
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1500.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(0., 0.0, 0.0),
-        ..default()
-    });
+    // // Light
+    // commands.spawn(PointLightBundle {
+    //     point_light: PointLight {
+    //         intensity: 1500.0,
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_xyz(0., 0.0, 0.0),
+    //     ..default()
+    // });
 }
 
 
@@ -339,19 +349,7 @@ fn tick_world(
         directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
         
         // or from000.looking_at()
-        light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.);
+        light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.3);
     }
 }
 
-
-fn sync_camera(
-    mut cam_query: Query<&mut Transform, With<CharacterControllerCamera>>,
-    char_query: Query<(&Transform, &plugin::CharacterController), Without<CharacterControllerCamera>>,
-) {
-    if let Ok((char_trans, ctl)) = char_query.get_single() {
-        if let Ok(mut cam_trans) = cam_query.get_single_mut() {
-
-            cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
-        }
-    }
-}
