@@ -267,8 +267,8 @@ fn input_move(
                 acceleration *= 0.3;
             } // else if using item: // Minecraft [UsingItem] * 0.2
 
-            if !ctl.is_grounded {
-                acceleration *= 0.3;  // LessMove on air
+            if !ctl.is_grounded {  
+                acceleration *= 0.2;  // LessMove on air MC-Like 0.2 
             }
 
             linvel.x += movement.x * acceleration * dt_sec;
@@ -281,7 +281,7 @@ fn input_move(
         } else {
             let mut damping_factor = 0.0001.powf(dt_sec);
             if !ctl.is_grounded {
-                damping_factor = 0.01.powf(dt_sec);
+                damping_factor = 0.07.powf(dt_sec);
             }
 
             // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis
@@ -299,15 +299,40 @@ fn input_move(
 }
 
 
+#[derive(Default)]
+struct SmoothValue {
+    pub target: f32,
+    current: f32,
+}
+
+impl SmoothValue {
+    fn tick(mut self, dt: f32) {
+        self.current += dt * (self.target - self.current);
+    }
+}
+
 fn sync_camera(
-    mut cam_query: Query<&mut Transform, With<CharacterControllerCamera>>,
-    char_query: Query<(&Transform, &CharacterController), Without<CharacterControllerCamera>>,
+    mut cam_query: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
+    char_query: Query<(&Transform, &CharacterController, &LinearVelocity), Without<CharacterControllerCamera>>,
+    mut fov_val: Local<SmoothValue>,
+    time: Res<Time>,
 ) {
-    if let Ok((char_trans, ctl)) = char_query.get_single() {
-        if let Ok(mut cam_trans) = cam_query.get_single_mut() {
+    if let Ok((char_trans, ctl, linvel)) = char_query.get_single() {
+        if let Ok((mut cam_trans, mut proj)) = cam_query.get_single_mut() {
 
             cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
+
+            static mut FOV_VAL: SmoothValue = SmoothValue{target: 0., current: 0.};
+
+            fov_val.target = if ctl.is_sprinting {90.} else {70.};
+            fov_val.current += time.delta_seconds() * 16. * (fov_val.target - fov_val.current);
+
+            if let Projection::Perspective( pp) = proj.as_mut() {
+                let speed = (linvel.length() / 6.).clamp(1.0, 1.2);
+                pp.fov = fov_val.current.to_radians();//PI / 2.6 * speed;
+                // info!("Speed {}, {}", speed, linvel.length());
+            }
         }
     }
 }
