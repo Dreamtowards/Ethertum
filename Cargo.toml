@@ -18,6 +18,8 @@ bevy_xpbd_3d = "0.3.2"
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.22"
 
+# Needed to poll Task 
+futures-lite = "2.0.1"
 
 native-dialog = "0.6.4"
 sysinfo = "0.29.10"

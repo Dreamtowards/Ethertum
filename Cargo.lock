@@ -2002,6 +2002,7 @@ dependencies = [
  "bevy_xpbd_3d",
  "chrono",
  "env_logger",
+ "futures-lite 2.0.1",
  "log",
  "memory-stats",
  "native-dialog",

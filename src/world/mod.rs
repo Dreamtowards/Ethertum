@@ -1,24 +1,32 @@
 
-use std::f32::consts::{PI, TAU};
+use std::{f32::consts::{PI, TAU}, sync::Arc};
 
-use bevy::{prelude::*, utils::HashMap, window::{CursorGrabMode, PrimaryWindow}, pbr::{ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionSettings}, core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}};
+use bevy::{
+    prelude::*, utils::HashMap, 
+    window::{CursorGrabMode, PrimaryWindow}, 
+    pbr::{ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionSettings}, 
+    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, tasks::{AsyncComputeTaskPool, Task}, render::{mesh::Indices, render_resource::PrimitiveTopology}
+};
 
 use bevy_atmosphere::prelude::*;
 
 use bevy_editor_pls::editor::EditorEvent;
-use bevy_inspector_egui::prelude::*;
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
-
-use bevy_xpbd_3d::parry::mass_properties::MassProperties;
 use bevy_xpbd_3d::prelude::*;
+use futures_lite::future;
 
-mod plugin;
-
+use crate::controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
 
 pub struct WorldPlugin;
 
+
+mod chunk;
+use chunk::Chunk;
+use chunk::ChunkSystem;
+use chunk::ChunkPtr;
+
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
+
 
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
@@ -27,9 +35,6 @@ impl Plugin for WorldPlugin {
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
-
-        app.add_plugins(controller::CharacterControllerPlugin);
-
         // SSAO
         app.add_plugins(TemporalAntiAliasPlugin);
         app.insert_resource(AmbientLight {
@@ -37,11 +42,17 @@ impl Plugin for WorldPlugin {
                 ..default()
             });
 
+        // CharacterController
+        app.add_plugins(CharacterControllerPlugin);
+
+
         app.insert_resource(WorldInfo::new());
-        app.register_type::<WorldInfo>();
+        // app.register_type::<WorldInfo>();
         
-        app.insert_resource(ClientInfo::default());
-        app.register_type::<ClientInfo>();
+        // ChunkSystem
+        // app.insert_resource(ChunkSystem::new());
+        app.add_systems(Update, update_chunks_loadance);
+
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
@@ -52,22 +63,137 @@ impl Plugin for WorldPlugin {
     }
 }
 
+fn update_chunks_loadance(
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+    mut worldinfo: ResMut<WorldInfo>,
+    mut chunks_loading: Local<HashMap<IVec3, Task<ChunkPtr>>>,
+    
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let thread_pool = AsyncComputeTaskPool::get();
+    let chunk_sys = worldinfo.chunk_system.clone();
 
-#[derive(Resource, Reflect, Default)]
-struct ClientInfo {
+    let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()) * 0;  // view pos
+    let vd = chunk_sys.view_distance;
 
-    /// Is Controlling Game, InGame
-    is_playing: bool,
+    // Chunks Detect Load/Gen
+    for y in -vd.y..=vd.y {
+        for z in -vd.x..=vd.x {
+            for x in -vd.x..=vd.x {
+                let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
-}
+                if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains_key(&chunkpos) {
+                    continue;
+                }
 
-impl ClientInfo {
+                let chunk_sys = chunk_sys.clone();
+                let task = thread_pool.spawn(async move {
 
-    fn set_playing(self, playing: bool) {
+                    info!("Providing {:?}", chunkpos);
+                    // provide chunk (load or gen)
+                    chunk_sys.provide_chunk(chunkpos)
 
+                });
+                chunks_loading.insert(chunkpos, task);
+            }
+        }
     }
+    // DoesNeeds? Chunks Loaded IntoWorld Batch (for reduce LockWrite)
+    
+
+    // for (chunkpos, task) in chunks_loading.iter_mut() {
+    //     if task.is_finished() {
+    //         // load to world
+    //         if let Some(chunk) = future::block_on(future::poll_once(task)) {
+                
+    //             chunk_sys.spawn_chunk(chunk);
+    //         } else {
+    //             info!("NotAvailable");
+    //         }
+
+    //         info!("ChunkProvided: {:?}", chunkpos);
+    //     }
+    // }
+    
+    chunks_loading.retain(|chunkpos, task| {
+        if task.is_finished() {
+            if let Some(chunk) = future::block_on(future::poll_once(task)) {
+                
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(generate_chunk_mesh()),
+            transform: Transform::from_translation(chunkpos.as_vec3()),
+            ..default()
+        },
+        
+        AsyncCollider(ComputedCollider::TriMesh),
+        RigidBody::Static,
+    ));
+                chunk_sys.spawn_chunk(chunk);
+                info!("spawn_chunk {:?}", chunkpos);
+                return false;
+            } else {
+                info!("NotAvailable {:?}", chunkpos);
+            }
+        }
+        true
+    });
+
+    // Chunks Unload
+    // for chunkpos in chunk_sys.chunks.keys() {
+
+    //     // if should_unload()
+    //     if (*chunkpos - vp).abs().max_element() {
+
+    //     }
+    // }
+
+
+    // Chunks Detect Meshing
+
+    // Chunks Upload Mesh.
+
+
 
 }
+
+fn generate_chunk_mesh() -> Mesh {
+    Mesh::new(PrimitiveTopology::TriangleList)
+    .with_inserted_attribute(
+        Mesh::ATTRIBUTE_POSITION, 
+        vec![
+            [-0.5, 0.5, -0.5], // vertex with index 0
+            [0.5, 0.5, -0.5], // vertex with index 1
+            [0.5, 0.5, 0.5], // etc. until 23
+            [-0.5, 0.5, 0.5],
+        ]
+    )
+    .with_inserted_attribute(
+        Mesh::ATTRIBUTE_UV_0, 
+        vec![
+            // Assigning the UV coords for the top side.
+            [0.0, 0.2], [0.0, 0.0], [1.0, 0.0], [1.0, 0.25],
+        ]
+    )
+    .with_inserted_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        vec![
+            // Normals for the top side (towards +y)
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ]
+    )
+    .with_indices(Some(Indices::U32(vec![
+        0,3,1 , 1,3,2,
+    ])))
+}
+
+
+
 
 fn editor_pause(
     mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
@@ -129,10 +255,9 @@ fn client_inputs(
 
 
 
-use crate::controller::{self, CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
 
 
-#[derive(Reflect, Resource, Default)]
+#[derive(Resource)]
 struct WorldInfo {
     
     seed: u64,
@@ -154,6 +279,8 @@ struct WorldInfo {
 
     is_paused: bool,
     paused_steps: i32,
+
+    chunk_system: Arc<ChunkSystem>,
 }
 
 impl WorldInfo {
@@ -175,6 +302,8 @@ impl WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
+
+            chunk_system: Arc::new(ChunkSystem::new()),
         }
     }
 }
