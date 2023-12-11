@@ -139,7 +139,6 @@ fn input_move(
         &mut GravityScale,
         &ShapeHits,
         &Rotation,
-        &mut Position,
     )>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
@@ -154,7 +153,6 @@ fn input_move(
         mut gravity_scale,
         hits,
         rotation,
-        mut position,
     ) in query.iter_mut() {
         if !ctl.enable_input {
             continue;
@@ -216,7 +214,6 @@ fn input_move(
             // }
         });
         
-        static mut last_jump: f32 = 0.;
         let time_now = time.elapsed_seconds();
 
         // Jump
@@ -243,13 +240,14 @@ fn input_move(
             unsafe {LAST_W = time_now;}
         }
 
-        if  jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe {last_jump} > 0.3  {
+        static mut LAST_JUMP: f32 = 0.;
+        if  jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe {LAST_JUMP} > 0.3  {
 
             linvel.0.y = ctl.jump_impulse;
 
             // info!("JMP {:?}", linvel.0);
             unsafe {
-                last_jump = time_now;
+                LAST_JUMP = time_now;
             }
         }
         
@@ -306,18 +304,18 @@ struct SmoothValue {
 }
 
 impl SmoothValue {
-    fn tick(mut self, dt: f32) {
+    fn tick(&mut self, dt: f32) {
         self.current += dt * (self.target - self.current);
     }
 }
 
 fn sync_camera(
     mut cam_query: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
-    char_query: Query<(&Transform, &CharacterController, &LinearVelocity), Without<CharacterControllerCamera>>,
+    char_query: Query<(&Transform, &CharacterController), Without<CharacterControllerCamera>>,
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
 ) {
-    if let Ok((char_trans, ctl, linvel)) = char_query.get_single() {
+    if let Ok((char_trans, ctl)) = char_query.get_single() {
         if let Ok((mut cam_trans, mut proj)) = cam_query.get_single_mut() {
 
             cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
@@ -325,7 +323,7 @@ fn sync_camera(
 
 
             fov_val.target = if ctl.is_sprinting {90.} else {70.};
-            fov_val.current += time.delta_seconds() * 16. * (fov_val.target - fov_val.current);
+            fov_val.tick(time.delta_seconds() * 16.);
 
             if let Projection::Perspective( pp) = proj.as_mut() {
                 pp.fov = fov_val.current.to_radians();
