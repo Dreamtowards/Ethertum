@@ -11,10 +11,10 @@ use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
-mod chunk;
-mod chunk_system;
-use chunk_system::*;
+use crate::character_controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
+
+use crate::voxel::VoxelPlugin;
+
 
 pub struct GamePlugin;
 
@@ -375,7 +375,7 @@ fn handle_inputs(
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
     mut controller_query: Query<&mut CharacterController>,
     key: Res<Input<KeyCode>>,
-    mouse_input: Res<Input<MouseButton>>,
+    // mouse_input: Res<Input<MouseButton>>,
 ) {
     let mut window = window_query.single_mut();
 

@@ -2,9 +2,10 @@
 use bevy::{prelude::*, window::WindowResolution};
 
 mod editor;
-mod world;
+mod game;
+mod voxel;
 
-mod controller;
+mod character_controller;
 
 fn main() {
     App::new()
@@ -19,6 +20,6 @@ fn main() {
             })
         )
         .add_plugins(editor::EditorPlugin)
-        .add_plugins(world::GamePlugin)
+        .add_plugins(game::GamePlugin)
         .run();
 }
