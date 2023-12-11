@@ -19,6 +19,6 @@ fn main() {
             })
         )
         .add_plugins(editor::EditorPlugin)
-        .add_plugins(world::WorldPlugin)
+        .add_plugins(world::GamePlugin)
         .run();
 }

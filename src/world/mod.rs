@@ -1,32 +1,26 @@
 
-use std::{f32::consts::{PI, TAU}, sync::Arc};
+use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    prelude::*, utils::HashMap, 
+    prelude::*, 
     window::{CursorGrabMode, PrimaryWindow, WindowMode}, 
-    pbr::{ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionSettings}, 
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, tasks::{AsyncComputeTaskPool, Task}, render::{mesh::Indices, render_resource::PrimitiveTopology}
+    pbr::ScreenSpaceAmbientOcclusionBundle, 
+    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, 
 };
-
 use bevy_atmosphere::prelude::*;
-
 use bevy_editor_pls::editor::EditorEvent;
 use bevy_xpbd_3d::prelude::*;
-use futures_lite::future;
 
 use crate::controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
-
-pub struct WorldPlugin;
-
-
 mod chunk;
-use chunk::Chunk;
-use chunk::ChunkSystem;
-use chunk::ChunkPtr;
+mod chunk_system;
+use chunk_system::*;
 
-use self::chunk::ChunkMeshingState;
+pub struct GamePlugin;
 
-impl Plugin for WorldPlugin {
+
+
+impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
 
 
@@ -48,309 +42,32 @@ impl Plugin for WorldPlugin {
         app.add_plugins(CharacterControllerPlugin);
 
 
+        // WorldInfo
         app.insert_resource(WorldInfo::new());
         // app.register_type::<WorldInfo>();
         
-        // ChunkSystem
-        // app.insert_resource(ChunkSystem::new());
-        app.add_systems(Update, update_chunks_loadance);
 
+        // ChunkSystem
+        app.add_plugins(VoxelPlugin);
+        
+        
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
 
-        app.add_systems(Update, editor_pause);
-        app.add_systems(Update, client_inputs);
+        app.add_systems(Update, handle_inputs);
         
     }
 }
-
-fn update_chunks_loadance(
-    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
-    mut worldinfo: ResMut<WorldInfo>,
-    mut chunks_loading: Local<HashMap<IVec3, Task<ChunkPtr>>>,
-    mut chunks_meshing: Local<HashMap<IVec3, ChunkMeshingState>>,
-    
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let thread_pool = AsyncComputeTaskPool::get();
-    let chunk_sys = worldinfo.chunk_system.clone();
-
-    let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()) * 0;  // view pos
-    let vd = chunk_sys.view_distance;
-
-    // Chunks Detect Load/Gen
-    for y in -vd.y..=vd.y {
-        for z in -vd.x..=vd.x {
-            for x in -vd.x..=vd.x {
-                let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
-
-                if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains_key(&chunkpos) {
-                    continue;
-                }
-
-                let chunk_sys = chunk_sys.clone();
-                let task = thread_pool.spawn(async move {
-
-                    info!("Providing {:?}", chunkpos);
-
-                    // provide chunk (load or gen)
-                    chunk_sys.provide_chunk(chunkpos)
-
-                });
-                chunks_loading.insert(chunkpos, task);
-            }
-        }
-    }
-
-    // use float_ord::FloatOrd;
-    // use core::slice;
-    // chunks_loading.sort_unstable_by_key(|key| {
-        // FloatOrd(key.as_vec3().distance(player_pos.chunk_min.as_vec3()))
-    // });
-    // DoesNeeds? Chunks Loaded IntoWorld Batch (for reduce LockWrite)
-    
-    chunks_loading.retain(|chunkpos, task| {
-        if task.is_finished() {
-            if let Some(chunk) = future::block_on(future::poll_once(task)) {
-                
-
-                chunk_sys.spawn_chunk(chunk, &mut commands);
-
-                chunks_meshing.insert(*chunkpos, ChunkMeshingState::Pending);
-
-                info!("spawn_chunk {:?}", chunkpos);
-                return false;
-            } else {
-                info!("NotAvailable {:?}", chunkpos);
-            }
-        }
-        true
-    });
-
-    // Chunks Unload
-    // for chunkpos in chunk_sys.chunks.keys() {
-
-    //     // if should_unload()
-    //     if (*chunkpos - vp).abs().max_element() {
-
-    //     }
-    // }
-
-
-    // Chunks Detect Meshing
-    for (chunkpos, stat) in chunks_meshing.iter_mut() {
-        if let ChunkMeshingState::Pending = stat {
-
-
-            let task = thread_pool.spawn(async move {
-
-                let mesh = generate_chunk_mesh();
-                // MeshGen::generate_chunk_mesh();
-                // mesh_solid
-                // mesh_foliage
-                mesh
-            });
-            *stat = ChunkMeshingState::Meshing(task);
-        }
-    }
-
-    // Chunks Upload Mesh.
-
-    chunks_meshing.retain(|chunkpos, stat| {
-        if let ChunkMeshingState::Meshing(task) = stat {
-            if task.is_finished() {
-                if let Some(chunk_mesh) = future::block_on(future::poll_once(task)) {
-                
-                    
-                    return false;
-                }
-            }
-        }
-        true
-    });
-
-
-
-}
-
-fn generate_chunk_mesh() -> Mesh {
-    Mesh::new(PrimitiveTopology::TriangleList)
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_POSITION, 
-        vec![
-            [-0.5, 0.5, -0.5], // vertex with index 0
-            [0.5, 0.5, -0.5], // vertex with index 1
-            [0.5, 0.5, 0.5], // etc. until 23
-            [-0.5, 0.5, 0.5],
-        ]
-    )
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_UV_0, 
-        vec![
-            // Assigning the UV coords for the top side.
-            [0.0, 0.2], [0.0, 0.0], [1.0, 0.0], [1.0, 0.25],
-        ]
-    )
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_NORMAL,
-        vec![
-            // Normals for the top side (towards +y)
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-        ]
-    )
-    .with_indices(Some(Indices::U32(vec![
-        0,3,1 , 1,3,2,
-    ])))
-}
-
-
-
-
-fn editor_pause(
-    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
-    key: Res<Input<KeyCode>>,
-    mouse_input: Res<Input<MouseButton>>,
-) {
-    let mut window = window_query.single_mut();
-
-    for event in editor_events.read() {
-        match *event {
-            EditorEvent::Toggle { now_active } => {
-                let playing = !now_active;
-                window.cursor.grab_mode = if playing {CursorGrabMode::Locked} else {CursorGrabMode::None};
-                window.cursor.visible = !playing;
-                for mut controller in &mut controller_query {
-                    controller.enable_input = playing;
-                }
-            },
-            _ => ()
-        }
-    }
-    
-    if key.just_pressed(KeyCode::F11)
-        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
-    {
-        window.mode = if window.mode != WindowMode::Fullscreen {
-            WindowMode::Fullscreen
-        } else {
-            WindowMode::Windowed
-        };
-    }
-}
-
-fn client_inputs(
-    key_input: Res<Input<KeyCode>>,
-    mouse_input: Res<Input<MouseButton>>,
-) {
-
-
-    // if player.is_using_item() {
-    //     if !keyUseItem {
-    //         stopUseItem;
-    //     }
-    // } else {
-
-    //     if mouse_input.just_pressed(MouseButton::Left) {
-    //         // Attack/Destroy
-    //         // if ENTITY
-    //         // attackEntity(hit.entity)
-    //         // BLOCK
-    //     } else if mouse_input.just_pressed(MouseButton::Right) {
-    //         // Use/Place
-    //         // if ENTITY
-    //         // interact
-    //         // if BLOCK
-    //         // if PlayerRightClick
-    //         //      swing_item
-
-
-    //     } else if mouse_input.just_pressed(MouseButton::Middle) {
-    //         // Pick
-
-    //     }
-    // }
-}
-
-
-
-
-
-
-
-
-#[derive(Resource)]
-struct WorldInfo {
-    
-    seed: u64,
-
-    name: String,
-
-    daytime: f32,
-
-    // seconds a day time long
-    daytime_length: f32,  
-
-    // seconds
-    time_inhabited: f32,
-
-    time_created: u64,
-    time_modified: u64,
-    
-    tick_timer: Timer,
-
-    is_paused: bool,
-    paused_steps: i32,
-
-    chunk_system: Arc<ChunkSystem>,
-}
-
-impl WorldInfo {
-    fn new() -> Self {
-        WorldInfo {
-            seed: 0,
-            name: "None Name".into(),
-            daytime: 0.,
-            daytime_length: 60. * 2.,
-
-            time_inhabited: 0.,
-            time_created: 0,
-            time_modified: 0,
-            
-            tick_timer: Timer::new(
-                bevy::utils::Duration::from_secs_f32(1. / 20.), // Update our atmosphere every 50ms (in a real game, this would be much slower, but for the sake of an example we use a faster update)
-                TimerMode::Repeating,
-            ),
-
-            is_paused: false,
-            paused_steps: 0,
-
-            chunk_system: Arc::new(ChunkSystem::new()),
-        }
-    }
-}
-
-
-#[derive(Component)]
-struct Sun;
 
 
 
 // Simple environment
 fn startup(
-    mut commands: Commands,
     assets: Res<AssetServer>,
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-
-    mut chunk_sys: ResMut<ChunkSystem>,
 ) {
 
     // Logical Player
@@ -367,18 +84,6 @@ fn startup(
         },
         CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
 
-        
-        // PbrBundle {
-        //     mesh: meshes.add(Mesh::from(shape::Capsule {
-        //         radius: 0.4,
-        //         ..default()
-        //     })),
-        //     material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        //     transform: Transform::from_xyz(0.0, 1.5, 0.0),
-        //     ..default()
-        // },
-        // plugin::CharacterControllerBundle::new(Collider::capsule(1.0, 0.4), Vec3::NEG_Y * 9.81 * 2.0)
-        //     .with_movement(30.0, 0.92, 7.0, (30.0f32).to_radians()),
     )).with_children(|p| {
         p.spawn(SpotLightBundle {
             spot_light: SpotLight {
@@ -457,16 +162,7 @@ fn startup(
             ..default()
         },
     ));
-    // // Light
-    // commands.spawn(PointLightBundle {
-    //     point_light: PointLight {
-    //         intensity: 1500.0,
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     transform: Transform::from_xyz(0., 0.0, 0.0),
-    //     ..default()
-    // });
+    
 }
 
 
@@ -512,4 +208,259 @@ fn tick_world(
         light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.3);
     }
 }
+
+
+
+// fn update_chunks_loadance(
+//     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+//     mut chunk_sys: ResMut<ChunkSystem>,
+//     mut chunks_loading: Local<HashMap<IVec3, Task<ChunkPtr>>>,
+//     mut chunks_meshing: Local<HashMap<IVec3, ChunkMeshingState>>,
+    
+//     mut commands: Commands,
+//     mut meshes: ResMut<Assets<Mesh>>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+// ) {
+//     // let thread_pool = AsyncComputeTaskPool::get();
+
+//     let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()) * 0;  // view pos
+//     let vd = chunk_sys.view_distance;
+
+//     // Chunks Detect Load/Gen
+//     for y in -vd.y..=vd.y {
+//         for z in -vd.x..=vd.x {
+//             for x in -vd.x..=vd.x {
+//                 let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
+
+//                 if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains_key(&chunkpos) {
+//                     continue;
+//                 }
+
+//                 let mut chunk = Chunk::new(chunkpos);
+                
+//                 ChunkGenerator::generate_chunk(&mut chunk);
+
+//                 let mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+
+//                 chunk_sys.spawn_chunk(chunk, &mut commands, mesh);
+
+//                 // let chunk_sys = chunk_sys.clone();
+//                 // let task = thread_pool.spawn(async move {
+
+//                 //     info!("Providing {:?}", chunkpos);
+
+//                 //     // provide chunk (load or gen)
+//                 //     chunk_sys.provide_chunk(chunkpos)
+
+//                 // });
+//                 // chunks_loading.insert(chunkpos, task);
+//             }
+//         }
+//     }
+
+//     // use float_ord::FloatOrd;
+//     // use core::slice;
+//     // chunks_loading.sort_unstable_by_key(|key| {
+//         // FloatOrd(key.as_vec3().distance(player_pos.chunk_min.as_vec3()))
+//     // });
+//     // DoesNeeds? Chunks Loaded IntoWorld Batch (for reduce LockWrite)
+    
+//     // chunks_loading.retain(|chunkpos, task| {
+//     //     if task.is_finished() {
+//     //         if let Some(chunk) = future::block_on(future::poll_once(task)) {
+                
+
+//     //             chunk_sys.spawn_chunk(chunk, &mut commands);
+
+//     //             chunks_meshing.insert(*chunkpos, ChunkMeshingState::Pending);
+
+//     //             info!("spawn_chunk {:?}", chunkpos);
+//     //             return false;
+//     //         } else {
+//     //             info!("NotAvailable {:?}", chunkpos);
+//     //         }
+//     //     }
+//     //     true
+//     // });
+
+//     // Chunks Unload
+//     // for chunkpos in chunk_sys.chunks.keys() {
+
+//     //     // if should_unload()
+//     //     if (*chunkpos - vp).abs().max_element() {
+
+//     //     }
+//     // }
+
+
+//     // Chunks Detect Meshing
+//     for (chunkpos, stat) in chunks_meshing.iter_mut() {
+//         if let ChunkMeshingState::Pending = stat {
+
+
+//             // let task = thread_pool.spawn(async move {
+
+//             //     let mesh = generate_chunk_mesh();
+//             //     // MeshGen::generate_chunk_mesh();
+//             //     // mesh_solid
+//             //     // mesh_foliage
+//             //     mesh
+//             // });
+
+//             let mesh = generate_chunk_mesh();
+
+//             meshes.get_mut(id)
+
+//             *stat = ChunkMeshingState::Meshing;//(task);
+//         }
+//     }
+
+//     // Chunks Upload Mesh.
+
+//     // chunks_meshing.retain(|chunkpos, stat| {
+//     //     if let ChunkMeshingState::Meshing(task) = stat {
+//     //         if task.is_finished() {
+//     //             if let Some(chunk_mesh) = future::block_on(future::poll_once(task)) {
+                
+                    
+//     //                 return false;
+//     //             }
+//     //         }
+//     //     }
+//     //     true
+//     // });
+
+
+
+// }
+
+// fn generate_chunk_mesh() -> Mesh {
+//     Mesh::new(PrimitiveTopology::TriangleList)
+//     .with_inserted_attribute(
+//         Mesh::ATTRIBUTE_POSITION, 
+//         vec![
+//             [-0.5, 0.5, -0.5], // vertex with index 0
+//             [0.5, 0.5, -0.5], // vertex with index 1
+//             [0.5, 0.5, 0.5], // etc. until 23
+//             [-0.5, 0.5, 0.5],
+//         ]
+//     )
+//     .with_inserted_attribute(
+//         Mesh::ATTRIBUTE_UV_0, 
+//         vec![
+//             // Assigning the UV coords for the top side.
+//             [0.0, 0.2], [0.0, 0.0], [1.0, 0.0], [1.0, 0.25],
+//         ]
+//     )
+//     .with_inserted_attribute(
+//         Mesh::ATTRIBUTE_NORMAL,
+//         vec![
+//             // Normals for the top side (towards +y)
+//             [0.0, 1.0, 0.0],
+//             [0.0, 1.0, 0.0],
+//             [0.0, 1.0, 0.0],
+//             [0.0, 1.0, 0.0],
+//         ]
+//     )
+//     .with_indices(Some(Indices::U32(vec![
+//         0,3,1 , 1,3,2,
+//     ])))
+// }
+
+
+
+
+fn handle_inputs(
+    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
+    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
+    key: Res<Input<KeyCode>>,
+    mouse_input: Res<Input<MouseButton>>,
+) {
+    let mut window = window_query.single_mut();
+
+    // Toggle MouseGrab
+    for event in editor_events.read() {
+        match *event {
+            EditorEvent::Toggle { now_active } => {
+                let playing = !now_active;
+                window.cursor.grab_mode = if playing {CursorGrabMode::Locked} else {CursorGrabMode::None};
+                window.cursor.visible = !playing;
+                for mut controller in &mut controller_query {
+                    controller.enable_input = playing;
+                }
+            },
+            _ => ()
+        }
+    }
+    
+    // Toggle Fullscreen
+    if  key.just_pressed(KeyCode::F11) ||
+        (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) 
+    {
+        window.mode = if window.mode != WindowMode::Fullscreen {
+            WindowMode::Fullscreen
+        } else {
+            WindowMode::Windowed
+        };
+    }
+}
+
+
+
+
+
+
+#[derive(Resource)]
+struct WorldInfo {
+    
+    seed: u64,
+
+    name: String,
+
+    daytime: f32,
+
+    // seconds a day time long
+    daytime_length: f32,  
+
+    // seconds
+    time_inhabited: f32,
+
+    time_created: u64,
+    time_modified: u64,
+    
+    tick_timer: Timer,
+
+    is_paused: bool,
+    paused_steps: i32,
+
+}
+
+impl WorldInfo {
+    fn new() -> Self {
+        WorldInfo {
+            seed: 0,
+            name: "None Name".into(),
+            daytime: 0.,
+            daytime_length: 60. * 2.,
+
+            time_inhabited: 0.,
+            time_created: 0,
+            time_modified: 0,
+            
+            tick_timer: Timer::new(
+                bevy::utils::Duration::from_secs_f32(1. / 20.),
+                TimerMode::Repeating,
+            ),
+
+            is_paused: false,
+            paused_steps: 0,
+        }
+    }
+}
+
+
+#[derive(Component)]
+struct Sun;  // marker
+
 
