@@ -3,7 +3,7 @@ use std::{f32::consts::{PI, TAU}, sync::Arc};
 
 use bevy::{
     prelude::*, utils::HashMap, 
-    window::{CursorGrabMode, PrimaryWindow}, 
+    window::{CursorGrabMode, PrimaryWindow, WindowMode}, 
     pbr::{ScreenSpaceAmbientOcclusionBundle, ScreenSpaceAmbientOcclusionSettings}, 
     core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, tasks::{AsyncComputeTaskPool, Task}, render::{mesh::Indices, render_resource::PrimitiveTopology}
 };
@@ -23,6 +23,8 @@ mod chunk;
 use chunk::Chunk;
 use chunk::ChunkSystem;
 use chunk::ChunkPtr;
+
+use self::chunk::ChunkMeshingState;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
@@ -67,6 +69,7 @@ fn update_chunks_loadance(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut worldinfo: ResMut<WorldInfo>,
     mut chunks_loading: Local<HashMap<IVec3, Task<ChunkPtr>>>,
+    mut chunks_meshing: Local<HashMap<IVec3, ChunkMeshingState>>,
     
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -92,6 +95,7 @@ fn update_chunks_loadance(
                 let task = thread_pool.spawn(async move {
 
                     info!("Providing {:?}", chunkpos);
+
                     // provide chunk (load or gen)
                     chunk_sys.provide_chunk(chunkpos)
 
@@ -100,38 +104,23 @@ fn update_chunks_loadance(
             }
         }
     }
+
+    // use float_ord::FloatOrd;
+    // use core::slice;
+    // chunks_loading.sort_unstable_by_key(|key| {
+        // FloatOrd(key.as_vec3().distance(player_pos.chunk_min.as_vec3()))
+    // });
     // DoesNeeds? Chunks Loaded IntoWorld Batch (for reduce LockWrite)
-    
-
-    // for (chunkpos, task) in chunks_loading.iter_mut() {
-    //     if task.is_finished() {
-    //         // load to world
-    //         if let Some(chunk) = future::block_on(future::poll_once(task)) {
-                
-    //             chunk_sys.spawn_chunk(chunk);
-    //         } else {
-    //             info!("NotAvailable");
-    //         }
-
-    //         info!("ChunkProvided: {:?}", chunkpos);
-    //     }
-    // }
     
     chunks_loading.retain(|chunkpos, task| {
         if task.is_finished() {
             if let Some(chunk) = future::block_on(future::poll_once(task)) {
                 
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(generate_chunk_mesh()),
-            transform: Transform::from_translation(chunkpos.as_vec3()),
-            ..default()
-        },
-        
-        AsyncCollider(ComputedCollider::TriMesh),
-        RigidBody::Static,
-    ));
-                chunk_sys.spawn_chunk(chunk);
+
+                chunk_sys.spawn_chunk(chunk, &mut commands);
+
+                chunks_meshing.insert(*chunkpos, ChunkMeshingState::Pending);
+
                 info!("spawn_chunk {:?}", chunkpos);
                 return false;
             } else {
@@ -152,8 +141,36 @@ fn update_chunks_loadance(
 
 
     // Chunks Detect Meshing
+    for (chunkpos, stat) in chunks_meshing.iter_mut() {
+        if let ChunkMeshingState::Pending = stat {
+
+
+            let task = thread_pool.spawn(async move {
+
+                let mesh = generate_chunk_mesh();
+                // MeshGen::generate_chunk_mesh();
+                // mesh_solid
+                // mesh_foliage
+                mesh
+            });
+            *stat = ChunkMeshingState::Meshing(task);
+        }
+    }
 
     // Chunks Upload Mesh.
+
+    chunks_meshing.retain(|chunkpos, stat| {
+        if let ChunkMeshingState::Meshing(task) = stat {
+            if task.is_finished() {
+                if let Some(chunk_mesh) = future::block_on(future::poll_once(task)) {
+                
+                    
+                    return false;
+                }
+            }
+        }
+        true
+    });
 
 
 
@@ -199,6 +216,8 @@ fn editor_pause(
     mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
     mut controller_query: Query<&mut CharacterController>,
+    key: Res<Input<KeyCode>>,
+    mouse_input: Res<Input<MouseButton>>,
 ) {
     let mut window = window_query.single_mut();
 
@@ -214,6 +233,16 @@ fn editor_pause(
             },
             _ => ()
         }
+    }
+    
+    if key.just_pressed(KeyCode::F11)
+        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
+    {
+        window.mode = if window.mode != WindowMode::Fullscreen {
+            WindowMode::Fullscreen
+        } else {
+            WindowMode::Windowed
+        };
     }
 }
 
@@ -320,6 +349,8 @@ fn startup(
     assets: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+
+    mut chunk_sys: ResMut<ChunkSystem>,
 ) {
 
     // Logical Player

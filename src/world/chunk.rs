@@ -4,7 +4,9 @@ use std::path::Path;
 use std::sync::{Arc, RwLockReadGuard, RwLock, Weak, RwLockWriteGuard};
 
 use bevy::prelude::*;
-use bevy::utils::HashMap;
+use bevy::render::primitives::Aabb;
+use bevy::tasks::Task;
+use bevy::utils::{HashMap, HashSet};
 
 use crate::world::chunk;
 
@@ -36,14 +38,29 @@ impl Default for Cell {
     }
 }
 
+impl Cell {
+
+    fn new(value: f32, mtl: u16) -> Self {
+        Self {
+            value,
+            mtl,
+            ..default()
+        }
+    }
+
+}
+
 
 
 // Chunk is "Heavy" type (big size, stored a lot voxels). thus copy/clone are not allowed.
 pub struct Chunk {
 
+    // shoud Box?
     cells: [Cell; 16*16*16],
 
     chunkpos: IVec3,
+
+    entity: Entity,
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
     // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
@@ -63,12 +80,32 @@ impl Chunk {
             cells: [Cell::default(); 16*16*16],
             chunkpos,
             neighbors: [None, None, None, None, None, None],
+            entity: Entity::PLACEHOLDER,
         }
     }
 
-    // fn local_cell(self, localpos: IVec3) -> &Cell {
-    //     &self.cells[Chunk::local_cell_idx(localpos) as usize]
-    // }
+    #[inline]
+    fn get_cell(&self, localpos: IVec3) -> Cell {
+        self.cells[Chunk::local_cell_idx(localpos) as usize]
+    }
+
+    fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {
+        &mut self.cells[Chunk::local_cell_idx(localpos) as usize]
+    }
+
+    fn set_cell(&mut self, localpos: IVec3, cell: Cell) {
+        self.cells[Chunk::local_cell_idx(localpos) as usize] = cell;
+    }
+
+
+    pub fn neighbor_chunk(&self, i: i32) -> Option<ChunkPtr> {
+
+        if let Some(chunk) = &self.neighbors[i as usize] {
+            chunk.upgrade()
+        } else {
+            None
+        }
+    }
 
     fn _floor16(x: i32) -> i32 { x & (!15) }
     fn _mod16(x: i32) -> i32 { x & 15 }
@@ -85,27 +122,17 @@ impl Chunk {
     fn is_chunkpos(p: IVec3) -> bool {
         p % 16 == IVec3::ZERO
     }
-
-    pub fn neighbor_chunk(&self, i: i32) -> Option<ChunkPtr> {
-
-        if let Some(chunk) = &self.neighbors[i as usize] {
-            chunk.upgrade()
-        } else {
-            None
-        }
+    // [0, 16)
+    fn is_localpos(p: IVec3) -> bool {
+        p.x >= 0 && p.x < 16 &&
+        p.y >= 0 && p.y < 16 &&
+        p.z >= 0 && p.z < 16
     }
 
-    // // [0, 16)
-    // fn is_localpos(p: IVec3) -> bool {
-    //     p.x >= 0 && p.x < 16 &&
-    //     p.y >= 0 && p.y < 16 &&
-    //     p.z >= 0 && p.z < 16
-    // }
-
-    // fn local_cell_idx(localpos: IVec3) -> i32 {
-    //     assert!(Chunk::is_localpos(localpos));
-    //     localpos.x << 8 | localpos.y << 4 | localpos.z
-    // }
+    fn local_cell_idx(localpos: IVec3) -> i32 {
+        assert!(Chunk::is_localpos(localpos));
+        localpos.x << 8 | localpos.y << 4 | localpos.z
+    }
 
 }
 
@@ -121,6 +148,25 @@ enum SVO<T> {
 
 }
 
+#[derive(Component)]
+pub struct ChunkComponent {
+    chunkpos: IVec3,
+}
+
+impl ChunkComponent {
+    fn new(chunkpos: IVec3) -> Self {
+        Self {
+            chunkpos,
+        }
+    }
+}
+
+
+pub enum ChunkMeshingState {
+    Pending,
+    Meshing(Task<Mesh>),
+    Completed,
+}
 
 #[derive(Resource)]
 pub struct ChunkSystem {
@@ -137,6 +183,9 @@ pub struct ChunkSystem {
     // Spare Voxel Octree for Spatial lookup acceleration.
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
 
+    pub chunks_loading: HashSet<IVec3>,
+    pub chunks_meshing: HashMap<IVec3, ChunkMeshingState>,
+
     pub view_distance: IVec2,
 
 }
@@ -149,6 +198,8 @@ impl ChunkSystem {
         Self { 
             chunks: Arc::new(RwLock::new(HashMap::new())), 
             view_distance: IVec2::new(2, 2),
+            chunks_loading: HashSet::new(),
+            chunks_meshing: HashMap::new(),
         }
     }
 
@@ -189,15 +240,55 @@ impl ChunkSystem {
     }
 
 
-    pub fn spawn_chunk(&self, chunk: ChunkPtr) {
-        let chunkpos = chunk.read().unwrap().chunkpos;
+    pub fn spawn_chunk(&self, chunkptr: ChunkPtr, cmds: &mut Commands) {
+        let chunkpos;
 
-        self.chunks.write().unwrap().insert(chunkpos, chunk);
+        {
+            let mut chunk = chunkptr.write().unwrap();
+            chunkpos = chunk.chunkpos;
+    
+            let entity = cmds.spawn((
+                ChunkComponent::new(chunkpos),
+                PbrBundle {
+                    // mesh: meshes.add(generate_chunk_mesh()),
+                    transform: Transform::from_translation(chunkpos.as_vec3()),
+                    // visibility: Visibility::Hidden,
+                    ..default()
+                },
+                Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                
+                // AsyncCollider(ComputedCollider::TriMesh),
+                // RigidBody::Static,
+            )).id();
+
+            chunk.entity = entity;
+        }
+        
+
+        self.chunks.write().unwrap().insert(chunkpos, chunkptr);
+        // // There is no need to cast shadows for chunks below the surface.
+        // if chunkpos.y <= 64 {
+        //     entity_commands.insert(NotShadowCaster);
+        // }
+
     }
 
-    pub fn despawn_chunk(&self, chunkpos: IVec3) -> Option<ChunkPtr> {
+    pub fn despawn_chunk(&self, chunkpos: IVec3, cmds: &mut Commands) -> Option<ChunkPtr> {
 
-        self.chunks.write().unwrap().remove(&chunkpos)
+        if let Some(chunk_) = self.chunks.write().unwrap().remove(&chunkpos) {
+            {
+                let chunk = chunk_.read().unwrap();
+
+                cmds.entity(chunk.entity).despawn_recursive();
+            }
+            Some(chunk_)
+        } else {
+            None
+        }
+    }
+
+    pub fn set_chunk_meshing(&mut self, chunkpos: IVec3, stat: ChunkMeshingState) {
+        self.chunks_meshing.insert(chunkpos, stat);
     }
 
 }
@@ -213,6 +304,17 @@ struct ChunkGenerator {
 impl ChunkGenerator {
 
     fn generate_chunk(chunk: &mut Chunk) {
+
+        // for y in 0..Chunk::SIZE {
+        //     for z in 0..Chunk::SIZE {
+        //         for x in 0..Chunk::SIZE {
+        //             let lp = IVec3::new(x, y, z);
+
+        //         }
+        //     }
+        // }
+
+        chunk.set_cell(IVec3::new(0,0,0), Cell::new(1., 1))
 
     }
 
