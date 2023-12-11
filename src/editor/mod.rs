@@ -1,5 +1,5 @@
 
-use bevy::prelude::*;
+use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin}};
 
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
@@ -19,6 +19,8 @@ impl Plugin for EditorPlugin {
             //     ..default()
             // })
         );
+
+        app.add_plugins((FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin));
         
         // Setup Controls
         app.insert_resource(editor_controls());

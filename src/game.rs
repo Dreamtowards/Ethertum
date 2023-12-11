@@ -18,11 +18,8 @@ use crate::voxel::VoxelPlugin;
 
 pub struct GamePlugin;
 
-
-
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-
 
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
@@ -32,11 +29,11 @@ impl Plugin for GamePlugin {
         app.add_plugins(PhysicsPlugins::default());
 
         // SSAO
-        app.add_plugins(TemporalAntiAliasPlugin);
-        app.insert_resource(AmbientLight {
-                brightness: 0.05,
-                ..default()
-            });
+        // app.add_plugins(TemporalAntiAliasPlugin);
+        // app.insert_resource(AmbientLight {
+        //         brightness: 0.05,
+        //         ..default()
+        //     });
 
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
@@ -84,17 +81,7 @@ fn startup(
         },
         CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
 
-    )).with_children(|p| {
-        p.spawn(SpotLightBundle {
-            spot_light: SpotLight {
-                intensity: 1500.0,
-                shadows_enabled: true,
-                ..default()
-            },
-            transform: Transform::from_xyz(0., 0., -0.5),
-            ..default()
-        });
-    });
+    ));
 
     // Camera
     commands.spawn((
@@ -112,9 +99,9 @@ fn startup(
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
         CharacterControllerCamera,
 
-    ))
-    .insert(ScreenSpaceAmbientOcclusionBundle::default())
-    .insert(TemporalAntiAliasBundle::default());
+    ));
+    // .insert(ScreenSpaceAmbientOcclusionBundle::default())
+    // .insert(TemporalAntiAliasBundle::default());
 
     // Sun
     commands.spawn((
@@ -173,32 +160,32 @@ fn tick_world(
     mut worldinfo: ResMut<WorldInfo>,
     time: Res<Time>,
 ) {
-    worldinfo.tick_timer.tick(time.delta());
-    if !worldinfo.tick_timer.just_finished() {
-        return;
-    }
+    // worldinfo.tick_timer.tick(time.delta());
+    // if !worldinfo.tick_timer.just_finished() {
+    //     return;
+    // }
+    // let dt_sec = worldinfo.tick_timer.duration().as_secs_f32();  // constant time step?
 
-    // Pause & Steps
-    if worldinfo.is_paused {
-        if  worldinfo.paused_steps > 0 {
-            worldinfo.paused_steps -= 1;
-        } else {
-            return;
-        }
-    }
+    // // Pause & Steps
+    // if worldinfo.is_paused {
+    //     if  worldinfo.paused_steps > 0 {
+    //         worldinfo.paused_steps -= 1;
+    //     } else {
+    //         return;
+    //     }
+    // }
+    let dt_sec = time.delta_seconds();
     
 
-    let dt_sec = worldinfo.tick_timer.duration().as_secs_f32();  // constant time step?
     worldinfo.time_inhabited += dt_sec;
     
     // DayTime
     worldinfo.daytime += dt_sec / worldinfo.daytime_length;
     worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
 
-    // SunPos
-    let sun_ang = worldinfo.daytime * PI*2.;
 
     // Atmosphere SunPos
+    let sun_ang = worldinfo.daytime * PI*2.;
     atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
 
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {

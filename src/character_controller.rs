@@ -13,11 +13,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.register_type::<CharacterController>();
 
-        app.add_systems(Update, 
-            (
-                input_move,
-                sync_camera,
-            ));
+        app.add_systems(Update, (input_move, sync_camera).chain());
 
     }
 }
