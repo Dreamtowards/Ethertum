@@ -3,16 +3,20 @@
 mod chunk;
 mod chunk_system;
 
+mod meshgen;
+mod worldgen;
+
 use chunk::*;
 use chunk_system::*;
-
-
+use meshgen::MeshGen;
 
 use bevy::{
     prelude::*, 
     render::{render_resource::PrimitiveTopology, primitives::Aabb}, 
     utils::HashMap
 };
+
+use crate::voxel::worldgen::WorldGen;
 
 pub struct VoxelPlugin;
 
@@ -100,7 +104,7 @@ fn chunks_detect_load(
                 
                 let mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
 
-                ChunkGenerator::generate_chunk(&mut chunk);
+                WorldGen::generate_chunk(&mut chunk);
 
 
                 chunk.entity = commands.spawn((
@@ -144,8 +148,9 @@ fn chunks_detect_remesh(
         if let ChunkRemeshState::Pending = *stat {
             *vis = Visibility::Visible;
 
+            let chunk = chunk_sys.get_chunk(chunkinfo.chunkpos).unwrap();
 
-            let mesh = generate_chunk_mesh();
+            let mesh = MeshGen::generate_chunk_mesh(chunk);
             *meshes.get_mut(mesh_id).unwrap() = mesh;
 
             *stat = ChunkRemeshState::Completed;
@@ -164,41 +169,4 @@ fn chunks_detect_remesh(
 
 
 }
-
-
-fn generate_chunk_mesh() -> Mesh {
-    Mesh::new(PrimitiveTopology::TriangleList)
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_POSITION, 
-        vec![
-            [-0.5, 0.5, -0.5], // vertex with index 0
-            [0.5, 0.5, -0.5], // vertex with index 1
-            [0.5, 0.5, 0.5], // etc. until 23
-            [-0.5, 0.5, 0.5],
-        ]
-    )
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_UV_0, 
-        vec![
-            // Assigning the UV coords for the top side.
-            [0.0, 0.2], [0.0, 0.0], [1.0, 0.0], [1.0, 0.25],
-        ]
-    )
-    .with_inserted_attribute(
-        Mesh::ATTRIBUTE_NORMAL,
-        vec![
-            // Normals for the top side (towards +y)
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0],
-        ]
-    )
-    .with_indices(Some(bevy::render::mesh::Indices::U32(vec![
-        0,3,1 , 1,3,2,
-    ])))
-}
-
-
-
 

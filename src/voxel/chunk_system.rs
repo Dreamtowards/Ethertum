@@ -55,15 +55,15 @@ impl ChunkSystem {
         }
     }
 
-    // pub fn get_chunk(&self, chunkpos: IVec3) -> Option<ChunkPtr> {
-    //     assert!(Chunk::is_chunkpos(chunkpos));
+    pub fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
+        assert!(Chunk::is_chunkpos(chunkpos));
 
-    //     if let Some(chunk) = self.chunks.get(&chunkpos) {  //.read().unwrap().get(&chunkpos) {
-    //         Some(chunk.clone())
-    //     } else {
-    //         None
-    //     }
-    // }
+        if let Some(chunk) = self.chunks.get(&chunkpos) {  //.read().unwrap().get(&chunkpos) {
+            Some(chunk)
+        } else {
+            None
+        }
+    }
 
     pub fn has_chunk(&self, chunkpos: IVec3) -> bool {
         assert!(Chunk::is_chunkpos(chunkpos));
@@ -127,35 +127,5 @@ impl ChunkSystem {
 
 
 
-
-
-
-
-pub struct ChunkGenerator {
-
-}
-
-impl ChunkGenerator {
-
-    pub fn generate_chunk(chunk: &mut Chunk) {
-
-        // for y in 0..Chunk::SIZE {
-        //     for z in 0..Chunk::SIZE {
-        //         for x in 0..Chunk::SIZE {
-        //             let lp = IVec3::new(x, y, z);
-
-        //         }
-        //     }
-        // }
-
-        chunk.set_cell(IVec3::new(0,0,0), Cell::new(1., 1))
-
-    }
-
-    fn populate_chunk(chunk: &mut Chunk) {
-
-    }
-
-}
 
 

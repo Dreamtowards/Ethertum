@@ -42,6 +42,10 @@ impl Cell {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.value <= 0.
+    }
+
 }
 
 

@@ -1,11 +1,11 @@
 
 use bevy::{prelude::*, window::WindowResolution};
 
-mod editor;
 mod game;
 mod voxel;
 
 mod character_controller;
+mod editor;
 
 fn main() {
     App::new()
