@@ -16,7 +16,7 @@ use bevy::{
     utils::HashMap
 };
 
-use crate::voxel::worldgen::WorldGen;
+use crate::{voxel::worldgen::WorldGen, character_controller::CharacterControllerCamera};
 
 pub struct VoxelPlugin;
 
@@ -80,6 +80,8 @@ enum ChunkRemeshState {
 
 
 fn chunks_detect_load(
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+
     mut chunk_sys: ResMut<ChunkSystem>,
     
     mut commands: Commands,
@@ -87,7 +89,7 @@ fn chunks_detect_load(
 ) {
     // let chunk_sys_entity = commands.entity(chunk_sys.entity);
 
-    let vp = IVec3::ZERO;  //Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());  // viewer pos
+    let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());  // viewer pos
     let vd = chunk_sys.view_distance;
 
     // Chunks Detect Load/Gen

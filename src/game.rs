@@ -41,7 +41,7 @@ impl Plugin for GamePlugin {
 
         // WorldInfo
         app.insert_resource(WorldInfo::new());
-        // app.register_type::<WorldInfo>();
+        app.register_type::<WorldInfo>();
         
 
         // ChunkSystem
@@ -398,7 +398,7 @@ fn handle_inputs(
 
 
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
 struct WorldInfo {
     
     seed: u64,

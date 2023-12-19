@@ -22,6 +22,10 @@ impl VertexBuffer {
         self.norm.push(norm);
     }
 
+    // fn is_indexed(&self) -> bool {
+    //     !self.indices.is_empty()
+    // }
+
     fn into_mesh(self) -> Mesh {
         let mut mesh = Mesh::new(PrimitiveTopology::TriangleList)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
@@ -73,101 +77,56 @@ impl MeshGen {
 
 
 
+static CUBE_POS: [f32;6*6*3] = [
+    0., 0., 1., 0., 1., 1., 0., 1., 0.,  // Left -X
+    0., 0., 1., 0., 1., 0., 0., 0., 0.,
+    1., 0., 0., 1., 1., 0., 1., 1., 1.,  // Right +X
+    1., 0., 0., 1., 1., 1., 1., 0., 1.,
+    0., 0., 1., 0., 0., 0., 1., 0., 0.,  // Bottom -Y
+    0., 0., 1., 1., 0., 0., 1., 0., 1.,
+    0., 1., 1., 1., 1., 1., 1., 1., 0.,  // Bottom +Y
+    0., 1., 1., 1., 1., 0., 0., 1., 0.,
+    0., 0., 0., 0., 1., 0., 1., 1., 0.,  // Front -Z
+    0., 0., 0., 1., 1., 0., 1., 0., 0.,
+    1., 0., 1., 1., 1., 1., 0., 1., 1.,  // Back +Z
+    1., 0., 1., 0., 1., 1., 0., 0., 1.,
+];
+
+static CUBE_UV: [f32;6*6*2] = [
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,  // One Face.
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+];
+
+static CUBE_NORM: [f32;6*6*3] = [
+    -1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,
+    1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0.,
+    0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0.,
+    0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0.,
+    0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1.,
+    0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
+];
+
+// static CUBE_IDX: [u32;6*6] = [
+// ];
+
+
 fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3) {
-    let vtx_base = vbuf.pos.len() as u32;
-    let idx_base = vbuf.indices.len() as u32;
+    
+    for face_i in 0..6 {
+        let face_dir = Vec3::from_slice(&CUBE_NORM[face_i*18..]);  // 18: 3 scalar * 3 vertex * 2 triangle
 
-    info!("GenBlock at {:?}", lp);
+        for vert_i in 0..6 {
 
-    vbuf.pos.extend(vec![
-        // top (facing towards +y)
-        Vec3::new(-0.5, 0.5, -0.5) + lp.as_vec3(), // vertex with index 0
-        Vec3::new(0.5, 0.5, -0.5) + lp.as_vec3(), // vertex with index 1
-        Vec3::new(0.5, 0.5, 0.5) + lp.as_vec3(), // etc. until 23
-        Vec3::new(-0.5, 0.5, 0.5) + lp.as_vec3(),
-        // bottom   (-y)
-        Vec3::new(-0.5, -0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(0.5, -0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(0.5, -0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, -0.5, 0.5) + lp.as_vec3(),
-        // right    (+x)
-        Vec3::new(0.5, -0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(0.5, -0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(0.5, 0.5, 0.5) + lp.as_vec3(), // This vertex is at the same position as vertex with index 2, but they'll have different UV and normal
-        Vec3::new(0.5, 0.5, -0.5) + lp.as_vec3(),
-        // left     (-x)
-        Vec3::new(-0.5, -0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, -0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, 0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, 0.5, -0.5) + lp.as_vec3(),
-        // back     (+z)
-        Vec3::new(-0.5, -0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, 0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(0.5, 0.5, 0.5) + lp.as_vec3(),
-        Vec3::new(0.5, -0.5, 0.5) + lp.as_vec3(),
-        // forward  (-z)
-        Vec3::new(-0.5, -0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(-0.5, 0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(0.5, 0.5, -0.5) + lp.as_vec3(),
-        Vec3::new(0.5, -0.5, -0.5) + lp.as_vec3(),
-    ]);
-    vbuf.norm.extend(vec![
-        // Normals for the top side (towards +y)
-        Vec3::new(0.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0),
-        // Normals for the bottom side (towards -y)
-        Vec3::new(0.0, -1.0, 0.0),
-        Vec3::new(0.0, -1.0, 0.0),
-        Vec3::new(0.0, -1.0, 0.0),
-        Vec3::new(0.0, -1.0, 0.0),
-        // Normals for the right side (towards +x)
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(1.0, 0.0, 0.0),
-        // Normals for the left side (towards -x)
-        Vec3::new(-1.0, 0.0, 0.0),
-        Vec3::new(-1.0, 0.0, 0.0),
-        Vec3::new(-1.0, 0.0, 0.0),
-        Vec3::new(-1.0, 0.0, 0.0),
-        // Normals for the back side (towards +z)
-        Vec3::new(0.0, 0.0, 1.0),
-        Vec3::new(0.0, 0.0, 1.0),
-        Vec3::new(0.0, 0.0, 1.0),
-        Vec3::new(0.0, 0.0, 1.0),
-        // Normals for the forward side (towards -z)
-        Vec3::new(0.0, 0.0, -1.0),
-        Vec3::new(0.0, 0.0, -1.0),
-        Vec3::new(0.0, 0.0, -1.0),
-        Vec3::new(0.0, 0.0, -1.0),
-    ]);
-    vbuf.uv.extend(vec![
-        // Assigning the UV coords for the top side.
-        Vec2::new(0.0, 0.2), Vec2::new(0.0, 0.0), Vec2::new(1.0, 0.0), Vec2::new(1.0, 0.25),
-        // Assigning the UV coords for the bottom side.
-        Vec2::new(0.0, 0.45), Vec2::new(0.0, 0.25), Vec2::new(1.0, 0.25), Vec2::new(1.0, 0.45),
-        // Assigning the UV coords for the right side.
-        Vec2::new(1.0, 0.45), Vec2::new(0.0, 0.45), Vec2::new(0.0, 0.2), Vec2::new(1.0, 0.2),
-        // Assigning the UV coords for the left side.
-        Vec2::new(1.0, 0.45), Vec2::new(0.0, 0.45), Vec2::new(0.0, 0.2), Vec2::new(1.0, 0.2),
-        // Assigning the UV coords for the back side.
-        Vec2::new(0.0, 0.45), Vec2::new(0.0, 0.2), Vec2::new(1.0, 0.2), Vec2::new(1.0, 0.45),
-        // Assigning the UV coords for the forward side.
-        Vec2::new(0.0, 0.45), Vec2::new(0.0, 0.2), Vec2::new(1.0, 0.2), Vec2::new(1.0, 0.45),
-    ]);
-    vbuf.indices.extend(vec![
-        0,3,1 , 1,3,2, // triangles making up the top (+y) facing side.
-        4,5,7 , 5,6,7, // bottom (-y)
-        8,11,9 , 9,11,10, // right (+x)
-        12,13,15 , 13,14,15, // left (-x)
-        16,19,17 , 17,19,18, // back (+z)
-        20,21,23 , 21,22,23, // forward (-z)
-    ]);
-    // apply rel idx
-    for val in vbuf.indices[idx_base as usize..].iter_mut() {
-        *val = vtx_base + *val;
+            vbuf.push_vertex(
+                Vec3::from_slice(&CUBE_POS[face_i*18 + vert_i*3..]) + lp.as_vec3(), 
+                Vec2::from_slice(&CUBE_UV[face_i*12 + vert_i*2..]), 
+                Vec3::from_slice(&CUBE_NORM[face_i*18 + vert_i*3..]), 
+            );
+        }
     }
 
 }
