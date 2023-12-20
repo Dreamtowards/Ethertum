@@ -16,7 +16,15 @@ pub struct VertexBuffer {
 
 impl VertexBuffer {
 
-    fn push_vertex(&mut self, pos: Vec3, uv: Vec2, norm: Vec3) {
+    pub fn with_capacity(num_vert: usize) -> Self {
+        let mut vtx = VertexBuffer::default();
+        vtx.pos.reserve(num_vert * 3);
+        vtx.uv.reserve(num_vert * 2);
+        vtx.norm.reserve(num_vert * 3);
+        vtx
+    }
+
+    pub fn push_vertex(&mut self, pos: Vec3, uv: Vec2, norm: Vec3) {
         self.pos.push(pos);
         self.uv.push(uv);
         self.norm.push(norm);
@@ -26,7 +34,7 @@ impl VertexBuffer {
     //     !self.indices.is_empty()
     // }
 
-    fn into_mesh(self) -> Mesh {
+    pub fn into_mesh(self) -> Mesh {
         let mut mesh = Mesh::new(PrimitiveTopology::TriangleList)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
@@ -48,10 +56,8 @@ pub struct MeshGen {
 
 impl MeshGen {
 
-    pub fn generate_chunk_mesh(chunk: &Chunk) -> Mesh {
+    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
-        let mut vbuf = VertexBuffer::default();
-        
         for y in 0..Chunk::SIZE {
             for z in 0..Chunk::SIZE {
                 for x in 0..Chunk::SIZE {
@@ -62,14 +68,12 @@ impl MeshGen {
                     if !cell.is_empty() {
 
 
-                        put_cube(&mut vbuf, lp);
+                        put_cube(vbuf, lp);
 
                     }
                 }
             }
         }
-
-        vbuf.into_mesh()
     }
 
 }

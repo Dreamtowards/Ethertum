@@ -8,7 +8,7 @@ pub struct EditorPlugin;
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
 
-        app.add_plugins(EguiPlugin);
+        //app.add_plugins(EguiPlugin);
         //app.add_systems(Update, ui_example_system);
 
         // Editor

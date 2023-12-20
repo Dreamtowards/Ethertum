@@ -2,6 +2,7 @@
 
 mod chunk;
 mod chunk_system;
+mod material;
 
 mod meshgen;
 mod worldgen;
@@ -9,14 +10,19 @@ mod worldgen;
 use chunk::*;
 use chunk_system::*;
 use meshgen::MeshGen;
+use meshgen::VertexBuffer;
+
+use crate::{voxel::worldgen::WorldGen, character_controller::CharacterControllerCamera};
 
 use bevy::{
     prelude::*, 
     render::{render_resource::PrimitiveTopology, primitives::Aabb}, 
-    utils::HashMap
+    utils::HashMap, tasks::AsyncComputeTaskPool
 };
 
-use crate::{voxel::worldgen::WorldGen, character_controller::CharacterControllerCamera};
+use std::cell::RefCell;
+use once_cell::sync::Lazy;
+use thread_local::ThreadLocal;
 
 pub struct VoxelPlugin;
 
@@ -138,6 +144,12 @@ fn chunks_detect_load(
     }
 }
 
+
+
+static SHARED_POOL_MESH_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
+    Lazy::new(ThreadLocal::default);
+
+
 fn chunks_detect_remesh(
     mut chunk_sys: ResMut<ChunkSystem>,
 
@@ -152,14 +164,29 @@ fn chunks_detect_remesh(
 
             let chunk = chunk_sys.get_chunk(chunkinfo.chunkpos).unwrap();
 
-            let mesh = MeshGen::generate_chunk_mesh(chunk);
-            *meshes.get_mut(mesh_id).unwrap() = mesh;
+            let mut vbuf = VertexBuffer::default();
+
+            MeshGen::generate_chunk_mesh(&mut vbuf, chunk);
+
+            *meshes.get_mut(mesh_id).unwrap() = vbuf.into_mesh();
 
             *stat = ChunkRemeshState::Completed;
 
             info!("ReMesh {:?}", chunkinfo.chunkpos);
         }
     }
+    
+    // let task_pool = AsyncComputeTaskPool::get();
+
+    // task_pool.spawn(async move {
+    //     let mut mesh_buffer = SHARED_POOL_MESH_BUFFERS
+    //         .get_or(|| {
+    //             RefCell::new(VertexBuffer::with_capacity(1024))
+    //         })
+    //         .borrow_mut();
+
+    //     MeshGen::generate_chunk_mesh(&mut mesh_buffer, chunk);
+    // });
 
     // chunk_sys.chunks_meshing.retain(|chunkpos, stat| {
     //     if ChunkMeshingState::Pending = stat {

@@ -3,6 +3,7 @@ use bevy::{prelude::*, window::WindowResolution};
 
 mod game;
 mod voxel;
+mod util;
 
 mod character_controller;
 mod editor;
