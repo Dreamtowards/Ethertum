@@ -3,7 +3,7 @@ use bevy::{
     render::{mesh::{Mesh, Indices}, render_resource::PrimitiveTopology},
 };
 
-use super::chunk::*;
+use super::{chunk::*, chunk_system::ChunkPtr};
 
 #[derive(Default)]
 pub struct VertexBuffer {
@@ -56,7 +56,7 @@ pub struct MeshGen {
 
 impl MeshGen {
 
-    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
 
         for y in 0..Chunk::SIZE {
             for z in 0..Chunk::SIZE {
@@ -68,7 +68,7 @@ impl MeshGen {
                     if !cell.is_empty() {
 
 
-                        put_cube(vbuf, lp);
+                        put_cube(vbuf, lp, chunk);
 
                     }
                 }
@@ -118,13 +118,18 @@ static CUBE_NORM: [f32;6*6*3] = [
 // ];
 
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &ChunkPtr) {
     
     for face_i in 0..6 {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i*18..]);  // 18: 3 scalar * 3 vertex * 2 triangle
 
-        for vert_i in 0..6 {
+        if let Some(neib) = chunk.get_cell_neighbor(lp + face_dir.as_ivec3()) {
+            if !neib.is_empty() {
+                continue;
+            }
+        }
 
+        for vert_i in 0..6 {
             vbuf.push_vertex(
                 Vec3::from_slice(&CUBE_POS[face_i*18 + vert_i*3..]) + lp.as_vec3(), 
                 Vec2::from_slice(&CUBE_UV[face_i*12 + vert_i*2..]), 

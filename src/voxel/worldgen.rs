@@ -22,9 +22,10 @@ impl WorldGen {
         //     }
         // }
 
-        chunk.set_cell(IVec3::new(0,0,0), Cell::new(1., 1));
-        chunk.set_cell(IVec3::new(0,0,2), Cell::new(1., 1));
-        chunk.set_cell(IVec3::new(0,2,0), Cell::new(1., 1));
+        chunk.set_cell(IVec3::new(0,0,0), &Cell::new(1., 1));
+        chunk.set_cell(IVec3::new(0,0,1), &Cell::new(1., 1));
+        chunk.set_cell(IVec3::new(0,0,2), &Cell::new(1., 1));
+        chunk.set_cell(IVec3::new(0,2,0), &Cell::new(1., 1));
 
     }
 
