@@ -29,7 +29,7 @@ pub struct ChunkSystem {
     // 设计一个高性能区块系统，这两个区块列表 及每个区块 都有RwLock特性，即 可同时可被多处读，但只能被互斥写
     // linear-list of loaded chunks.
     // chunks: Arc<RwLock<HashMap<IVec3, Arc<RwLock<Chunk>>>>>, 
-    chunks: HashMap<IVec3, ChunkPtr>,
+    pub chunks: HashMap<IVec3, ChunkPtr>,
 
     // Spare Voxel Octree for Spatial lookup acceleration.
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
@@ -40,6 +40,8 @@ pub struct ChunkSystem {
     pub view_distance: IVec2,
 
     pub entity: Entity,
+
+    pub vox_mtl: Handle<StandardMaterial>,
 
 }
 
@@ -52,6 +54,7 @@ impl ChunkSystem {
             // chunks_loading: HashSet::new(),
             // chunks_meshing: HashMap::new(),
             entity: Entity::PLACEHOLDER,
+            vox_mtl: Handle::default(),
         }
     }
 
@@ -106,11 +109,11 @@ impl ChunkSystem {
 
     }
 
-    pub fn despawn_chunk(&mut self, chunkpos: IVec3, cmds: &mut Commands) -> Option<ChunkPtr> {
+    pub fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
 
         if let Some(chunk) = self.chunks.remove(&chunkpos) {  //.write().unwrap()
 
-            cmds.entity(chunk.entity).despawn_recursive();
+            //cmds.entity(chunk.entity).despawn_recursive();
 
             Some(chunk)
         } else {

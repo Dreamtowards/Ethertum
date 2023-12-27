@@ -31,14 +31,17 @@ impl Plugin for VoxelPlugin {
         
 
         app.insert_resource(ChunkSystem::new());
+        // app.register_type::<ChunkSystem>();
 
 
         app.add_systems(Startup, startup);
 
         app.add_systems(Update, 
             (
-                chunks_detect_load, 
-                chunks_detect_remesh
+                chunks_detect_load_dispatch, 
+                // chunks_apply_loaded
+                chunks_detect_remesh_dispatch 
+                // chunks_apply_remeshed
             )
         );
 
@@ -50,8 +53,12 @@ fn startup(
     mut chunk_sys: ResMut<ChunkSystem>,
     
     mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let mtl = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    chunk_sys.vox_mtl = mtl;
 
+    // ChunkSystem entity. all chunk entities will be spawn as children.
     chunk_sys.entity = commands.spawn((
         Name::new("ChunkSystem"),
         InheritedVisibility::VISIBLE,
@@ -85,8 +92,9 @@ enum ChunkRemeshState {
 
 
 
-fn chunks_detect_load(
+fn chunks_detect_load_dispatch(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+    query_chunks: Query<(Entity, &ChunkComponent)>,
 
     mut chunk_sys: ResMut<ChunkSystem>,
     
@@ -119,6 +127,7 @@ fn chunks_detect_load(
                     ChunkComponent::new(chunkpos),
                     PbrBundle {
                         mesh: mesh,
+                        material: chunk_sys.vox_mtl.clone(),
                         transform: Transform::from_translation(chunkpos.as_vec3()),
                         visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
                         ..default()
@@ -138,11 +147,28 @@ fn chunks_detect_load(
 
                 // chunk_sys.chunks_meshing.insert(chunkpos, ChunkMeshingState::Pending);
 
-                info!("Chunk: {:?}", chunkpos);
+                info!("Load Chunk: {:?}", chunkpos);
             }
         }
     }
+
+    // Chunks Detect Unload
+    for (entity, chunk_comp) in query_chunks.iter() {
+        let chunkpos = chunk_comp.chunkpos;
+        
+        if (vp.x - chunkpos.x).abs() > vd.x * Chunk::SIZE ||
+           (vp.z - chunkpos.z).abs() > vd.x * Chunk::SIZE ||
+           (vp.y - chunkpos.y).abs() > vd.y * Chunk::SIZE {
+
+            info!("Unload Chunk: {:?}", chunkpos);
+            commands.entity(entity).despawn_recursive();
+            chunk_sys.despawn_chunk(chunkpos);
+        }
+
+    }
 }
+
+
 
 
 
@@ -150,7 +176,7 @@ static SHARED_POOL_MESH_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
     Lazy::new(ThreadLocal::default);
 
 
-fn chunks_detect_remesh(
+fn chunks_detect_remesh_dispatch(
     mut chunk_sys: ResMut<ChunkSystem>,
 
     mut meshes: ResMut<Assets<Mesh>>,

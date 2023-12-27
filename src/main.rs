@@ -9,7 +9,7 @@ mod character_controller;
 mod editor;
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "full");
+    //std::env::set_var("RUST_BACKTRACE", "full");
 
     App::new()
         .add_plugins(DefaultPlugins

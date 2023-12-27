@@ -127,7 +127,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &ChunkPtr) {
             if !neib.is_empty() {
                 continue;
             }
-        }
+        } 
 
         for vert_i in 0..6 {
             vbuf.push_vertex(

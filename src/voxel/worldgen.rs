@@ -1,7 +1,11 @@
 
+use std::ops::Div;
+
 use bevy::prelude::*;
 
 use super::chunk::*;
+
+use noise::{NoiseFn, Perlin};
 
 pub struct WorldGen {
 
@@ -12,20 +16,25 @@ impl WorldGen {
 
    
     pub fn generate_chunk(chunk: &mut Chunk) {
+        
+        let seed = 100;
+        let perlin = Perlin::new(seed);
 
-        // for y in 0..Chunk::SIZE {
-        //     for z in 0..Chunk::SIZE {
-        //         for x in 0..Chunk::SIZE {
-        //             let lp = IVec3::new(x, y, z);
+        for ly in 0..Chunk::SIZE {
+            for lz in 0..Chunk::SIZE {
+                for lx in 0..Chunk::SIZE {
+                    let lp = IVec3::new(lx, ly, lz);
+                    let p = chunk.chunkpos + lp;
 
-        //         }
-        //     }
-        // }
+                    let val = perlin.get(p.as_dvec3().div(24.).to_array());
 
-        chunk.set_cell(IVec3::new(0,0,0), &Cell::new(1., 1));
-        chunk.set_cell(IVec3::new(0,0,1), &Cell::new(1., 1));
-        chunk.set_cell(IVec3::new(0,0,2), &Cell::new(1., 1));
-        chunk.set_cell(IVec3::new(0,2,0), &Cell::new(1., 1));
+                    if val < 0. {
+                        chunk.set_cell(lp, &Cell::new(1., 1));
+                    }
+                }
+            }
+        }
+
 
     }
 

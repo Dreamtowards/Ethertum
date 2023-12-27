@@ -20,7 +20,11 @@ impl Plugin for EditorPlugin {
             // })
         );
 
-        app.add_plugins((FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin));
+        app.add_plugins((
+            FrameTimeDiagnosticsPlugin, 
+            EntityCountDiagnosticsPlugin,
+            //SystemInformationDiagnosticsPlugin
+        ));
         
         // Setup Controls
         app.insert_resource(editor_controls());
