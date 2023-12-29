@@ -3,7 +3,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::{prelude::*, input::mouse::MouseMotion};
 use bevy_xpbd_3d::{
-    components::*, plugins::spatial_query::{ShapeHits, ShapeCaster}, parry::na::ComplexField, 
+    components::*, plugins::spatial_query::{ShapeHits, ShapeCaster}, parry::na::ComplexField, PhysicsSet, 
 };
 
 pub struct CharacterControllerPlugin;
@@ -13,7 +13,10 @@ impl Plugin for CharacterControllerPlugin {
 
         app.register_type::<CharacterController>();
 
-        app.add_systems(Update, (input_move, sync_camera).chain());
+        app.add_systems(Update, input_move);
+
+
+        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
 
     }
 }
@@ -306,15 +309,15 @@ impl SmoothValue {
 }
 
 fn sync_camera(
-    mut cam_query: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
-    char_query: Query<(&Transform, &CharacterController), Without<CharacterControllerCamera>>,
+    mut query_cam: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
+    query_char: Query<(&Position, &CharacterController), Without<CharacterControllerCamera>>,
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
 ) {
-    if let Ok((char_trans, ctl)) = char_query.get_single() {
-        if let Ok((mut cam_trans, mut proj)) = cam_query.get_single_mut() {
+    if let Ok((char_pos, ctl)) = query_char.get_single() {
+        if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
 
-            cam_trans.translation = char_trans.translation + Vec3::new(0., 0.8, 0.);
+            cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.);
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
 
 
