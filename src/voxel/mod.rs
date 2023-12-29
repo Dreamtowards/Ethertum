@@ -7,48 +7,44 @@ mod material;
 mod meshgen;
 mod worldgen;
 
-use bevy::transform::commands;
-use bevy_xpbd_3d::components::AsyncCollider;
-use bevy_xpbd_3d::components::Collider;
-use bevy_xpbd_3d::components::ComputedCollider;
 use chunk::*;
 use chunk_system::*;
-use meshgen::MeshGen;
-use meshgen::VertexBuffer;
+use meshgen::*;
+use worldgen::*;
+use crate::character_controller::CharacterControllerCamera;
 
-use crate::{voxel::worldgen::WorldGen, character_controller::CharacterControllerCamera};
+use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidBody};
 
 use bevy::{
     prelude::*, 
     render::{render_resource::PrimitiveTopology, primitives::Aabb}, 
-    utils::HashMap, tasks::AsyncComputeTaskPool
+    utils::HashMap, tasks::{AsyncComputeTaskPool, Task}
 };
 
 use std::cell::RefCell;
 use once_cell::sync::Lazy;
 use thread_local::ThreadLocal;
 
+
+
 pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         
-
-        app.insert_resource(ChunkSystem::new(0));
+        app.insert_resource(ChunkSystem::new(2));
         app.register_type::<ChunkSystem>();
-
 
         app.add_systems(Startup, startup);
 
         app.add_systems(Update, 
             (
-                chunks_detect_load_dispatch, 
+                chunks_detect_load_and_unload, 
                 // chunks_apply_loaded
                 chunks_detect_remesh_dispatch 
                 // chunks_apply_remeshed
             )
         );
-
     }
 }
 
@@ -87,16 +83,11 @@ impl ChunkComponent {
 }
 
 #[derive(Component)]
-enum ChunkRemeshState {
-    Pending,
-    Meshing,
-    Completed,
-
-}
+struct ChunkMeshingTask;//(Task<Mesh>);
 
 
 
-fn chunks_detect_load_dispatch(
+fn chunks_detect_load_and_unload(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     query_chunks: Query<(Entity, &ChunkComponent)>,
 
@@ -116,34 +107,31 @@ fn chunks_detect_load_dispatch(
             for x in -vd.x..=vd.x {
                 let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
+                // the chunk already exists, skip.
                 if chunk_sys.has_chunk(chunkpos) {
                     continue;
                 }
 
                 let mut chunk = Box::new(Chunk::new(chunkpos));
                 
-                let mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
-
                 WorldGen::generate_chunk(&mut chunk);
-
 
                 chunk.entity = commands.spawn((
                     ChunkComponent::new(chunkpos),
                     PbrBundle {
-                        mesh: mesh,
+                        mesh: meshes.add(Mesh::new(PrimitiveTopology::TriangleList)),
                         material: chunk_sys.vox_mtl.clone(),
                         transform: Transform::from_translation(chunkpos.as_vec3()),
                         visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
                         ..default()
                     },
                     Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
-
-                    ChunkRemeshState::Pending,
                     
-                    // AsyncCollider(ComputedCollider::TriMesh),
-                    // RigidBody::Static,
+                    ChunkMeshingTask,
+                    RigidBody::Static,
                 )).set_parent(chunk_sys.entity).id();
 
+                // NotShadowCaster
 
 
     
@@ -181,41 +169,40 @@ static SHARED_POOL_MESH_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
 
 
 fn chunks_detect_remesh_dispatch(
-    mut chunk_sys: ResMut<ChunkSystem>,
+    chunk_sys: ResMut<ChunkSystem>,
     mut commands: Commands,
 
     mut meshes: ResMut<Assets<Mesh>>,
 
-    mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkRemeshState, &ChunkComponent, &mut Visibility)>,
+    mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 ) {
 
-    for (entity, mesh_handle, mut stat, chunkinfo, mut vis) in query.iter_mut() {
-        if let ChunkRemeshState::Pending = *stat {
-            *vis = Visibility::Visible;
+    for (entity, mesh_handle, mut meshing_task, chunk_info, mut visibility) in query.iter_mut() {
+        
+        let chunkpos = chunk_info.chunkpos;
 
-            // !!Problematic Unwarp
-            let chunk = chunk_sys.get_chunk(chunkinfo.chunkpos).unwrap();
+        // !!Problematic Unwarp
+        let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
 
-            let mut vbuf = VertexBuffer::default();
+        let mut vbuf = VertexBuffer::default();
 
-            MeshGen::generate_chunk_mesh(&mut vbuf, chunk);
+        MeshGen::generate_chunk_mesh(&mut vbuf, chunk);
 
-            *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
-
-            *stat = ChunkRemeshState::Completed;
+        *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
 
 
-            if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
+        if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
 
-                commands.entity(entity).remove::<Collider>().insert(collider);
-                
-                info!("TriMesh {:?}", chunkinfo.chunkpos);
-            }
-
-
-
-            info!("ReMesh {:?}", chunkinfo.chunkpos);
+            commands.entity(entity).remove::<Collider>().insert(collider);
+            
+            info!("TriMesh {:?}", chunkpos);
         }
+
+        *visibility = Visibility::Visible;
+
+        commands.entity(entity).remove::<ChunkMeshingTask>();
+
+        info!("ReMesh {:?}", chunkpos);
     }
     
     // let task_pool = AsyncComputeTaskPool::get();

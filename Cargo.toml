@@ -15,9 +15,9 @@ bevy_atmosphere = "0.8"
 bevy_egui = "0.24"
 bevy-inspector-egui = "0.22"
 bevy_editor_pls = "0.7"
-bevy_xpbd_3d = "0.3.2"
+bevy_xpbd_3d = "0.3"
 # bevy_fps_controller = "0.2.3"
-# bevy_rapier3d = "0.22"
+# bevy_rapier3d = "0.23"
 
 noise = "0.8"
 
@@ -26,9 +26,8 @@ once_cell = "1.19"
 futures-lite = "2.0.1"  # async poll task 
 
 native-dialog = "0.7"
-sysinfo = "0.29.10"
+sysinfo = "0.30"
 memory-stats = "1.1.0"
-
 log = "0.4.20"
 env_logger = "0.10.0"
 chrono = "0.4.31"
@@ -46,3 +45,7 @@ opt-level = 1
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+# further improve performances in a noticeable way, even for a release build (though the build itself will take longer to complete):
+[profile.release]
+codegen-units = 1
