@@ -18,9 +18,9 @@ impl VertexBuffer {
 
     pub fn with_capacity(num_vert: usize) -> Self {
         let mut vtx = VertexBuffer::default();
-        vtx.pos.reserve(num_vert * 3);
-        vtx.uv.reserve(num_vert * 2);
-        vtx.norm.reserve(num_vert * 3);
+        vtx.pos.reserve(num_vert);
+        vtx.uv.reserve(num_vert);
+        vtx.norm.reserve(num_vert);
         vtx
     }
 
@@ -44,16 +44,13 @@ impl VertexBuffer {
     }
 
     pub fn into_mesh(self) -> Mesh {
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList)
+        let has_idx = self.is_indexed();
+        
+        Mesh::new(PrimitiveTopology::TriangleList)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
-            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm);
-
-        if !self.indices.is_empty() {
-            mesh.set_indices(Some(Indices::U32(self.indices)));
-        }
-
-        mesh
+            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm)
+            .with_indices(if has_idx {Some(Indices::U32(self.indices))} else {None})
     }
 
 }

@@ -207,7 +207,7 @@ fn chunks_detect_remesh_dispatch(
 
             if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
 
-                //commands.entity(entity).remove::<Collider>().insert(collider);
+                commands.entity(entity).remove::<Collider>().insert(collider);
                 
                 info!("TriMesh {:?}", chunkinfo.chunkpos);
             }

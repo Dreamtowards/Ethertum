@@ -80,7 +80,8 @@ fn startup(
             ..default()
         },
         CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
-
+        
+        Name::new("Player"),
     ));
 
     // Camera
@@ -99,6 +100,7 @@ fn startup(
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
         CharacterControllerCamera,
 
+        Name::new("Camera"),
     ));
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
     // .insert(TemporalAntiAliasBundle::default());
@@ -113,6 +115,8 @@ fn startup(
             ..default()
         },
         Sun, // Marks the light as Sun
+        
+        Name::new("Sun"),
     ));
 
 
