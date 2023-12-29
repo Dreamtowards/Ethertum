@@ -398,7 +398,8 @@ fn handle_inputs(
 
 
 
-#[derive(Resource, Reflect)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 struct WorldInfo {
     
     seed: u64,

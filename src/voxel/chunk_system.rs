@@ -3,7 +3,7 @@
 use bevy::{
     prelude::*, 
     render::{render_resource::PrimitiveTopology, primitives::Aabb}, 
-    utils::HashMap
+    utils::{HashMap}
 };
 
 use super::chunk::*;
@@ -21,7 +21,8 @@ use super::chunk::*;
 
 pub type ChunkPtr = Box<Chunk>; //Arc<RwLock<Chunk>>;
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct ChunkSystem {
 
     /// all loaded chunks.
@@ -29,6 +30,7 @@ pub struct ChunkSystem {
     // 设计一个高性能区块系统，这两个区块列表 及每个区块 都有RwLock特性，即 可同时可被多处读，但只能被互斥写
     // linear-list of loaded chunks.
     // chunks: Arc<RwLock<HashMap<IVec3, Arc<RwLock<Chunk>>>>>, 
+    #[reflect(ignore)]
     pub chunks: HashMap<IVec3, ChunkPtr>,
 
     // Spare Voxel Octree for Spatial lookup acceleration.
@@ -45,12 +47,23 @@ pub struct ChunkSystem {
 
 }
 
+impl Default for ChunkSystem {
+    fn default() -> Self {
+        Self {
+            chunks: HashMap::default(),
+            view_distance: IVec2::new(1, 1),
+            entity: Entity::PLACEHOLDER,
+            vox_mtl: Handle::default(),
+        }
+    }
+}
+
 impl ChunkSystem {
 
-    pub fn new() -> Self {
+    pub fn new(view_distance: i32) -> Self {
         Self { 
             chunks: HashMap::new(), //Arc::new(RwLock::new(HashMap::new())), 
-            view_distance: IVec2::new(2, 2),
+            view_distance: IVec2::new(view_distance, view_distance),
             // chunks_loading: HashSet::new(),
             // chunks_meshing: HashMap::new(),
             entity: Entity::PLACEHOLDER,

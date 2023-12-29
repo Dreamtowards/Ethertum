@@ -7,6 +7,10 @@ mod material;
 mod meshgen;
 mod worldgen;
 
+use bevy::transform::commands;
+use bevy_xpbd_3d::components::AsyncCollider;
+use bevy_xpbd_3d::components::Collider;
+use bevy_xpbd_3d::components::ComputedCollider;
 use chunk::*;
 use chunk_system::*;
 use meshgen::MeshGen;
@@ -30,8 +34,8 @@ impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
         
 
-        app.insert_resource(ChunkSystem::new());
-        // app.register_type::<ChunkSystem>();
+        app.insert_resource(ChunkSystem::new(0));
+        app.register_type::<ChunkSystem>();
 
 
         app.add_systems(Startup, startup);
@@ -178,25 +182,37 @@ static SHARED_POOL_MESH_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
 
 fn chunks_detect_remesh_dispatch(
     mut chunk_sys: ResMut<ChunkSystem>,
+    mut commands: Commands,
 
     mut meshes: ResMut<Assets<Mesh>>,
 
-    mut query: Query<(&Handle<Mesh>, &mut ChunkRemeshState, &ChunkComponent, &mut Visibility)>,
+    mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkRemeshState, &ChunkComponent, &mut Visibility)>,
 ) {
 
-    for (mesh_id, mut stat, chunkinfo, mut vis) in query.iter_mut() {
+    for (entity, mesh_handle, mut stat, chunkinfo, mut vis) in query.iter_mut() {
         if let ChunkRemeshState::Pending = *stat {
             *vis = Visibility::Visible;
 
+            // !!Problematic Unwarp
             let chunk = chunk_sys.get_chunk(chunkinfo.chunkpos).unwrap();
 
             let mut vbuf = VertexBuffer::default();
 
             MeshGen::generate_chunk_mesh(&mut vbuf, chunk);
 
-            *meshes.get_mut(mesh_id).unwrap() = vbuf.into_mesh();
+            *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
 
             *stat = ChunkRemeshState::Completed;
+
+
+            if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
+
+                //commands.entity(entity).remove::<Collider>().insert(collider);
+                
+                info!("TriMesh {:?}", chunkinfo.chunkpos);
+            }
+
+
 
             info!("ReMesh {:?}", chunkinfo.chunkpos);
         }

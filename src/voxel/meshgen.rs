@@ -30,9 +30,18 @@ impl VertexBuffer {
         self.norm.push(norm);
     }
 
-    // fn is_indexed(&self) -> bool {
-    //     !self.indices.is_empty()
-    // }
+    fn is_indexed(&self) -> bool {
+        !self.indices.is_empty()
+    }
+
+    pub fn make_indexed(&mut self) {
+
+        self.indices.clear();
+
+        for i in 0..self.pos.len() {
+            self.indices.push(i as u32);
+        }
+    }
 
     pub fn into_mesh(self) -> Mesh {
         let mut mesh = Mesh::new(PrimitiveTopology::TriangleList)
@@ -74,6 +83,8 @@ impl MeshGen {
                 }
             }
         }
+
+        vbuf.make_indexed();
     }
 
 }
