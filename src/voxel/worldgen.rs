@@ -26,9 +26,11 @@ impl WorldGen {
                     let lp = IVec3::new(lx, ly, lz);
                     let p = chunk.chunkpos + lp;
 
-                    let val = perlin.get(p.as_dvec3().div(24.).to_array());
+                    let f_terr = perlin.get(p.xz().as_dvec2().div(64.).to_array()) as f32;
+                    let f_3d = perlin.get(p.as_dvec3().div(24.).to_array()) as f32;
 
-                    if val < 0. {
+                    let val = f_terr - (p.y as f32) / 18. + f_3d * 2.;
+                    if val > 0. {
                         chunk.set_cell(lp, &Cell::new(1., 1));
                     }
                 }
