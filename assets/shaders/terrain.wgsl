@@ -5,22 +5,19 @@
 //     forward_io::{VertexOutput, FragmentOutput},
 //     pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
 // }
-#import bevy_pbr::forward_io::VertexOutput
-#import bevy_pbr::forward_io::Vertex
-
 // #import bevy_pbr::mesh_bindings
 // #import bevy_pbr::mesh_view_bindings
 // #import bevy_pbr::pbr_bindings
-#import bevy_pbr::mesh_functions
-
-
 // #import bevy_pbr::fog
 // #import bevy_pbr::shadows
 // #import bevy_pbr::lighting
 // #import bevy_pbr::pbr_ambient
 // #import bevy_pbr::clustered_forward
-
 // #import bevy_pbr::utils
+
+#import bevy_pbr::forward_io::VertexOutput
+#import bevy_pbr::forward_io::Vertex
+#import bevy_pbr::mesh_functions
 
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
@@ -35,7 +32,8 @@ struct MyVertexOutput {
     @location(0) world_position: vec4<f32>,
     @location(1) world_normal: vec3<f32>,
 
-    @location(2) color: vec3<f32>,
+    @location(2) bary: vec3<f32>,
+    @location(3) mtls: vec3<f32>,  // material texture ids. u32
 
     @location(5) @interpolate(flat) instance_index: u32,
 }
@@ -57,7 +55,8 @@ fn vertex(
 
     let vi = vtx_index % 3u;
     let bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
-    out.color = bary;
+    out.bary = bary;
+    out.mtls = bary * vec3<f32>(in.uv.x, in.uv.x, in.uv.x);
 
     return out;
 }
@@ -67,17 +66,43 @@ fn vertex(
 @group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
 @group(1) @binding(2) var _sampler: sampler;
 
+fn _mod(v: f32, n: f32) -> f32 {
+    let f = v % n;
+    return select(f, f + n, f < 0.0);
+}
+
+// Texture Triplanar Mapping
+fn tex_trip(
+    tex: texture_2d<f32>,
+    p: vec3<f32>,
+    blend: vec3<f32>,
+) -> vec4<f32> {
+
+    let num_mtls = 24.0;
+    let tex_scale_x = 1.0 / num_mtls;
+    let uvX = vec2<f32>(-p.z, 1.0-p.y);
+    let uvY = vec2<f32>( p.x, 1.0-p.z);
+    let uvZ = vec2<f32>( p.x, 1.0-p.y);
+
+    return 
+        textureSample(tex, _sampler, fract(uvX)) * blend.x + 
+        textureSample(tex, _sampler, fract(uvY)) * blend.y + 
+        textureSample(tex, _sampler, fract(uvZ)) * blend.z;
+}
 
 @fragment
 fn fragment(
     in: MyVertexOutput,
     @builtin(front_facing) is_front: bool,
 ) -> @location(0) vec4<f32> {
-    let worldpos  = in.world_position;
+    let worldpos  = in.world_position.xyz;
     let worldnorm = in.world_normal;
+    let mtls = in.mtls / in.bary;
 
     let tex = textureSample(tex_diffuse, _sampler, fract(worldpos.xz));
 
+    var blend_trip = abs(worldnorm);
+    blend_trip /= blend_trip.x + blend_trip.y + blend_trip.z;  // makesure sum = 1
     
     var vert_out: VertexOutput;
     vert_out.position = in.position;
@@ -86,10 +111,9 @@ fn fragment(
     vert_out.instance_index = in.instance_index;
     var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
 
-    pbr_in.material.base_color = vec4<f32>(in.color, 1.0);
+    pbr_in.material.base_color = tex_trip(tex_diffuse, worldpos, blend_trip);//vec4<f32>(in.bary, 1.0);
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
-
     color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
     return color;
 }

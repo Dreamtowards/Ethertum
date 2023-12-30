@@ -61,7 +61,7 @@ fn startup(
 ) {
     let mtl = terrain_materials.add(TerrainMaterial {
         val: 10.,
-        texture_diffuse: Some(asset_server.load("proto.png")),  // cache/atlas_diff.png
+        texture_diffuse: Some(asset_server.load("proto.png")), // cache/atlas_diff
     });
     chunk_sys.vox_mtl = mtl;
 
