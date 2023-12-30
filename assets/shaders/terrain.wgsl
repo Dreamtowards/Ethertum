@@ -74,15 +74,17 @@ fn _mod(v: f32, n: f32) -> f32 {
 // Texture Triplanar Mapping
 fn tex_trip(
     tex: texture_2d<f32>,
+    mtl_id: f32,
     p: vec3<f32>,
     blend: vec3<f32>,
 ) -> vec4<f32> {
 
     let num_mtls = 24.0;
-    let tex_scale_x = 1.0 / num_mtls;
-    let uvX = vec2<f32>(-p.z, 1.0-p.y);
-    let uvY = vec2<f32>( p.x, 1.0-p.z);
-    let uvZ = vec2<f32>( p.x, 1.0-p.y);
+    let tex_mul_x = 1.0 / num_mtls;
+    let tex_add_x = mtl_id / num_mtls;
+    let uvX = vec2<f32>(tex_add_x + _mod(-p.z * tex_mul_x, tex_mul_x), 1.0-p.y);
+    let uvY = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x),     p.z);
+    let uvZ = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x), 1.0-p.y);
 
     return 
         textureSample(tex, _sampler, fract(uvX)) * blend.x + 
@@ -111,7 +113,7 @@ fn fragment(
     vert_out.instance_index = in.instance_index;
     var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
 
-    pbr_in.material.base_color = tex_trip(tex_diffuse, worldpos, blend_trip);//vec4<f32>(in.bary, 1.0);
+    pbr_in.material.base_color = tex_trip(tex_diffuse, 1.0, worldpos, blend_trip);//vec4<f32>(in.bary, 1.0);
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
     color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
