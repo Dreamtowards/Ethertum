@@ -19,7 +19,7 @@ use bevy::{
     prelude::*, 
     render::{render_resource::{PrimitiveTopology, AsBindGroup}, primitives::Aabb}, 
     utils::HashMap, 
-    tasks::{AsyncComputeTaskPool, Task}, reflect::TypeUuid, pbr::{MaterialExtension, ExtendedMaterial}
+    tasks::{AsyncComputeTaskPool, Task}, reflect::TypeUuid
 };
 
 use std::cell::RefCell;
@@ -36,7 +36,7 @@ impl Plugin for VoxelPlugin {
         app.insert_resource(ChunkSystem::new(2));
         app.register_type::<ChunkSystem>();
 
-        app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, TerrainMaterial>>::default());
+        app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
 
         app.add_systems(Startup, startup);
 
@@ -56,17 +56,11 @@ fn startup(
     mut chunk_sys: ResMut<ChunkSystem>,
     
     mut commands: Commands,
-    mut terrain_materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, TerrainMaterial>>>,
+    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
 ) {
-    let mtl = terrain_materials.add(ExtendedMaterial {
-        base: StandardMaterial {
-            base_color: Color::YELLOW,
-            ..default()
-        },
-        extension: TerrainMaterial {
-            val: 10.,
-            // texture: None,
-        }
+    let mtl = terrain_materials.add(TerrainMaterial {
+        val: 10.,
+        // texture: None,
     });
     chunk_sys.vox_mtl = mtl;
 
@@ -252,10 +246,7 @@ fn chunks_detect_remesh_dispatch(
 #[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
 pub struct TerrainMaterial {
     
-    // We need to ensure that the bindings of the base material and the extension do not conflict,
-    // so we start from binding slot 100, leaving slots 0-99 for the base material.
-    #[uniform(100)]
-	// #[uniform(0)]
+	#[uniform(0)]
     val: f32,
 
     // #[texture(1)]
@@ -263,8 +254,12 @@ pub struct TerrainMaterial {
     // pub texture: Option<Handle<Image>>,
 }
 
-impl MaterialExtension for TerrainMaterial {
+impl Material for TerrainMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/terrain.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Opaque
     }
 }

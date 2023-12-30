@@ -31,12 +31,6 @@
 // @group(1) @binding(1) var base_color_texture: texture_2d<f32>;
 // @group(1) @binding(2) var base_color_sampler: sampler;
 
-// struct MyExtendedMaterial {
-//     quantize_steps: f32,
-// }
-
-// @group(1) @binding(100)
-// var<uniform> my_extended_material: MyExtendedMaterial;
 
 @fragment
 fn fragment(
@@ -46,13 +40,11 @@ fn fragment(
     //let tex = textureSample(base_color_texture, base_color_sampler, vert_out.uv);
 
  
-    // var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);//pbr_types::pbr_input_new();
-    // pbr_in.material.base_color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-    var pbr_in = pbr_fragment::pbr_input_from_standard_material(vert_out, is_front);
+    var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);//pbr_types::pbr_input_new();
+    pbr_in.material.base_color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in); //pbr_fn::pbr(pbr_in); 
 
-    color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
+    // color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
     return color;
-    //return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }
