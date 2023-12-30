@@ -5,7 +5,7 @@ use bevy::{
     utils::HashMap
 };
 
-use super::chunk::*;
+use super::{chunk::*, TerrainMaterial};
 
 
 
@@ -42,7 +42,7 @@ pub struct ChunkSystem {
 
     pub entity: Entity,
 
-    pub vox_mtl: Handle<StandardMaterial>,
+    pub vox_mtl: Handle<TerrainMaterial>,
 
 }
 

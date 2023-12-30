@@ -17,8 +17,9 @@ use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidB
 
 use bevy::{
     prelude::*, 
-    render::{render_resource::PrimitiveTopology, primitives::Aabb}, 
-    utils::HashMap, tasks::{AsyncComputeTaskPool, Task}
+    render::{render_resource::{PrimitiveTopology, AsBindGroup}, primitives::Aabb}, 
+    utils::HashMap, 
+    tasks::{AsyncComputeTaskPool, Task}, reflect::TypeUuid
 };
 
 use std::cell::RefCell;
@@ -34,6 +35,8 @@ impl Plugin for VoxelPlugin {
         
         app.insert_resource(ChunkSystem::new(2));
         app.register_type::<ChunkSystem>();
+
+        app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
 
         app.add_systems(Startup, startup);
 
@@ -53,9 +56,12 @@ fn startup(
     mut chunk_sys: ResMut<ChunkSystem>,
     
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
 ) {
-    let mtl = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    let mtl = terrain_materials.add(TerrainMaterial {
+        val: 10.,
+        // texture: None,
+    });
     chunk_sys.vox_mtl = mtl;
 
     // ChunkSystem entity. all chunk entities will be spawn as children.
@@ -118,7 +124,7 @@ fn chunks_detect_load_and_unload(
 
                 chunk.entity = commands.spawn((
                     ChunkComponent::new(chunkpos),
-                    PbrBundle {
+                    MaterialMeshBundle {
                         mesh: meshes.add(Mesh::new(PrimitiveTopology::TriangleList)),
                         material: chunk_sys.vox_mtl.clone(),
                         transform: Transform::from_translation(chunkpos.as_vec3()),
@@ -228,3 +234,32 @@ fn chunks_detect_remesh_dispatch(
 
 }
 
+
+
+
+
+
+
+
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, TypeUuid)]
+#[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
+pub struct TerrainMaterial {
+    
+	#[uniform(0)]
+    val: f32,
+
+    // #[texture(1)]
+    // #[sampler(2)]
+    // pub texture: Option<Handle<Image>>,
+}
+
+impl Material for TerrainMaterial {
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/terrain.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Opaque
+    }
+}

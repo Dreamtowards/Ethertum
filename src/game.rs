@@ -140,6 +140,16 @@ fn startup(
     //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
     //     RigidBody::Static,
     // ));
+    
+    // commands.spawn((
+    //     PbrBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Box::new(5., 8., 5.))),
+    //         transform: Transform::from_xyz(0.5, -5.5, 0.5),
+    //         ..default()
+    //     },
+    //     AsyncCollider(ComputedCollider::TriMesh),
+    //     RigidBody::Static,
+    // ));
 
     // // Cube
     // commands.spawn((
