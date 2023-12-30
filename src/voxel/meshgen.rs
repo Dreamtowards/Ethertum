@@ -34,6 +34,10 @@ impl VertexBuffer {
         !self.indices.is_empty()
     }
 
+    fn vertex_count(&self) -> usize {
+        if self.is_indexed() {self.indices.len()} else {self.pos.len()}
+    }
+
     pub fn make_indexed(&mut self) {
 
         self.indices.clear();
@@ -45,8 +49,12 @@ impl VertexBuffer {
 
     pub fn into_mesh(self) -> Mesh {
         let has_idx = self.is_indexed();
+
+        let mut tmp = Vec::new();
+        tmp.resize(self.vertex_count(), Vec4::default());
         
         Mesh::new(PrimitiveTopology::TriangleList)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, tmp)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm)

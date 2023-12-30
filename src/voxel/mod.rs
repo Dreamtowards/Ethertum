@@ -56,11 +56,12 @@ fn startup(
     mut chunk_sys: ResMut<ChunkSystem>,
     
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
 ) {
     let mtl = terrain_materials.add(TerrainMaterial {
         val: 10.,
-        // texture: None,
+        texture_diffuse: Some(asset_server.load("proto.png")),  // cache/atlas_diff.png
     });
     chunk_sys.vox_mtl = mtl;
 
@@ -249,13 +250,16 @@ pub struct TerrainMaterial {
 	#[uniform(0)]
     val: f32,
 
-    // #[texture(1)]
-    // #[sampler(2)]
-    // pub texture: Option<Handle<Image>>,
+    #[texture(1)]
+    #[sampler(2)]
+    pub texture_diffuse: Option<Handle<Image>>,
 }
 
 impl Material for TerrainMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/terrain.wgsl".into()
+    }
+    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/terrain.wgsl".into()
     }
 
