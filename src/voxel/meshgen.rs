@@ -173,6 +173,19 @@ impl MeshGen {
         fp_sum / (sign_changes as f32)
     }
 
+    // Evaluate Normal of a Cell FeaturePoint
+    // via Approxiate Differental Gradient  
+    // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
+    fn sn_grad(lp: IVec3, chunk: &ChunkPtr) -> Vec3 {
+        let E = 1;  // Epsilon
+        
+        return vec3(  // ?Needs: L - Mid - R
+            chunk.get_cell(lp + ivec3(E, 0, 0)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(E, 0, 0))).value,
+            chunk.get_cell(lp + ivec3(0, E, 0)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(0, E, 0))).value,
+            chunk.get_cell(lp + ivec3(0, 0, E)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(0, 0, E))).value
+        ).normalize();
+    }
+
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
 
         for ly in 1..Chunk::SIZE-1 {
@@ -199,7 +212,7 @@ impl MeshGen {
                             //let c = chunk.get_cell(p);
 
                             let fp = Self::sn_featurepoint(p, chunk);//vec3(0.5, 0.5, 0.5);
-                            let norm = Vec3::Y;
+                            let norm = -Self::sn_grad(p, chunk);
 
                             vbuf.push_vertex(
                                 p.as_vec3() + fp, 

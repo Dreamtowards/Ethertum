@@ -30,9 +30,8 @@ impl WorldGen {
                     let f_3d = perlin.get(p.as_dvec3().div(24.).to_array()) as f32;
 
                     let val = f_terr - (p.y as f32) / 18. + f_3d * 2.;
-                    if val > 0. {
-                        chunk.set_cell(lp, &Cell::new(1., 1));
-                    }
+                    
+                    chunk.set_cell(lp, &Cell::new(val, 1));
                 }
             }
         }
