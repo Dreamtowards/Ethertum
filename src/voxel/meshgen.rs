@@ -98,6 +98,11 @@ impl MeshGen {
         // vbuf.make_indexed();
     }
 
+
+
+
+
+    
     const AXES: [IVec3; 3] = [
         ivec3(1, 0, 0),
         ivec3(0, 1, 0),
@@ -227,6 +232,17 @@ impl MeshGen {
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

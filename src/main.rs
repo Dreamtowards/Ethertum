@@ -15,12 +15,13 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins
             .set(WindowPlugin {
-               primary_window: Some(Window {
-                   resolution: WindowResolution::new(1920., 1080.),
-                   title: "Ethertia 0.1.2 2023.12c Voxel Blocky".into(),
-                   ..default()
-               }),
-               ..default()
+                primary_window: Some(Window {
+                    present_mode: bevy::window::PresentMode::AutoNoVsync,
+                    resolution: WindowResolution::new(1920., 1080.),
+                    title: "Ethertia 0.1.2 2023.12c Voxel Blocky".into(),
+                    ..default()
+                }),
+                ..default()
             })
         )
         .add_plugins(editor::EditorPlugin)

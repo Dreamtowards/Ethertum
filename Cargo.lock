@@ -610,7 +610,7 @@ dependencies = [
  "bevy_log",
  "bevy_time",
  "bevy_utils",
- "sysinfo 0.29.11",
+ "sysinfo",
 ]
 
 [[package]]
@@ -2017,7 +2017,7 @@ dependencies = [
  "native-dialog",
  "noise",
  "once_cell",
- "sysinfo 0.30.2",
+ "sysinfo",
  "thread_local",
 ]
 
@@ -4111,22 +4111,8 @@ dependencies = [
  "libc",
  "ntapi",
  "once_cell",
- "winapi",
-]
-
-[[package]]
-name = "sysinfo"
-version = "0.30.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c856f6ee1d0241d2ebaee960aaad07080afb4daf6bdfa3b250ace3cf1b81355d"
-dependencies = [
- "cfg-if",
- "core-foundation-sys",
- "libc",
- "ntapi",
- "once_cell",
  "rayon",
- "windows 0.51.1",
+ "winapi",
 ]
 
 [[package]]

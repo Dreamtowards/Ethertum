@@ -65,7 +65,10 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut editor_events: EventWriter<bevy_editor_pls::editor::EditorEvent>,
 ) {
+    // Grab mouse at startup.
+    editor_events.send(bevy_editor_pls::editor::EditorEvent::Toggle { now_active: false });
 
     // Logical Player
     commands.spawn((
@@ -79,7 +82,12 @@ fn startup(
             transform: Transform::from_xyz(0.0, 1.5, 0.0),
             ..default()
         },
-        CharacterControllerBundle::new(Collider::capsule(1., 0.4)),
+        CharacterControllerBundle::new(
+            Collider::capsule(1., 0.4), 
+            CharacterController {
+                is_flying: true,
+                ..default()
+            }),
         
         Name::new("Player"),
     ));

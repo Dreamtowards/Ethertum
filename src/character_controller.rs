@@ -34,13 +34,13 @@ pub struct CharacterControllerBundle {
     restitution: Restitution,
 }
 impl CharacterControllerBundle {
-    pub fn new(collider: Collider) -> Self {
+    pub fn new(collider: Collider, character_controller: CharacterController) -> Self {
         // Create shape caster as a slightly smaller version of collider
         let mut caster_shape = collider.clone();
         caster_shape.set_scale(Vec3::ONE * 0.99, 10);
 
         Self {
-            character_controller: CharacterController::default(),
+            character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
             ground_caster: ShapeCaster::new(
@@ -66,24 +66,24 @@ pub struct CharacterControllerCamera;
 #[reflect(Component)]
 pub struct CharacterController {
     // State
-    pitch: f32,
-    yaw: f32,
+    pub pitch: f32,
+    pub yaw: f32,
 
-    is_flying: bool,
+    pub is_flying: bool,
     // sprint: bool,
     // sneak: bool,
     // jump: bool,
 
     // Readonly State
-    is_grounded: bool,
+    pub is_grounded: bool,
 
-    is_sprinting: bool,
-    is_sneaking: bool,
+    pub is_sprinting: bool,
+    pub is_sneaking: bool,
     
     // Control Param
-    jump_impulse: f32,
-    acceleration: f32,
-    max_slope_angle: f32,
+    pub jump_impulse: f32,
+    pub acceleration: f32,
+    pub max_slope_angle: f32,
 
 
 
