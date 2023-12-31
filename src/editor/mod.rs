@@ -97,19 +97,24 @@ fn debug_text_setup(
 fn debug_text_update(
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
-    mut query: Query<&mut Text, With<DebugTextTag>>,
+    mut query_text: Query<&mut Text, With<DebugTextTag>>,
+
+    query_cam: Query<&Transform, With<crate::character_controller::CharacterControllerCamera>>,
+    mut last_cam_pos: Local<Vec3>,
+
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<RenderAdapterInfo>,
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
     static mut LAST_UPDATE: f32 = 0.;
-    if time.elapsed_seconds() > unsafe{LAST_UPDATE} + 0.5 {
+    let dt = time.elapsed_seconds() - unsafe{LAST_UPDATE};
+    if dt > 0.5 {
         unsafe {LAST_UPDATE = time.elapsed_seconds()};
     } else {
         return;
     }
 
-    let mut text = query.single_mut();
+    let mut text = query_text.single_mut();
 
     let mut fps = 0.0;
     if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
@@ -126,6 +131,9 @@ fn debug_text_update(
         }
     }
 
+    // "HOMEPATH", "\\Users\\Dreamtowards",
+    // "LANG", "en_US.UTF-8",
+    // "USERNAME", "Dreamtowards",
 
     
     let num_concurrency = std::thread::available_parallelism().unwrap().get();
@@ -143,8 +151,6 @@ fn debug_text_update(
     let cpu_cores = sys.physical_core_count().unwrap();
     let cpu_name = sys.global_cpu_info().brand().trim().to_string();
     let cpu_usage = sys.global_cpu_info().cpu_usage();
-    let cpu_freq = sys.global_cpu_info().frequency();
-    let cpu_vend = sys.global_cpu_info().vendor_id().to_string();
 
     let mem_used = sys.used_memory() as f64 * BYTES_TO_GIB;
     let mem_total = sys.total_memory() as f64 * BYTES_TO_GIB;
@@ -168,15 +174,32 @@ fn debug_text_update(
     let gpu_driver_name = &render_adapter_info.0.driver;
     let gpu_driver_info = &render_adapter_info.0.driver_info;
 
-    text.sections[0].value = format!(
-"fps: avg: {fps:.1}, dt: {frame_time:.3}ms
+    let cam_trans = query_cam.single();
+    let cam_pos = cam_trans.translation;
+    let cam_pos_diff = cam_pos - *last_cam_pos;
+    let cam_pos_spd = cam_pos_diff.length() / dt;
+    let cam_pos_kph = cam_pos_spd * 3.6;
+    let cam_pos_x = cam_pos.x;
+    let cam_pos_y = cam_pos.y;
+    let cam_pos_z = cam_pos.z;
 
-OS:  {dist_id}-{cpu_arch}, {num_concurrency} concurrency {cpu_cores} cores; {os_ver}, {os_ver_sm}.
-CPU: {cpu_name}, {cpu_usage:.1}, {cpu_freq}, {cpu_vend}
-GPU: {gpu_name}, {gpu_backend}; {gpu_driver_name} {gpu_driver_info}
-RAM: Phys {mem_usage_phys:.2}, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB"
+    // let curr_path = std::env::current_exe().unwrap().display().to_string();
+    let os_lang = std::env::var("LANG").unwrap();  // "en_US.UTF-8"
+    //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
+
+    text.sections[0].value = format!(
+"fps: {fps:.1}, dt: {frame_time:.4}ms
+cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
+
+OS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
+CPU: {cpu_name}, usage {cpu_usage:.1}%
+GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
+RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB
+"
     );
 
+
+    *last_cam_pos = cam_pos;
 }
 
 // fn ui_example_system(mut ctx: EguiContexts) {
