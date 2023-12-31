@@ -1,7 +1,8 @@
 use bevy::{
     prelude::*,
-    render::{mesh::{Mesh, Indices}, render_resource::PrimitiveTopology},
+    render::{mesh::{Mesh, Indices}, render_resource::PrimitiveTopology}, math::{vec3, ivec3, vec2},
 };
+use bevy_egui::egui::emath::inverse_lerp;
 
 use super::{chunk::*, chunk_system::ChunkPtr};
 
@@ -72,24 +73,144 @@ impl MeshGen {
 
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
 
-        for y in 0..Chunk::SIZE {
-            for z in 0..Chunk::SIZE {
-                for x in 0..Chunk::SIZE {
-                    let lp = IVec3::new(x, y, z);
-
-                    let cell = chunk.get_cell(lp);
-
-                    if !cell.is_empty() {
+        Self::sn_contouring(vbuf, chunk);
+        vbuf.make_indexed();
+        return;
 
 
-                        put_cube(vbuf, lp, chunk);
+        // for ly in 0..Chunk::SIZE {
+        //     for lz in 0..Chunk::SIZE {
+        //         for lx in 0..Chunk::SIZE {
+        //             let lp = IVec3::new(lx, ly, lz);
 
-                    }
+        //             let cell = chunk.get_cell(lp);
+
+        //             if !cell.is_empty() {
+
+
+        //                 put_cube(vbuf, lp, chunk);
+
+        //             }
+        //         }
+        //     }
+        // }
+
+        // vbuf.make_indexed();
+    }
+
+    const AXES: [IVec3; 3] = [
+        ivec3(1, 0, 0),
+        ivec3(0, 1, 0),
+        ivec3(0, 0, 1),
+    ];
+    const ADJACENT: [[IVec3; 6]; 3] = [
+        [ivec3(0,0,0), ivec3(0,-1,0), ivec3(0,-1,-1), ivec3(0,-1,-1), ivec3(0,0,-1), ivec3(0,0,0)],
+        [ivec3(0,0,0), ivec3(0,0,-1), ivec3(-1,0,-1), ivec3(-1,0,-1), ivec3(-1,0,0), ivec3(0,0,0)],
+        [ivec3(0,0,0), ivec3(-1,0,0), ivec3(-1,-1,0), ivec3(-1,-1,0), ivec3(0,-1,0), ivec3(0,0,0)]
+    ];
+
+    const VERT: [IVec3; 8] = [
+        ivec3(0, 0, 0),  // 0
+        ivec3(0, 0, 1),
+        ivec3(0, 1, 0),  // 2
+        ivec3(0, 1, 1),
+        ivec3(1, 0, 0),  // 4
+        ivec3(1, 0, 1),
+        ivec3(1, 1, 0),  // 6
+        ivec3(1, 1, 1)
+    ];
+    // from min to max in each Edge.  axis order x y z.
+    // Diagonal Edge in Cell is in-axis-flip-index edge.  i.e. diag of edge[axis*4 +i] is edge[axis*4 +(3-i)]
+    /*     +--2--+    +-----+    +-----+
+     *    /|    /|   /7    /6  11|    10
+     *   +--3--+ |  +-----+ |  +-----+ |
+     *   | +--0|-+  5 +---4-+  | +---|-+
+     *   |/    |/   |/    |/   |9    |8
+     *   +--1--+    +-----+    +-----+
+     *   |3  2| winding. for each axis.
+     *   |1  0|
+     */
+    const EDGE: [[usize; 2]; 12] = [
+        [0,4], [1,5], [2,6], [3,7],  // X
+        [5,7], [1,3], [4,6], [0,2],  // Y
+        [4,5], [0,1], [6,7], [2,3]   // Z
+    ];
+
+    fn sn_signchanged(c0: &Cell, c1: &Cell) -> bool {
+        return (c0.value > 0.) != (c1.value > 0.);  // use .is_empty() ?
+    }
+
+    // Naive SurfaceNets Method of Evaluate FeaturePoint.
+    // return in-cell point.
+    fn sn_featurepoint(lp: IVec3, chunk: &ChunkPtr) -> Vec3 {
+        let mut sign_changes = 0;
+        let mut fp_sum = Vec3::ZERO;
+
+        for edge_i in 0..12 {
+            let edge = Self::EDGE[edge_i];
+            let v0 = Self::VERT[edge[0]];
+            let v1 = Self::VERT[edge[1]];
+            let c0 = chunk.get_cell(lp + v0);
+            let c1 = chunk.get_cell(lp + v1);
+
+            if Self::sn_signchanged(c0, c1) {
+                let t = inverse_lerp(c0.value..=c1.value, 0.0).unwrap();
+
+                // t maybe -INF if accessing a Nil Cell.
+                if t.is_finite() {
+
+                    let p = t * (v1 - v0).as_vec3() + v0.as_vec3();  // (v1-v0) must > 0. since every edge vert are min-to-max
+
+                    fp_sum += p;
+                    sign_changes += 1;
                 }
             }
         }
 
-        vbuf.make_indexed();
+        assert_ne!(sign_changes, 0);
+        assert!(fp_sum.is_finite());
+
+        fp_sum / (sign_changes as f32)
+    }
+
+    fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
+
+        for ly in 1..Chunk::SIZE-1 {
+            for lz in 1..Chunk::SIZE-1 {
+                for lx in 1..Chunk::SIZE-1 {
+                    let lp = IVec3::new(lx, ly, lz);
+                    let c0 = chunk.get_cell(lp);
+
+                    // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
+                    for axis_i in 0..3 {
+                        // !OutBound
+                        let c1 = chunk.get_cell(lp + Self::AXES[axis_i]);
+
+                        if !Self::sn_signchanged(c0, c1) {
+                            continue;
+                        }
+
+                        let winding_flip = c0.is_empty();
+
+                        for quadvert_i in 0..6 {
+                            let winded_vi = if winding_flip {5 - quadvert_i} else {quadvert_i};
+
+                            let p = lp + Self::ADJACENT[axis_i][winded_vi];
+                            //let c = chunk.get_cell(p);
+
+                            let fp = Self::sn_featurepoint(p, chunk);//vec3(0.5, 0.5, 0.5);
+                            let norm = Vec3::Y;
+
+                            vbuf.push_vertex(
+                                p.as_vec3() + fp, 
+                                vec2(0., 0.), 
+                                norm
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }

@@ -13,7 +13,7 @@ use super::chunk_system::ChunkPtr;
 pub struct Cell {
 	/// SDF value, used for Isosurface Extraction.
 	/// 0 -> surface, +0 positive -> void, -0 negative -> solid.
-    value: f32,
+    pub value: f32,
 
     /// Material Id
     mtl: u16,
@@ -46,6 +46,10 @@ impl Cell {
 
     pub fn is_empty(&self) -> bool {
         self.value <= 0.
+    }
+
+    pub fn is_solid(&self) -> bool {
+        self.value > 0.
     }
 
 }
