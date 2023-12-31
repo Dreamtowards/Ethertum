@@ -137,7 +137,7 @@ impl MeshGen {
     ];
 
     fn sn_signchanged(c0: &Cell, c1: &Cell) -> bool {
-        return (c0.value > 0.) != (c1.value > 0.);  // use .is_empty() ?
+        (c0.value > 0.) != (c1.value > 0.)  // use .is_empty() ?
     }
 
     // Naive SurfaceNets Method of Evaluate FeaturePoint.
@@ -177,13 +177,13 @@ impl MeshGen {
     // via Approxiate Differental Gradient  
     // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
     fn sn_grad(lp: IVec3, chunk: &ChunkPtr) -> Vec3 {
-        let E = 1;  // Epsilon
-        
-        return vec3(  // ?Needs: L - Mid - R
-            chunk.get_cell(lp + ivec3(E, 0, 0)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(E, 0, 0))).value,
-            chunk.get_cell(lp + ivec3(0, E, 0)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(0, E, 0))).value,
-            chunk.get_cell(lp + ivec3(0, 0, E)).value - chunk.get_cell(Chunk::as_localpos(lp - ivec3(0, 0, E))).value
-        ).normalize();
+        // let E = 1;  // Epsilon
+        let val = chunk.get_cell(lp).value;
+        vec3(
+            chunk.get_cell(lp + IVec3::X).value - val,//chunk.get_cell(lp - IVec3::X).value,
+            chunk.get_cell(lp + IVec3::Y).value - val,//chunk.get_cell(lp - IVec3::Y).value,
+            chunk.get_cell(lp + IVec3::Z).value - val,//chunk.get_cell(lp - IVec3::Z).value
+        ).normalize()
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
