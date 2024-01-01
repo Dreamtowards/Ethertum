@@ -1,5 +1,10 @@
 
-use bevy::{prelude::*, diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin, DiagnosticsStore}, tasks::AsyncComputeTaskPool, render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo}};
+use bevy::{
+    prelude::*, 
+    diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin, DiagnosticsStore}, 
+    tasks::AsyncComputeTaskPool, 
+    render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo}
+};
 
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
@@ -195,6 +200,12 @@ OS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os
 CPU: {cpu_name}, usage {cpu_usage:.1}%
 GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
 RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB
+
+Hit: p, d, vox
+
+World: '', daytime: . inhabited: , seed: 
+Entity: N; components: N, T: n
+Chunk: loaded, loading, meshing, -- saving.
 "
     );
 

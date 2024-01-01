@@ -5,8 +5,8 @@ edition = "2021"
 
 
 [dev-dependencies]
-bevy = { version = "0.12", features = ["dynamic_linking"] }
-
+bevy = { version = "0.12", features = ["dynamic_linking", "trace_tracy"] }
+# cargo run --features bevy/trace_tracy
 
 [dependencies]
 bevy = { version = "0.12" }

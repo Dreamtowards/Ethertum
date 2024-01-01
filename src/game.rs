@@ -4,7 +4,7 @@ use std::f32::consts::{PI, TAU};
 use bevy::{
     prelude::*, 
     window::{CursorGrabMode, PrimaryWindow, WindowMode}, 
-    pbr::ScreenSpaceAmbientOcclusionBundle, 
+    pbr::{ScreenSpaceAmbientOcclusionBundle, DirectionalLightShadowMap}, 
     core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, 
 };
 use bevy_atmosphere::prelude::*;
@@ -24,6 +24,11 @@ impl Plugin for GamePlugin {
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
+
+        // ShadowMap sizes
+        app.insert_resource(DirectionalLightShadowMap {
+            size: 512,
+        });
         
         // Physics
         app.add_plugins(PhysicsPlugins::default());
