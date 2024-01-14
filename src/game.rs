@@ -122,7 +122,7 @@ fn startup(
     commands.spawn((
         DirectionalLightBundle {
             directional_light: DirectionalLight {
-                shadows_enabled: true,
+                // shadows_enabled: true,
                 ..default()
             },
             ..default()

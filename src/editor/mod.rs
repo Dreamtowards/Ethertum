@@ -6,7 +6,7 @@ use bevy::{
     render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo}
 };
 
-use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_egui::{egui::{self, Rounding, style::HandleShape, FontDefinitions, FontData, FontFamily}, EguiContexts, EguiPlugin, EguiSettings};
 
 pub struct EditorPlugin;
 
@@ -32,18 +32,25 @@ impl Plugin for EditorPlugin {
         ));
         
         // Setup Controls
-        app.insert_resource(editor_controls());
+        app.insert_resource(res_editor_controls());
         app.add_systems(Startup, setup_editor_camera_controls);
 
 
-        app.add_systems(Startup, debug_text_setup);
-        app.add_systems(Update, debug_text_update);
+        // DebugText
+        app.add_systems(Startup, setup_debug_text);
+        app.add_systems(Update, update_debug_text);
+
+        // Setup Egui Style
+        app.add_systems(Startup, setup_egui_style);
+
+
+        app.add_systems(Update, ui_example_system);
 
     }
 }
 
 
-fn editor_controls() -> bevy_editor_pls::controls::EditorControls {
+fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
     use bevy_editor_pls::controls::*;
     let mut editor_controls = EditorControls::default_bindings();
     editor_controls.unbind(Action::PlayPauseEditor);
@@ -69,10 +76,69 @@ fn setup_editor_camera_controls(
 
 
 
+
+fn setup_egui_style(
+    mut egui_settings: ResMut<EguiSettings>,
+    mut _ctx: EguiContexts,
+) {
+    let mut ctx = _ctx.ctx_mut();
+    ctx.style_mut(|style| {
+
+        let mut visuals = &mut style.visuals;
+        let round = Rounding::from(2.5);
+
+        visuals.window_rounding = round;
+        visuals.widgets.noninteractive.rounding = round;
+        visuals.widgets.inactive.rounding = round;
+        visuals.widgets.hovered.rounding = round;
+        visuals.widgets.active.rounding = round;
+        visuals.widgets.open.rounding = round;
+        
+        visuals.collapsing_header_frame = true;
+        visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
+        visuals.slider_trailing_fill = true;
+    });
+
+    let mut fonts = FontDefinitions::default();
+    fonts.font_data.insert("my_font".to_owned(), FontData::from_static(include_bytes!("../../assets/fonts/menlo.ttf")));
+
+    // Put my font first (highest priority):
+    fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+        .insert(0, "my_font".to_owned());
+    
+    // Put my font as last fallback for monospace:
+    fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+        .push("my_font".to_owned());
+    
+    ctx.set_fonts(fonts);
+
+    //egui_settings.scale_factor = 3.;
+
+
+
+}
+
+
+fn ui_example_system(mut ctx: EguiContexts) {
+    egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
+        ui.label("world");
+        
+        if ui.button("text").clicked() {
+            
+        }
+    });
+}
+
+
+
+//////////////////// DEBUG TEXT ////////////////////
+
+
+
 #[derive(Component)]
 struct DebugTextTag;
 
-fn debug_text_setup(
+fn setup_debug_text(
     mut commands: Commands, 
     asset_server: Res<AssetServer>,
 ) {
@@ -99,7 +165,7 @@ fn debug_text_setup(
     
 }
 
-fn debug_text_update(
+fn update_debug_text(
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
     mut query_text: Query<&mut Text, With<DebugTextTag>>,
@@ -212,13 +278,3 @@ Chunk: loaded, loading, meshing, -- saving.
 
     *last_cam_pos = cam_pos;
 }
-
-// fn ui_example_system(mut ctx: EguiContexts) {
-//     egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
-//         ui.label("world");
-        
-//         if ui.button("text").clicked() {
-            
-//         }
-//     });
-// }
