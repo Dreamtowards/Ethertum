@@ -9,7 +9,7 @@ use super::{chunk::*, TerrainMaterial};
 
 
 
-
+use std::sync::{Arc, RwLock};
 
 
 // pub enum ChunkMeshingState {
@@ -18,7 +18,9 @@ use super::{chunk::*, TerrainMaterial};
 //     Completed,
 // }
 
-pub type ChunkPtr = Box<Chunk>; //Arc<RwLock<Chunk>>;
+// Box<Chunk>;         not supported for SharedPtr
+// Arc<RwLock<Chunk>>; non convinent for readonly ops
+pub type ChunkPtr = Arc<RwLock<Chunk>>;
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
@@ -108,7 +110,7 @@ impl ChunkSystem {
 
 
     pub fn spawn_chunk(&mut self, chunk: ChunkPtr) {
-        let chunkpos = chunk.chunkpos;
+        let chunkpos = chunk.read().unwrap().chunkpos;
 
 
         self.chunks.insert(chunkpos, chunk);  //.write().unwrap()

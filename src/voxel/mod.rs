@@ -7,6 +7,7 @@ mod material;
 mod meshgen;
 mod worldgen;
 
+use bevy_egui::egui::mutex::RwLock;
 use chunk::*;
 use chunk_system::*;
 use meshgen::*;
@@ -119,30 +120,35 @@ fn chunks_detect_load_and_unload(
                     continue;
                 }
 
-                let mut chunk = Box::new(Chunk::new(chunkpos));
+                use std::sync::{Arc, RwLock};
+                let mut _chunk = Arc::new(RwLock::new(Chunk::new(chunkpos)));
+
+                {
+                    let mut chunk = _chunk.write().unwrap();
                 
-                WorldGen::generate_chunk(&mut chunk);
-
-                chunk.entity = commands.spawn((
-                    ChunkComponent::new(chunkpos),
-                    MaterialMeshBundle {
-                        mesh: meshes.add(Mesh::new(PrimitiveTopology::TriangleList)),
-                        material: chunk_sys.vox_mtl.clone(),
-                        transform: Transform::from_translation(chunkpos.as_vec3()),
-                        visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
-                        ..default()
-                    },
-                    Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
-                    
-                    ChunkMeshingTask,
-                    RigidBody::Static,
-                )).set_parent(chunk_sys.entity).id();
-
-                // NotShadowCaster
+                    WorldGen::generate_chunk(&mut chunk);
+    
+                    chunk.entity = commands.spawn((
+                        ChunkComponent::new(chunkpos),
+                        MaterialMeshBundle {
+                            mesh: meshes.add(Mesh::new(PrimitiveTopology::TriangleList)),
+                            material: chunk_sys.vox_mtl.clone(),
+                            transform: Transform::from_translation(chunkpos.as_vec3()),
+                            visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
+                            ..default()
+                        },
+                        Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                        
+                        ChunkMeshingTask,
+                        RigidBody::Static,
+                    )).set_parent(chunk_sys.entity).id();
+    
+                    // NotShadowCaster
+                }
 
 
     
-                chunk_sys.spawn_chunk(chunk);
+                chunk_sys.spawn_chunk(_chunk.clone());
 
                 // chunk_sys.chunks_meshing.insert(chunkpos, ChunkMeshingState::Pending);
 
@@ -193,7 +199,7 @@ fn chunks_detect_remesh_dispatch(
 
         let mut vbuf = VertexBuffer::default();
 
-        MeshGen::generate_chunk_mesh(&mut vbuf, chunk);
+        MeshGen::generate_chunk_mesh(&mut vbuf, &chunk.read().unwrap());
 
         *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
 

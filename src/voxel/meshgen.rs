@@ -71,7 +71,7 @@ pub struct MeshGen {
 
 impl MeshGen {
 
-    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
+    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
         Self::sn_contouring(vbuf, chunk);
         vbuf.make_indexed();
@@ -147,7 +147,7 @@ impl MeshGen {
 
     // Naive SurfaceNets Method of Evaluate FeaturePoint.
     // return in-cell point.
-    fn sn_featurepoint(lp: IVec3, chunk: &ChunkPtr) -> Vec3 {
+    fn sn_featurepoint(lp: IVec3, chunk: &Chunk) -> Vec3 {
         let mut sign_changes = 0;
         let mut fp_sum = Vec3::ZERO;
 
@@ -181,7 +181,7 @@ impl MeshGen {
     // Evaluate Normal of a Cell FeaturePoint
     // via Approxiate Differental Gradient  
     // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
-    fn sn_grad(lp: IVec3, chunk: &ChunkPtr) -> Vec3 {
+    fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
         let val = chunk.get_cell(lp).value;
         vec3(
@@ -191,7 +191,7 @@ impl MeshGen {
         ).normalize()
     }
 
-    fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &ChunkPtr) {
+    fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
         for ly in 1..Chunk::SIZE-1 {
             for lz in 1..Chunk::SIZE-1 {
@@ -284,7 +284,7 @@ static CUBE_NORM: [f32;6*6*3] = [
 // ];
 
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &ChunkPtr) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk) {
     
     for face_i in 0..6 {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i*18..]);  // 18: 3 scalar * 3 vertex * 2 triangle
