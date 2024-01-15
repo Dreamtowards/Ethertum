@@ -68,7 +68,7 @@ pub struct Chunk {
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
     // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
-    neighbor_chunks: [Option<Weak<Arc<ChunkPtr>>>; 6],
+    pub neighbor_chunks: [Option<Weak<RwLock<Chunk>>>; 6],
 
 
 
@@ -93,20 +93,26 @@ impl Chunk {
         &self.cells[Chunk::local_cell_idx(localpos)]
     }
 
-    pub fn get_cell_neighbor(&self, relpos: IVec3) -> Option<&Cell> {
+    pub fn get_cell_neighbor(&self, relpos: IVec3) -> Option<Cell> {
         if Chunk::is_localpos(relpos) {
-            Some(self.get_cell(relpos))
+            Some(*self.get_cell(relpos))
         } else {
-            // if let Some(neib) = Chunk::neighbor_idx(relpos) {
-            //     if let Some(neib_chunk_weak) = self.neighbor_chunks[neib] {
-            //         if let Some(neib_chunk) = neib_chunk_weak.upgrade() {
+            if let Some(neib_idx) = Chunk::neighbor_idx(relpos) {
+                if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
+                    if let Some(neib_chunkptr) = neib_weak.upgrade() {
+                        let neib_chunk = neib_chunkptr.read().unwrap();
+                        assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
-            //             return Some(neib_chunk.get_cell(Chunk::as_localpos(relpos)));
-            //         }
-            //     }
-            // }
+                        return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
+                    }
+                }
+            }
             None
         }
+    }
+
+    pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
+        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(f32::INFINITY, 0))
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {
@@ -149,11 +155,11 @@ impl Chunk {
     }
 
     fn local_cell_idx(localpos: IVec3) -> usize {
-        assert!(Chunk::is_localpos(localpos));
+        assert!(Chunk::is_localpos(localpos), "localpos = {}", localpos);
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }
 
-    const NEIGHBOR_DIR: [IVec3; 6] = [
+    pub const NEIGHBOR_DIR: [IVec3; 6] = [
         IVec3::new(-1, 0, 0),
         IVec3::new( 1, 0, 0),
         IVec3::new( 0,-1, 0),
@@ -169,6 +175,12 @@ impl Chunk {
             }
         }
         None
+    }
+
+    pub fn neighbor_idx_opposite(idx: usize) -> usize {
+        let i = idx / 2 * 2 + (idx + 1) % 2;
+        assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[i] == IVec3::ZERO, "idx = {}, opposite = {}", idx, i);
+        i
     }
 
 }

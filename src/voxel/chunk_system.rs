@@ -46,15 +46,18 @@ pub struct ChunkSystem {
 
     pub vox_mtl: Handle<TerrainMaterial>,
 
+    pub dbg_remesh_all_chunks: bool,
+
 }
 
 impl Default for ChunkSystem {
     fn default() -> Self {
         Self {
-            chunks: HashMap::default(),
+            chunks: HashMap::default(),//Arc::new(RwLock::new(HashMap::new())), 
             view_distance: IVec2::new(1, 1),
             entity: Entity::PLACEHOLDER,
             vox_mtl: Handle::default(),
+            dbg_remesh_all_chunks: false,
         }
     }
 }
@@ -63,12 +66,10 @@ impl ChunkSystem {
 
     pub fn new(view_distance: i32) -> Self {
         Self { 
-            chunks: HashMap::new(), //Arc::new(RwLock::new(HashMap::new())), 
             view_distance: IVec2::new(view_distance, view_distance),
             // chunks_loading: HashSet::new(),
             // chunks_meshing: HashMap::new(),
-            entity: Entity::PLACEHOLDER,
-            vox_mtl: Handle::default(),
+            ..default()
         }
     }
 
@@ -109,11 +110,33 @@ impl ChunkSystem {
     // }
 
 
-    pub fn spawn_chunk(&mut self, chunk: ChunkPtr) {
-        let chunkpos = chunk.read().unwrap().chunkpos;
+    pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
+        let chunkpos;
+        {
+            let mut chunk = chunkptr.write().unwrap();
+            chunkpos = chunk.chunkpos;
+    
+            for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
+                let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
+                let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
+    
+                // set neighbor_chunks cache
+                chunk.neighbor_chunks[neib_idx] = 
+                if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
 
+                    // update neighbor chunks' neighbor_chunk
+                    neib_chunkptr.write().unwrap().neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
-        self.chunks.insert(chunkpos, chunk);  //.write().unwrap()
+                    Some(Arc::downgrade(neib_chunkptr))
+                } else {
+                    None
+                }
+            }
+
+        }
+
+        self.chunks.insert(chunkpos, chunkptr); 
+        
         // // There is no need to cast shadows for chunks below the surface.
         // if chunkpos.y <= 64 {
         //     entity_commands.insert(NotShadowCaster);

@@ -169,8 +169,14 @@ fn chunks_detect_load_and_unload(
             commands.entity(entity).despawn_recursive();
             chunk_sys.despawn_chunk(chunkpos);
         }
+        else if chunk_sys.dbg_remesh_all_chunks 
+        {
+            commands.entity(entity).insert(ChunkMeshingTask);
+        }
 
     }
+    chunk_sys.dbg_remesh_all_chunks = false;
+
 }
 
 

@@ -50,12 +50,8 @@ impl VertexBuffer {
 
     pub fn into_mesh(self) -> Mesh {
         let has_idx = self.is_indexed();
-
-        let mut tmp = Vec::new();
-        tmp.resize(self.vertex_count(), Vec4::default());
         
         Mesh::new(PrimitiveTopology::TriangleList)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, tmp)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm)
@@ -155,14 +151,17 @@ impl MeshGen {
             let edge = Self::EDGE[edge_i];
             let v0 = Self::VERT[edge[0]];
             let v1 = Self::VERT[edge[1]];
-            let c0 = chunk.get_cell(lp + v0);
-            let c1 = chunk.get_cell(lp + v1);
+            let c0 = chunk.get_cell_rel(lp + v0); 
+            let c1 = chunk.get_cell_rel(lp + v1); 
 
-            if Self::sn_signchanged(c0, c1) {
-                let t = inverse_lerp(c0.value..=c1.value, 0.0).unwrap();
+            if Self::sn_signchanged(&c0, &c1) {
 
                 // t maybe -INF if accessing a Nil Cell.
-                if t.is_finite() {
+                if let Some(t) = inverse_lerp(c0.value..=c1.value, 0.0) {
+                    if !t.is_finite() {
+                        continue;
+                    }
+                    assert!(t.is_finite(), "t = {}", t);
 
                     let p = t * (v1 - v0).as_vec3() + v0.as_vec3();  // (v1-v0) must > 0. since every edge vert are min-to-max
 
@@ -183,28 +182,31 @@ impl MeshGen {
     // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
-        let val = chunk.get_cell(lp).value;
+        let val = chunk.get_cell_rel(lp).value;
         vec3(
-            chunk.get_cell(lp + IVec3::X).value - val,//chunk.get_cell(lp - IVec3::X).value,
-            chunk.get_cell(lp + IVec3::Y).value - val,//chunk.get_cell(lp - IVec3::Y).value,
-            chunk.get_cell(lp + IVec3::Z).value - val,//chunk.get_cell(lp - IVec3::Z).value
+            chunk.get_cell_rel(lp + IVec3::X).value - val,//chunk.get_cell(lp - IVec3::X).value,
+            chunk.get_cell_rel(lp + IVec3::Y).value - val,//chunk.get_cell(lp - IVec3::Y).value,
+            chunk.get_cell_rel(lp + IVec3::Z).value - val,//chunk.get_cell(lp - IVec3::Z).value
         ).normalize()
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
-        for ly in 1..Chunk::SIZE-1 {
-            for lz in 1..Chunk::SIZE-1 {
-                for lx in 1..Chunk::SIZE-1 {
+        for ly in 0..Chunk::SIZE {
+            for lz in 0..Chunk::SIZE {
+                for lx in 0..Chunk::SIZE {
                     let lp = IVec3::new(lx, ly, lz);
                     let c0 = chunk.get_cell(lp);
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
                         // !OutBound
-                        let c1 = chunk.get_cell(lp + Self::AXES[axis_i]);
+                        let c1 = chunk.get_cell_rel(lp + Self::AXES[axis_i]);
 
-                        if !Self::sn_signchanged(c0, c1) {
+                        if !c1.value.is_finite() {
+                            continue;
+                        }
+                        if !Self::sn_signchanged(&c0, &c1) {
                             continue;
                         }
 
@@ -216,7 +218,8 @@ impl MeshGen {
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
                             //let c = chunk.get_cell(p);
 
-                            let fp = Self::sn_featurepoint(p, chunk);//vec3(0.5, 0.5, 0.5);
+                            let fp = //Self::sn_featurepoint(p, chunk);
+                            vec3(0.5, 0.5, 0.5);
                             let norm = -Self::sn_grad(p, chunk);
 
                             vbuf.push_vertex(
