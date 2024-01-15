@@ -218,8 +218,7 @@ impl MeshGen {
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
                             //let c = chunk.get_cell(p);
 
-                            let fp = //Self::sn_featurepoint(p, chunk);
-                            vec3(0.5, 0.5, 0.5);
+                            let fp = Self::sn_featurepoint(p, chunk);
                             let norm = -Self::sn_grad(p, chunk);
 
                             vbuf.push_vertex(

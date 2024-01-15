@@ -1,7 +1,7 @@
 
 use std::sync::{RwLock, Weak, Arc};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, math::ivec3};
 
 use super::chunk_system::ChunkPtr;
 
@@ -68,7 +68,7 @@ pub struct Chunk {
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
     // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
-    pub neighbor_chunks: [Option<Weak<RwLock<Chunk>>>; 6],
+    pub neighbor_chunks: [Option<Weak<RwLock<Chunk>>>; Self::NEIGHBOR_DIR.len()],
 
 
 
@@ -83,7 +83,7 @@ impl Chunk {
         Self {
             cells: [Cell::default(); 16*16*16],
             chunkpos,
-            neighbor_chunks: [None, None, None, None, None, None],
+            neighbor_chunks: Default::default(),
             entity: Entity::PLACEHOLDER,
         }
     }
@@ -101,7 +101,7 @@ impl Chunk {
                 if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
                     if let Some(neib_chunkptr) = neib_weak.upgrade() {
                         let neib_chunk = neib_chunkptr.read().unwrap();
-                        assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
+                        // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
                         return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
                     }
@@ -159,13 +159,27 @@ impl Chunk {
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }
 
-    pub const NEIGHBOR_DIR: [IVec3; 6] = [
-        IVec3::new(-1, 0, 0),
-        IVec3::new( 1, 0, 0),
-        IVec3::new( 0,-1, 0),
-        IVec3::new( 0, 1, 0),
-        IVec3::new( 0, 0,-1),
-        IVec3::new( 0, 0, 1),
+    pub const NEIGHBOR_DIR: [IVec3; 6+12] = [
+        // 6 Faces
+        ivec3(-1, 0, 0),
+        ivec3( 1, 0, 0),
+        ivec3( 0,-1, 0),
+        ivec3( 0, 1, 0),
+        ivec3( 0, 0,-1),
+        ivec3( 0, 0, 1),
+        // 12 Edges
+        ivec3(0, -1, -1),  // X
+        ivec3(0, 1, 1),
+        ivec3(0, 1, -1),
+        ivec3(0, -1, 1),
+        ivec3(-1, 0, -1),  // Y
+        ivec3(1, 0, 1),
+        ivec3(1, 0, -1),
+        ivec3(-1, 0, 1),
+        ivec3(-1, -1, 0),  // Z
+        ivec3( 1, 1, 0),
+        ivec3(-1, 1, 0),
+        ivec3( 1, -1, 0),
     ];
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
@@ -177,10 +191,9 @@ impl Chunk {
         None
     }
 
+    // assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[opposite_idx] == IVec3::ZERO, "idx = {}, opposite = {}", idx, opposite_idx);
     pub fn neighbor_idx_opposite(idx: usize) -> usize {
-        let i = idx / 2 * 2 + (idx + 1) % 2;
-        assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[i] == IVec3::ZERO, "idx = {}, opposite = {}", idx, i);
-        i
+        idx / 2 * 2 + (idx + 1) % 2
     }
 
 }

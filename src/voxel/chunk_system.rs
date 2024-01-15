@@ -2,7 +2,7 @@
 
 use bevy::{
     prelude::*, 
-    utils::HashMap
+    utils::{HashMap}
 };
 
 use super::{chunk::*, TerrainMaterial};
@@ -38,7 +38,7 @@ pub struct ChunkSystem {
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
 
     // pub chunks_loading: HashSet<IVec3>,
-    // pub chunks_meshing: HashMap<IVec3, ChunkMeshingState>,
+    pub chunks_meshing: HashMap<IVec3, u32>,
 
     pub view_distance: IVec2,
 
@@ -58,6 +58,7 @@ impl Default for ChunkSystem {
             entity: Entity::PLACEHOLDER,
             vox_mtl: Handle::default(),
             dbg_remesh_all_chunks: false,
+            chunks_meshing: HashMap::default(),
         }
     }
 }
@@ -120,11 +121,13 @@ impl ChunkSystem {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
     
+                self.mark_chunk_remesh(neib_chunkpos);
+
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = 
                 if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
 
-                    // update neighbor chunks' neighbor_chunk
+                    // update neighbor's `neighbor_chunk`
                     neib_chunkptr.write().unwrap().neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
                     Some(Arc::downgrade(neib_chunkptr))
@@ -156,6 +159,10 @@ impl ChunkSystem {
         } else {
             None
         }
+    }
+
+    pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
+        self.chunks_meshing.insert(chunkpos, 0);
     }
 
     // pub fn set_chunk_meshing(&mut self, chunkpos: IVec3, stat: ChunkMeshingState) {

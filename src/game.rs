@@ -207,8 +207,11 @@ fn tick_world(
     worldinfo.time_inhabited += dt_sec;
     
     // DayTime
-    worldinfo.daytime += dt_sec / worldinfo.daytime_length;
-    worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
+    if  worldinfo.daytime_length != 0. {
+        worldinfo.daytime += dt_sec / worldinfo.daytime_length;
+        worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
+    }
+
 
 
     // Atmosphere SunPos
