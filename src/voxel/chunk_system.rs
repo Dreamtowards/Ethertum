@@ -121,7 +121,7 @@ impl ChunkSystem {
         {
             let mut chunk = chunkptr.write().unwrap();
             chunkpos = chunk.chunkpos;
-    
+            
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;

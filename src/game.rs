@@ -460,7 +460,7 @@ impl WorldInfo {
             seed: 0,
             name: "None Name".into(),
             daytime: 0.,
-            daytime_length: 60. * 2.,
+            daytime_length: 60. * 24.,
 
             time_inhabited: 0.,
             time_created: 0,

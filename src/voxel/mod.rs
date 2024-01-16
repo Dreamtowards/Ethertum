@@ -44,11 +44,12 @@ impl Plugin for VoxelPlugin {
 
         app.add_systems(Update, 
             (
+                
+                chunks_remesh,
                 chunks_detect_load_and_unload, 
                 // chunks_apply_loaded
-                chunks_remesh 
                 // chunks_apply_remeshed
-            )
+            ).chain()
         );
     }
 }
