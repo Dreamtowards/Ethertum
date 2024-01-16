@@ -2,8 +2,9 @@
 
 use bevy::{
     prelude::*, 
-    utils::{HashMap}
+    utils::{HashMap, HashSet}, tasks::Task
 };
+use bevy_xpbd_3d::components::Collider;
 
 use super::{chunk::*, TerrainMaterial};
 
@@ -38,7 +39,10 @@ pub struct ChunkSystem {
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
 
     // pub chunks_loading: HashSet<IVec3>,
-    pub chunks_meshing: HashMap<IVec3, u32>,
+    pub chunks_remesh: HashSet<IVec3>,      // marked as ReMesh
+    
+    #[reflect(ignore)]
+    pub chunks_meshing: HashMap<IVec3, Task<(Mesh, Option<Collider>, Entity, Handle<Mesh>)>>,
 
     pub view_distance: IVec2,
 
@@ -58,6 +62,7 @@ impl Default for ChunkSystem {
             entity: Entity::PLACEHOLDER,
             vox_mtl: Handle::default(),
             dbg_remesh_all_chunks: false,
+            chunks_remesh: HashSet::default(),
             chunks_meshing: HashMap::default(),
         }
     }
@@ -162,7 +167,7 @@ impl ChunkSystem {
     }
 
     pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
-        self.chunks_meshing.insert(chunkpos, 0);
+        self.chunks_remesh.insert(chunkpos);
     }
 
     // pub fn set_chunk_meshing(&mut self, chunkpos: IVec3, stat: ChunkMeshingState) {

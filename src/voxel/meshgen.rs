@@ -39,6 +39,13 @@ impl VertexBuffer {
         if self.is_indexed() {self.indices.len()} else {self.pos.len()}
     }
 
+    pub fn clear(&mut self) {
+        self.pos.clear();
+        self.norm.clear();
+        self.uv.clear();
+        self.indices.clear();
+    }
+
     pub fn make_indexed(&mut self) {
 
         self.indices.clear();
@@ -53,9 +60,16 @@ impl VertexBuffer {
         
         Mesh::new(PrimitiveTopology::TriangleList)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
-            .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
             .with_indices(if has_idx {Some(Indices::U32(self.indices))} else {None})
+    }
+
+    pub fn to_mesh(&self, mesh: &mut Mesh) {
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, self.pos.clone());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm.clone());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, self.uv.clone());
+        mesh.set_indices(if self.is_indexed() {Some(Indices::U32(self.indices.clone()))} else {None})
     }
 
 }

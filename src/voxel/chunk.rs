@@ -65,6 +65,7 @@ pub struct Chunk {
     pub chunkpos: IVec3,
 
     pub entity: Entity,
+    pub mesh_handle: Handle<Mesh>,
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
     // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
@@ -85,6 +86,7 @@ impl Chunk {
             chunkpos,
             neighbor_chunks: Default::default(),
             entity: Entity::PLACEHOLDER,
+            mesh_handle: Handle::default(),
         }
     }
 

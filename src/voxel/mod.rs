@@ -10,6 +10,7 @@ mod worldgen;
 use bevy_egui::egui::mutex::RwLock;
 use chunk::*;
 use chunk_system::*;
+use futures_lite::future;
 use meshgen::*;
 use worldgen::*;
 use crate::character_controller::CharacterControllerCamera;
@@ -19,7 +20,7 @@ use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidB
 use bevy::{
     prelude::*, 
     render::{render_resource::{PrimitiveTopology, AsBindGroup}, primitives::Aabb}, 
-    utils::HashMap, 
+    utils::{HashMap, FloatOrd}, 
     tasks::{AsyncComputeTaskPool, Task}, reflect::TypeUuid
 };
 
@@ -45,7 +46,7 @@ impl Plugin for VoxelPlugin {
             (
                 chunks_detect_load_and_unload, 
                 // chunks_apply_loaded
-                chunks_detect_remesh_dispatch 
+                chunks_remesh 
                 // chunks_apply_remeshed
             )
         );
@@ -127,11 +128,13 @@ fn chunks_detect_load_and_unload(
                     let mut chunk = _chunk.write().unwrap();
                 
                     WorldGen::generate_chunk(&mut chunk);
+
+                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
     
                     chunk.entity = commands.spawn((
                         ChunkComponent::new(chunkpos),
                         MaterialMeshBundle {
-                            mesh: meshes.add(Mesh::new(PrimitiveTopology::TriangleList)),
+                            mesh: chunk.mesh_handle.clone(),
                             material: chunk_sys.vox_mtl.clone(),
                             transform: Transform::from_translation(chunkpos.as_vec3()),
                             visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
@@ -183,66 +186,124 @@ fn chunks_detect_load_and_unload(
 
 
 
-static SHARED_POOL_MESH_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
+static POOL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
     Lazy::new(ThreadLocal::default);
 
 
-fn chunks_detect_remesh_dispatch(
-    chunk_sys: ResMut<ChunkSystem>,
+fn chunks_remesh(
     mut commands: Commands,
 
+    mut chunk_sys: ResMut<ChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
 
     mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 ) {
+    let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
-    for (entity, mesh_handle, mut meshing_task, chunk_info, mut visibility) in query.iter_mut() {
+    let p = IVec3::ZERO;
+    chunks_remesh.sort_unstable_by_key(|v| {
+        FloatOrd(v.distance_squared(p) as f32)
+    });
+
+    const MAX_CONCURRENT_MESHING: usize = 10;
+
+    for chunkpos in chunks_remesh {
         
-        let chunkpos = chunk_info.chunkpos;
-
-        // !!Problematic Unwarp
-        let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
-
-        let mut vbuf = VertexBuffer::default();
-
-        MeshGen::generate_chunk_mesh(&mut vbuf, &chunk.read().unwrap());
-
-        *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
-
-
-        if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
-
-            commands.entity(entity).remove::<Collider>().insert(collider);
-            
-            info!("TriMesh {:?}", chunkpos);
+        if chunk_sys.chunks_meshing.len() > MAX_CONCURRENT_MESHING {
+            break;
         }
 
-        *visibility = Visibility::Visible;
+        if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
+            let chunkptr = chunkptr.clone();
 
-        commands.entity(entity).remove::<ChunkMeshingTask>();
-
-        info!("ReMesh {:?}", chunkpos);
-    }
+            let task = AsyncComputeTaskPool::get().spawn(async move {
+                let mut vbuf = POOL_VERTEX_BUFFERS
+                    .get_or(|| { RefCell::new(VertexBuffer::default()) })
+                    .borrow_mut();
     
-    // let task_pool = AsyncComputeTaskPool::get();
+                let entity;
+                let mesh_handle;
+                {
+                    let chunk = chunkptr.read().unwrap();
+                    
+                    // Generate Mesh
+                    MeshGen::generate_chunk_mesh(&mut vbuf, &chunk); 
 
-    // task_pool.spawn(async move {
-    //     let mut mesh_buffer = SHARED_POOL_MESH_BUFFERS
-    //         .get_or(|| {
-    //             RefCell::new(VertexBuffer::with_capacity(1024))
-    //         })
-    //         .borrow_mut();
+                    entity = chunk.entity;
+                    mesh_handle = chunk.mesh_handle.clone();
+                }
 
-    //     MeshGen::generate_chunk_mesh(&mut mesh_buffer, chunk);
-    // });
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                vbuf.to_mesh(&mut mesh);  // exoprt mesh
+                vbuf.clear();
 
-    // chunk_sys.chunks_meshing.retain(|chunkpos, stat| {
-    //     if ChunkMeshingState::Pending = stat {
-    //         let chunk = chunk_sys.get_chunk(chunkpos);
+                // Build Collider of TriMesh
+                let collider = Collider::trimesh_from_mesh(&mesh);
 
+                info!("Generated ReMesh");
+
+                (mesh, collider, entity, mesh_handle)
+            });
+    
+            info!("Queued ReMesh");
+            chunk_sys.chunks_meshing.insert(chunkpos, task);
+            chunk_sys.chunks_remesh.remove(&chunkpos);
+        }
+    }
+
+    chunk_sys.chunks_meshing.retain(|chunkpos, task| {
+        if let Some(r) = future::block_on(future::poll_once(task)) {
+
+            // Update Mesh Asset
+            *meshes.get_mut(r.3).unwrap() = r.0;
+
+            // Update Phys Collider TriMesh
+            if let Some(collider) = r.1 {
+                if let Some(mut cmds) = commands.get_entity(r.2) {
+                    cmds.remove::<Collider>()
+                        .insert(collider)
+                        .insert(Visibility::Visible);
+                }
+            }
+
+            info!("Applied ReMesh");
+
+            return false;
+        }
+        true
+    });
+
+
+
+
+    // for (entity, mesh_handle, mut meshing_task, chunk_info, mut visibility) in query.iter_mut() {
+        
+    //     let chunkpos = chunk_info.chunkpos;
+
+    //     // !!Problematic Unwarp
+    //     let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
+
+    //     let mut vbuf = VertexBuffer::default();
+
+
+    //     *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
+
+
+    //     if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
+
+    //         commands.entity(entity).remove::<Collider>().insert(collider);
+            
+    //         info!("TriMesh {:?}", chunkpos);
     //     }
-    //     true
-    // });
+
+    //     *visibility = Visibility::Visible;
+
+    //     commands.entity(entity).remove::<ChunkMeshingTask>();
+
+    //     info!("ReMesh {:?}", chunkpos);
+    // }
+    
+    
 
 
 }
