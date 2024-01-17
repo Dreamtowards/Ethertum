@@ -118,35 +118,45 @@ fn fragment(
     let bary = in.bary;
 
     var blend_triplanar = abs(worldnorm);
+    blend_triplanar = max(blend_triplanar - vec3<f32>(0.25), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
-// #ifdef HEIGHTMAP
+#ifdef BLEND 
+
+#else
+// #ifdef MAX_BARY
+//     let vi_bary_max = _vec3_max_idx(bary);
+//     let vi_mtl = vi_bary_max;
+// #else
     let vDRAM = array<vec4<f32>, 3>(
         triplanar_sample(tex_diffuse, mtls[0], worldpos, blend_triplanar),
         triplanar_sample(tex_diffuse, mtls[1], worldpos, blend_triplanar),
         triplanar_sample(tex_diffuse, mtls[2], worldpos, blend_triplanar),
     );
-	let _blend_heightmap = pow(bary, vec3<f32>(0.48));  // BlendHeightmap. Pow: littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
-    let vi_height_max = _vec3_max_idx(vec3<f32>(vDRAM[0].x * _blend_heightmap.x, vDRAM[0].y * _blend_heightmap.y, vDRAM[0].z * _blend_heightmap.z));
+	let _blend_heightmap = bary;//pow(bary, vec3<f32>(0.48));  // BlendHeightmap. Pow: littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
+    let vi_height_max = _vec3_max_idx(vec3<f32>(vDRAM[0].x * _blend_heightmap.x, vDRAM[1].x * _blend_heightmap.y, vDRAM[2].x * _blend_heightmap.z));
     let vi_mtl = vi_height_max;
-// #else
-//     // use Max Bary Vertex's mtl
-//     let vi_bary_max = _vec3_max_idx(bary);
-//     let vi_mtl = vi_bary_max;
+
+    let dram = select(select(vDRAM[2], vDRAM[1], vi_mtl==1), vDRAM[0], vi_mtl==0);  // vDRAM[vi_mtl]
+    let roughness = dram.y;
+    let metallic  = dram.w;
+    let occlusion = dram.z;
 // #endif
+#endif
 
     let base_color = triplanar_sample(tex_diffuse, mtls[vi_mtl], worldpos, blend_triplanar);
     
     // NORMAL
+    let normal_intensity = vec3<f32>(1., 1., 1.0);
     let uvs = triplanar_uv(mtls[vi_mtl], worldpos);
     let tnormX = _normal_sample(uvs[0]);
     let tnormY = _normal_sample(uvs[1]);
     let tnormZ = _normal_sample(uvs[2]);
     // GPU Gems 3, Triplanar Normal Mapping Method.
-    let world_normal = normalize(  // ?BUG: order may have issue
-        vec3<f32>(0., tnormX.yx)          * blend_triplanar.x +
-        vec3<f32>(tnormY.x, 0., tnormY.y) * blend_triplanar.y +
-        vec3<f32>(tnormZ.xy, 0.)          * blend_triplanar.z +
+    let world_normal = normalize(
+        vec3<f32>(0., tnormX.y, -tnormX.x) * blend_triplanar.x +
+        vec3<f32>(tnormY.x, 0., -tnormY.y) * blend_triplanar.y +
+        vec3<f32>(tnormZ.xy, 0.)           * blend_triplanar.z +
         in.world_normal
     );
 
@@ -154,10 +164,16 @@ fn fragment(
     vert_out.position = in.position;
     vert_out.world_position = in.world_position;
     vert_out.world_normal = world_normal;
+    // vert_out.world_normal = normalize(world_normal + in.world_normal);
     vert_out.instance_index = in.instance_index;
     var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
 
-    pbr_in.material.base_color = base_color;
+    pbr_in.material.base_color = base_color; 
+    pbr_in.material.perceptual_roughness = roughness;
+    // pbr_in.material.metallic = metallic;
+    pbr_in.occlusion = vec3<f32>(occlusion);
+    
+    // pbr_in.material.base_color = vec4<f32>(vec3<f32>(roughness), 1.0); 
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
     color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);

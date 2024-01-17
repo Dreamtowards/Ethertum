@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [dev-dependencies]
-bevy = { version = "0.12", features = ["dynamic_linking", "trace_tracy"] }
+bevy = { version = "0.12", features = ["dynamic_linking", "file_watcher", "trace_tracy"] }
 # cargo run --features bevy/trace_tracy
 
 [dependencies]
@@ -40,7 +40,7 @@ resolver = "2" # Important! wgpu/bevy needs this!
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
-opt-level = 1
+# opt-level = 1
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]

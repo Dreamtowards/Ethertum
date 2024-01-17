@@ -31,7 +31,7 @@ impl WorldGen {
 
                     let val = f_terr - (p.y as f32) / 18. + f_3d * 2.;
                     
-                    chunk.set_cell(lp, &Cell::new(val, (lx / 2 % 5) as u16));
+                    chunk.set_cell(lp, &Cell::new(val, (p.x / 2 % 24).abs() as u16));
                 }
             }
         }
