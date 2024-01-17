@@ -115,7 +115,7 @@ fn fragment(
 
     pbr_in.material.base_color = tex_trip(tex_diffuse, 1.0, worldpos, blend_trip);//vec4<f32>(in.bary, 1.0);
     
-    var color = pbr_functions::apply_pbr_lighting(pbr_in);
-    color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
-    return color;
+    // var color = pbr_functions::apply_pbr_lighting(pbr_in);
+    // color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
+    return pbr_in.material.base_color;//color;
 }

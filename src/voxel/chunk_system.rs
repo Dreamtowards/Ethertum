@@ -38,7 +38,9 @@ pub struct ChunkSystem {
     // Spare Voxel Octree for Spatial lookup acceleration.
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
 
-    // pub chunks_loading: HashSet<IVec3>,
+    #[reflect(ignore)]
+    pub chunks_loading: HashMap<IVec3, Task<ChunkPtr>>,
+
     pub chunks_remesh: HashSet<IVec3>,      // marked as ReMesh
     
     #[reflect(ignore)]
@@ -64,6 +66,7 @@ impl Default for ChunkSystem {
             dbg_remesh_all_chunks: false,
             chunks_remesh: HashSet::default(),
             chunks_meshing: HashMap::default(),
+            chunks_loading: HashMap::default(),
         }
     }
 }

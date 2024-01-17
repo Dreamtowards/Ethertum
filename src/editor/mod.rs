@@ -175,6 +175,9 @@ fn update_debug_text(
 
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<RenderAdapterInfo>,
+
+    chunk_sys: Res<crate::voxel::ChunkSystem>,
+    worldinfo: Res<crate::game::WorldInfo>,
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
     static mut LAST_UPDATE: f32 = 0.;
@@ -258,6 +261,15 @@ fn update_debug_text(
     let os_lang = std::env::var("LANG").unwrap_or("?lang".into());  // "en_US.UTF-8"
     //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
+    let daytime = worldinfo.daytime;
+    let world_inhabited = worldinfo.time_inhabited;
+    let world_seed = worldinfo.seed;
+
+    let num_chunks_loaded = chunk_sys.num_chunks();
+    let num_chunks_loading = chunk_sys.chunks_loading.len();
+    let num_chunks_remesh = chunk_sys.chunks_remesh.len();
+    let num_chunks_meshing = chunk_sys.chunks_meshing.len();
+
     text.sections[0].value = format!(
 "fps: {fps:.1}, dt: {frame_time:.4}ms
 cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
@@ -269,9 +281,9 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
 Hit: p, d, vox
 
-World: '', daytime: . inhabited: , seed: 
+World: '', daytime: {daytime}. inhabited: {world_inhabited}, seed: {world_seed}
 Entity: N; components: N, T: n
-Chunk: loaded, loading, meshing, -- saving.
+Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.
 "
     );
 

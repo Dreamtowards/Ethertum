@@ -430,19 +430,19 @@ fn handle_inputs(
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
-struct WorldInfo {
+pub struct WorldInfo {
     
-    seed: u64,
+    pub seed: u64,
 
-    name: String,
+    pub name: String,
 
-    daytime: f32,
+    pub daytime: f32,
 
     // seconds a day time long
-    daytime_length: f32,  
+    pub daytime_length: f32,  
 
     // seconds
-    time_inhabited: f32,
+    pub time_inhabited: f32,
 
     time_created: u64,
     time_modified: u64,

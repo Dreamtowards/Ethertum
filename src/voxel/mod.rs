@@ -7,13 +7,13 @@ mod material;
 mod meshgen;
 mod worldgen;
 
-use bevy_egui::egui::mutex::RwLock;
 use chunk::*;
-use chunk_system::*;
 use futures_lite::future;
 use meshgen::*;
 use worldgen::*;
 use crate::character_controller::CharacterControllerCamera;
+
+pub use chunk_system::{ChunkSystem, ChunkPtr};
 
 use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidBody};
 
@@ -21,9 +21,11 @@ use bevy::{
     prelude::*, 
     render::{render_resource::{PrimitiveTopology, AsBindGroup}, primitives::Aabb}, 
     utils::{HashMap, FloatOrd}, 
-    tasks::{AsyncComputeTaskPool, Task}, reflect::TypeUuid
+    tasks::{AsyncComputeTaskPool, Task}, 
+    reflect::TypeUuid
 };
 
+use std::sync::{Arc, RwLock};
 use std::cell::RefCell;
 use once_cell::sync::Lazy;
 use thread_local::ThreadLocal;
@@ -92,8 +94,8 @@ impl ChunkComponent {
     }
 }
 
-#[derive(Component)]
-struct ChunkMeshingTask;//(Task<Mesh>);
+// #[derive(Component)]
+// struct ChunkMeshingTask;//(Task<Mesh>);
 
 
 
@@ -118,48 +120,68 @@ fn chunks_detect_load_and_unload(
                 let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
                 // the chunk already exists, skip.
-                if chunk_sys.has_chunk(chunkpos) {
+                if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos) {
                     continue;
                 }
 
-                use std::sync::{Arc, RwLock};
-                let mut _chunk = Arc::new(RwLock::new(Chunk::new(chunkpos)));
 
-                {
-                    let mut chunk = _chunk.write().unwrap();
-                
-                    WorldGen::generate_chunk(&mut chunk);
+                let task = AsyncComputeTaskPool::get().spawn(async move {
 
-                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
-    
-                    chunk.entity = commands.spawn((
-                        ChunkComponent::new(chunkpos),
-                        MaterialMeshBundle {
-                            mesh: chunk.mesh_handle.clone(),
-                            material: chunk_sys.vox_mtl.clone(),
-                            transform: Transform::from_translation(chunkpos.as_vec3()),
-                            visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
-                            ..default()
-                        },
-                        Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                    let chunkptr = Arc::new(RwLock::new(Chunk::new(chunkpos)));
+
+                    {
+                        let mut chunk = chunkptr.write().unwrap();
                         
-                        ChunkMeshingTask,
-                        RigidBody::Static,
-                    )).set_parent(chunk_sys.entity).id();
-    
-                    // NotShadowCaster
-                }
+                        WorldGen::generate_chunk(&mut chunk);
+                    }
 
+                    info!("Load Chunk: {:?}", chunkpos);
 
-    
-                chunk_sys.spawn_chunk(_chunk.clone());
+                    chunkptr
+                });
 
-                // chunk_sys.chunks_meshing.insert(chunkpos, ChunkMeshingState::Pending);
-
-                info!("Load Chunk: {:?}", chunkpos);
+                chunk_sys.chunks_loading.insert(chunkpos, task);
             }
         }
     }
+
+    // Apply Loaded Chunks. todo Refactor.
+    let chunksys_entity = chunk_sys.entity;
+    let material_handle = chunk_sys.vox_mtl.clone();
+    let mut goingtospawn = Vec::new();
+    chunk_sys.chunks_loading.retain(|chunkpos, task| {
+        if let Some(chunkptr) = future::block_on(future::poll_once(task)) {
+
+            {
+                let mut chunk = chunkptr.write().unwrap();
+
+                chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+        
+                chunk.entity = commands.spawn((
+                    ChunkComponent::new(*chunkpos),
+                    MaterialMeshBundle {
+                        mesh: chunk.mesh_handle.clone(),
+                        material: material_handle.clone(),
+                        transform: Transform::from_translation(chunkpos.as_vec3()),
+                        visibility: Visibility::Hidden,  // Hidden is required since Mesh is empty.
+                        ..default()
+                    },
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                    
+                    RigidBody::Static,
+                )).set_parent(chunksys_entity).id();
+            }
+
+            goingtospawn.push(chunkptr);
+
+            return false;
+        }
+        true
+    });
+    for chunkptr in goingtospawn {
+        chunk_sys.spawn_chunk(chunkptr);
+    }
+
 
     // Chunks Detect Unload
     for (entity, chunk_comp) in query_chunks.iter() {
@@ -175,7 +197,7 @@ fn chunks_detect_load_and_unload(
         }
         else if chunk_sys.dbg_remesh_all_chunks 
         {
-            commands.entity(entity).insert(ChunkMeshingTask);
+            chunk_sys.mark_chunk_remesh(chunkpos);
         }
 
     }
@@ -187,7 +209,7 @@ fn chunks_detect_load_and_unload(
 
 
 
-static POOL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
+static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
     Lazy::new(ThreadLocal::default);
 
 
@@ -197,7 +219,7 @@ fn chunks_remesh(
     mut chunk_sys: ResMut<ChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
 
-    mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
+    // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 ) {
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
@@ -218,7 +240,7 @@ fn chunks_remesh(
             let chunkptr = chunkptr.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
-                let mut vbuf = POOL_VERTEX_BUFFERS
+                let mut vbuf = THREAD_LOCAL_VERTEX_BUFFERS
                     .get_or(|| { RefCell::new(VertexBuffer::default()) })
                     .borrow_mut();
     
@@ -241,15 +263,15 @@ fn chunks_remesh(
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                info!("Generated ReMesh");
+                info!("Generated ReMesh");;
 
                 (mesh, collider, entity, mesh_handle)
             });
     
             info!("Queued ReMesh");
             chunk_sys.chunks_meshing.insert(chunkpos, task);
-            chunk_sys.chunks_remesh.remove(&chunkpos);
         }
+        chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
     chunk_sys.chunks_meshing.retain(|chunkpos, task| {
