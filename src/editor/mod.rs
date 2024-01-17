@@ -44,7 +44,7 @@ impl Plugin for EditorPlugin {
         app.add_systems(Startup, setup_egui_style);
 
 
-        app.add_systems(Update, ui_example_system);
+        // app.add_systems(Update, ui_example_system);
 
     }
 }
@@ -255,7 +255,7 @@ fn update_debug_text(
     let cam_pos_z = cam_pos.z;
 
     // let curr_path = std::env::current_exe().unwrap().display().to_string();
-    let os_lang = std::env::var("LANG").unwrap();  // "en_US.UTF-8"
+    let os_lang = std::env::var("LANG").unwrap_or("?lang".into());  // "en_US.UTF-8"
     //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
     text.sections[0].value = format!(
