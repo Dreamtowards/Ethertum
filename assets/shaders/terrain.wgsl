@@ -23,9 +23,6 @@
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::pbr_fragment
 
-struct TerrainMaterial {
-    val: f32,//vec4<f32>,
-};
 
 struct MyVertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -61,35 +58,53 @@ fn vertex(
     return out;
 }
 
+struct TerrainMaterial {
+    val: f32,//vec4<f32>,
+};
 
 @group(1) @binding(0) var<uniform> material: TerrainMaterial;
-@group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
-@group(1) @binding(2) var _sampler: sampler;
+@group(1) @binding(1) var _sampler: sampler;
+@group(1) @binding(2) var tex_diffuse: texture_2d<f32>;
+@group(1) @binding(3) var tex_normal: texture_2d<f32>;
+@group(1) @binding(4) var tex_dram: texture_2d<f32>;
 
 fn _mod(v: f32, n: f32) -> f32 {
     let f = v % n;
     return select(f, f + n, f < 0.0);
 }
 
-// Texture Triplanar Mapping
-fn tex_trip(
-    tex: texture_2d<f32>,
-    mtl_id: f32,
-    p: vec3<f32>,
-    blend: vec3<f32>,
-) -> vec4<f32> {
+fn _vec3_max_idx(v: vec3<f32>) -> i32 {
+    // if v.x > v.y { if v.x > v.z {0} else {2}} else { if v.y > v.z {1} else {2}}
+    return select(select(2, 1, v.y > v.z), select(2, 0, v.x > v.z), v.x > v.y);
+}
 
+fn triplanar_uv(mtl_id: f32, p: vec3<f32>) -> array<vec2<f32>, 3> {
     let num_mtls = 24.0;
     let tex_mul_x = 1.0 / num_mtls;
     let tex_add_x = mtl_id / num_mtls;
     let uvX = vec2<f32>(tex_add_x + _mod(-p.z * tex_mul_x, tex_mul_x), 1.0-p.y);
     let uvY = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x),     p.z);
     let uvZ = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x), 1.0-p.y);
+    return array(fract(uvX), fract(uvY), fract(uvZ));
+}
+
+// Texture Triplanar Mapping
+fn triplanar_sample(
+    tex: texture_2d<f32>,
+    mtl_id: f32,
+    p: vec3<f32>,
+    blend: vec3<f32>,
+) -> vec4<f32> {
+    let uvs = triplanar_uv(mtl_id, p);
 
     return 
-        textureSample(tex, _sampler, fract(uvX)) * blend.x + 
-        textureSample(tex, _sampler, fract(uvY)) * blend.y + 
-        textureSample(tex, _sampler, fract(uvZ)) * blend.z;
+        textureSample(tex, _sampler, uvs[0]) * blend.x + 
+        textureSample(tex, _sampler, uvs[1]) * blend.y + 
+        textureSample(tex, _sampler, uvs[2]) * blend.z;
+}
+
+fn _normal_sample(uv: vec2<f32>) -> vec3<f32> {
+    return textureSample(tex_normal, _sampler, uv).rgb * 2.0 - 1.0;
 }
 
 @fragment
@@ -100,22 +115,51 @@ fn fragment(
     let worldpos  = in.world_position.xyz;
     let worldnorm = in.world_normal;
     let mtls = in.mtls / in.bary;
+    let bary = in.bary;
 
-    let tex = textureSample(tex_diffuse, _sampler, fract(worldpos.xz));
+    var blend_triplanar = abs(worldnorm);
+    blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
-    var blend_trip = abs(worldnorm);
-    blend_trip /= blend_trip.x + blend_trip.y + blend_trip.z;  // makesure sum = 1
+// #ifdef HEIGHTMAP
+    let vDRAM = array<vec4<f32>, 3>(
+        triplanar_sample(tex_diffuse, mtls[0], worldpos, blend_triplanar),
+        triplanar_sample(tex_diffuse, mtls[1], worldpos, blend_triplanar),
+        triplanar_sample(tex_diffuse, mtls[2], worldpos, blend_triplanar),
+    );
+	let _blend_heightmap = pow(bary, vec3<f32>(0.48));  // BlendHeightmap. Pow: littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
+    let vi_height_max = _vec3_max_idx(vec3<f32>(vDRAM[0].x * _blend_heightmap.x, vDRAM[0].y * _blend_heightmap.y, vDRAM[0].z * _blend_heightmap.z));
+    let vi_mtl = vi_height_max;
+// #else
+//     // use Max Bary Vertex's mtl
+//     let vi_bary_max = _vec3_max_idx(bary);
+//     let vi_mtl = vi_bary_max;
+// #endif
+
+    let base_color = triplanar_sample(tex_diffuse, mtls[vi_mtl], worldpos, blend_triplanar);
     
+    // NORMAL
+    let uvs = triplanar_uv(mtls[vi_mtl], worldpos);
+    let tnormX = _normal_sample(uvs[0]);
+    let tnormY = _normal_sample(uvs[1]);
+    let tnormZ = _normal_sample(uvs[2]);
+    // GPU Gems 3, Triplanar Normal Mapping Method.
+    let world_normal = normalize(  // ?BUG: order may have issue
+        vec3<f32>(0., tnormX.yx)          * blend_triplanar.x +
+        vec3<f32>(tnormY.x, 0., tnormY.y) * blend_triplanar.y +
+        vec3<f32>(tnormZ.xy, 0.)          * blend_triplanar.z +
+        in.world_normal
+    );
+
     var vert_out: VertexOutput;
     vert_out.position = in.position;
     vert_out.world_position = in.world_position;
-    vert_out.world_normal = in.world_normal;
+    vert_out.world_normal = world_normal;
     vert_out.instance_index = in.instance_index;
     var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
 
-    pbr_in.material.base_color = tex_trip(tex_diffuse, 1.0, worldpos, blend_trip);//vec4<f32>(in.bary, 1.0);
+    pbr_in.material.base_color = base_color;
     
-    // var color = pbr_functions::apply_pbr_lighting(pbr_in);
-    // color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
-    return pbr_in.material.base_color;//color;
+    var color = pbr_functions::apply_pbr_lighting(pbr_in);
+    color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
+    return color;
 }

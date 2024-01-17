@@ -67,6 +67,8 @@ fn startup(
     let mtl = terrain_materials.add(TerrainMaterial {
         val: 10.,
         texture_diffuse: Some(asset_server.load("cache/atlas_diff.png")), 
+        texture_normal: Some(asset_server.load("cache/atlas_norm.png")), 
+        texture_dram: Some(asset_server.load("cache/atlas_dram.png")), 
     });
     chunk_sys.vox_mtl = mtl;
 
@@ -263,7 +265,7 @@ fn chunks_remesh(
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                info!("Generated ReMesh");;
+                info!("Generated ReMesh");
 
                 (mesh, collider, entity, mesh_handle)
             });
@@ -296,39 +298,6 @@ fn chunks_remesh(
         true
     });
 
-
-
-
-    // for (entity, mesh_handle, mut meshing_task, chunk_info, mut visibility) in query.iter_mut() {
-        
-    //     let chunkpos = chunk_info.chunkpos;
-
-    //     // !!Problematic Unwarp
-    //     let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
-
-    //     let mut vbuf = VertexBuffer::default();
-
-
-    //     *meshes.get_mut(mesh_handle).unwrap() = vbuf.into_mesh();
-
-
-    //     if let Some(collider) = Collider::trimesh_from_mesh(meshes.get(mesh_handle).unwrap()) {
-
-    //         commands.entity(entity).remove::<Collider>().insert(collider);
-            
-    //         info!("TriMesh {:?}", chunkpos);
-    //     }
-
-    //     *visibility = Visibility::Visible;
-
-    //     commands.entity(entity).remove::<ChunkMeshingTask>();
-
-    //     info!("ReMesh {:?}", chunkpos);
-    // }
-    
-    
-
-
 }
 
 
@@ -346,9 +315,13 @@ pub struct TerrainMaterial {
 	#[uniform(0)]
     val: f32,
 
-    #[texture(1)]
-    #[sampler(2)]
+    #[sampler(1)]
+    #[texture(2)]
     pub texture_diffuse: Option<Handle<Image>>,
+    #[texture(3)]
+    pub texture_normal: Option<Handle<Image>>,
+    #[texture(4)]
+    pub texture_dram: Option<Handle<Image>>,
 }
 
 impl Material for TerrainMaterial {

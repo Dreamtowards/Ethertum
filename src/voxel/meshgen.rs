@@ -230,14 +230,14 @@ impl MeshGen {
                             let winded_vi = if winding_flip {5 - quadvert_i} else {quadvert_i};
 
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
-                            //let c = chunk.get_cell(p);
+                            let c = chunk.get_cell_rel(p);
 
                             let fp = Self::sn_featurepoint(p, chunk);
                             let norm = -Self::sn_grad(p, chunk);
 
                             vbuf.push_vertex(
                                 p.as_vec3() + fp, 
-                                vec2(0., 0.), 
+                                vec2(c.mtl as f32, 0.), 
                                 norm
                             );
                         }

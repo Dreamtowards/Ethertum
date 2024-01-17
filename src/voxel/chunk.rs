@@ -16,11 +16,11 @@ pub struct Cell {
     pub value: f32,
 
     /// Material Id
-    mtl: u16,
+    pub mtl: u16,
 
     /// Cached FeaturePoint
-    cached_fp: Vec3,
-    cached_norm: Vec3
+    pub cached_fp: Vec3,
+    pub cached_norm: Vec3
 }
 
 impl Default for Cell {
