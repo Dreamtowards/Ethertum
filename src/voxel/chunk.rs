@@ -161,7 +161,7 @@ impl Chunk {
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }
 
-    pub const NEIGHBOR_DIR: [IVec3; 6+12] = [
+    pub const NEIGHBOR_DIR: [IVec3; 6+12+8] = [
         // 6 Faces
         ivec3(-1, 0, 0),
         ivec3( 1, 0, 0),
@@ -182,6 +182,15 @@ impl Chunk {
         ivec3( 1, 1, 0),
         ivec3(-1, 1, 0),
         ivec3( 1, -1, 0),
+        // 8 Vertices
+        ivec3(-1, -1, -1),
+        ivec3(1, 1, 1),
+        ivec3(1, -1, -1),
+        ivec3(-1, 1, 1),
+        ivec3(-1, -1, 1),
+        ivec3(1, 1, -1),
+        ivec3(1, -1, 1),
+        ivec3(-1, 1, -1),
     ];
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
