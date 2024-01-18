@@ -84,7 +84,6 @@ impl MeshGen {
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
         Self::sn_contouring(vbuf, chunk);
-        vbuf.make_indexed();
         return;
 
 
@@ -185,7 +184,10 @@ impl MeshGen {
             }
         }
 
-        assert_ne!(sign_changes, 0);
+        // assert_ne!(sign_changes, 0);
+        if sign_changes == 0 {  // 由于外力修改 eg Water，可能存在非法情况 此时还不至于panic
+            return Vec3::ONE * 0.5;
+        }
         assert!(fp_sum.is_finite());
 
         fp_sum / (sign_changes as f32)
@@ -238,9 +240,19 @@ impl MeshGen {
                             let fp = Self::sn_featurepoint(p, chunk);
                             let norm = -Self::sn_grad(p, chunk);
 
+                            let mut nearest_val = f32::INFINITY;
+                            let mut nearest_mtl = c.mtl;
+                            for vert in Self::VERT {
+                                let c = chunk.get_cell_rel(p + vert);
+                                if !c.is_empty() && c.value < nearest_val {
+                                    nearest_val = c.value;
+                                    nearest_mtl = c.mtl;
+                                }
+                            }
+
                             vbuf.push_vertex(
                                 p.as_vec3() + fp, 
-                                vec2(c.mtl as f32, 0.), 
+                                vec2(nearest_mtl as f32, 0.), 
                                 norm
                             );
                         }

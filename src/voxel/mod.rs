@@ -261,8 +261,10 @@ fn chunks_remesh(
                 }
 
                 let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                vbuf.make_indexed();
                 vbuf.to_mesh(&mut mesh);  // exoprt mesh
                 vbuf.clear();
+                // mesh.compute_flat_normals();
 
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);

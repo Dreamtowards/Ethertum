@@ -29,9 +29,9 @@ impl Default for Material {
 }
 
 pub mod mtl {
-    pub const STONE: u16 = 2;
+    pub const STONE: u16 = 21;
     pub const DIRT: u16 = 0;
-    pub const GRASS: u16 = 7;
+    pub const GRASS: u16 = 11;  // 7 11
     pub const WATER: u16 = 23;
     pub const SAND: u16 = 18;
 

@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use super::chunk::*;
 
-use noise::{NoiseFn, Perlin};
+use noise::{NoiseFn, Perlin, Fbm};
 
 pub struct WorldGen {
 
@@ -19,7 +19,12 @@ impl WorldGen {
     pub fn generate_chunk(chunk: &mut Chunk) {
         
         let seed = 100;
-        let perlin = Perlin::new(seed);
+        // let perlin = Perlin::new(seed);
+        let mut fbm = Fbm::<Perlin>::new(seed);
+        // fbm.frequency = 0.2;
+        // fbm.lacunarity = 0.2;
+        fbm.octaves = 4;
+        // fbm.persistence = 2;
 
         for ly in 0..Chunk::SIZE {
             for lz in 0..Chunk::SIZE {
@@ -27,26 +32,32 @@ impl WorldGen {
                     let lp = IVec3::new(lx, ly, lz);
                     let p = chunk.chunkpos + lp;
 
-                    let f_terr = perlin.get(p.xz().as_dvec2().div(64.).to_array()) as f32;
-                    let f_3d = perlin.get(p.as_dvec3().div(24.).to_array()) as f32;
+                    let f_terr = fbm.get(p.xz().as_dvec2().div(129.).to_array()) as f32;
+                    let f_3d = fbm.get(p.as_dvec3().div(70.).to_array()) as f32;
 
-                    let val = f_terr - (p.y as f32) / 18. + f_3d * 2.;
+                    let mut val = f_terr - (p.y as f32) / 12. + f_3d * 2.5;
                     
-                    let mtl = mtl::STONE;//(p.x / 2 % 24).abs() as u16;
+                    let mut mtl = mtl::STONE;//(p.x / 2 % 24).abs() as u16;
+                    if p.y < 0 && val < 0. {
+                        val = 0.1;
+                        mtl = mtl::WATER;
+                    }
                     chunk.set_cell(lp, &Cell::new(val, mtl));
                 }
             }
         }
 
 
-        // Self::populate_chunk(chunk);
+        Self::populate_chunk(chunk);
     }
 
     fn populate_chunk(chunk: &mut Chunk) {
+        
+        let perlin = Perlin::new(123);
 
         for lx in 0..Chunk::SIZE {
             for lz in 0..Chunk::SIZE {
-                let mut num_to_air = 0;
+                let mut air_dist = 0;
 
                 for ly in (0..Chunk::SIZE).rev() {
                     let lp = IVec3::new(lx, ly, lz);
@@ -55,18 +66,22 @@ impl WorldGen {
                     let mut c = *chunk.get_cell(lp);
 
                     if c.is_empty() {
-                        num_to_air = 0;
+                        air_dist = 0;
                     } else {
-                        num_to_air += 1;
+                        air_dist += 1;
                     }
 
-                    let mut replace = c.mtl;
-                    if num_to_air == 1 {
-                        replace = mtl::GRASS;
-                    } else if num_to_air < 5 {
-                        replace = mtl::DIRT;
+                    if c.mtl == mtl::STONE {
+                        let mut replace = c.mtl;
+                        if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
+                            replace = mtl::SAND;
+                        } else if air_dist <= 1 {
+                            replace = mtl::GRASS;
+                        } else if air_dist < 3 {
+                            replace = mtl::DIRT;
+                        }
+                        c.mtl = replace;
                     }
-                    c.mtl = replace;
 
                     chunk.set_cell(lp, &c);
                 }

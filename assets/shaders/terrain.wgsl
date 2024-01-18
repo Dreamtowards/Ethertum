@@ -182,7 +182,7 @@ fn fragment(
     pbr_in.material.reflectance = 1.0 - roughness;
     // pbr_in.material.ior = 0.99;
     pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);
-    pbr_in.occlusion = vec3<f32>(occlusion);
+    // pbr_in.occlusion = vec3<f32>(occlusion);
     
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
