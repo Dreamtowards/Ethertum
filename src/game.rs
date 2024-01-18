@@ -60,7 +60,8 @@ impl Plugin for GamePlugin {
         app.add_systems(Update, handle_inputs);
 
         
-        app.add_systems(PostUpdate, gizmo_sys.in_set(PhysicsSet::Sync));
+        app.add_systems(PostUpdate, 
+            gizmo_sys.after(PhysicsSet::Sync));
         
     }
 }
@@ -233,7 +234,6 @@ fn tick_world(
 fn gizmo_sys(
     mut gizmo: Gizmos,
     mut gizmo_config: ResMut<GizmoConfig>,
-    // mut query_cam: Query<(&Transform, &Projection), With<CharacterControllerCamera>>,
     mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 ) {
     gizmo_config.depth_bias = -1.;  // always in front
@@ -261,15 +261,7 @@ fn gizmo_sys(
     gizmo.ray(p + rot*offset, Vec3::X * n, Color::RED);
     gizmo.ray(p + rot*offset, Vec3::Y * n, Color::GREEN);
     gizmo.ray(p + rot*offset, Vec3::Z * n, Color::BLUE);
-    // let (cam_trans, cam_proj) = query_cam.single();
-
-    // let rot = cam_trans.rotation;
-    // let proj = cam_proj.get_projection_matrix();
-    // let px = proj * (vec3(10., 0., 0.)).extend(0.);
-    // let py = proj * (vec3(0., 10., 0.)).extend(0.);
-
-    // gizmo.ray_2d(Vec2::ZERO, px.xy(), Color::RED);
-    // gizmo.ray_2d(Vec2::ZERO, py.xy(), Color::GREEN);
+    
 }
 
 

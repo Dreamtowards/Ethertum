@@ -190,6 +190,6 @@ fn fragment(
     // var color = base_color;
     // color = vec4<f32>(vec3<f32>(select(0.0, 1.0, round(mtls[vi_mtl]) == 10.)), 1.0); 
     // color = vec4<f32>(vec3<f32>(roughness), 1.0); 
-    color = vec4<f32>(world_normal, 1.0); 
+    // color = vec4<f32>(world_normal, 1.0); 
     return color;
 }

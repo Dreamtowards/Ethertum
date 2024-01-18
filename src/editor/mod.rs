@@ -182,7 +182,7 @@ fn update_debug_text(
     // static mut sys: sysinfo::System = sysinfo::System::new();
     static mut LAST_UPDATE: f32 = 0.;
     let dt = time.elapsed_seconds() - unsafe{LAST_UPDATE};
-    if dt > 0.5 {
+    if dt > 0.2 {
         unsafe {LAST_UPDATE = time.elapsed_seconds()};
     } else {
         return;
