@@ -184,11 +184,12 @@ fn fragment(
     pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);
     // pbr_in.occlusion = vec3<f32>(occlusion);
     
-    
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
     color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
     
+    // var color = base_color;
     // color = vec4<f32>(vec3<f32>(select(0.0, 1.0, round(mtls[vi_mtl]) == 10.)), 1.0); 
     // color = vec4<f32>(vec3<f32>(roughness), 1.0); 
+    color = vec4<f32>(world_normal, 1.0); 
     return color;
 }

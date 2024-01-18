@@ -5,11 +5,11 @@ use bevy::{
     prelude::*, 
     window::{CursorGrabMode, PrimaryWindow, WindowMode}, 
     pbr::{ScreenSpaceAmbientOcclusionBundle, DirectionalLightShadowMap}, 
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, 
+    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, math::{vec3, ivec3}, render::camera::CameraProjection, 
 };
 use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
-use bevy_xpbd_3d::prelude::*;
+use bevy_xpbd_3d::{prelude::*, parry::na::coordinates::X};
 
 use crate::character_controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
 
@@ -58,6 +58,9 @@ impl Plugin for GamePlugin {
         app.add_systems(Update, tick_world);
 
         app.add_systems(Update, handle_inputs);
+
+        
+        app.add_systems(PostUpdate, gizmo_sys.in_set(PhysicsSet::Sync));
         
     }
 }
@@ -226,6 +229,48 @@ fn tick_world(
     }
 }
 
+
+fn gizmo_sys(
+    mut gizmo: Gizmos,
+    mut gizmo_config: ResMut<GizmoConfig>,
+    // mut query_cam: Query<(&Transform, &Projection), With<CharacterControllerCamera>>,
+    mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+) {
+    gizmo_config.depth_bias = -1.;  // always in front
+
+    // World Basis Axes
+    let n = 5;
+    gizmo.line(Vec3::ZERO, Vec3::X * n as f32, Color::RED);
+    gizmo.line(Vec3::ZERO, Vec3::Y * n as f32, Color::GREEN);
+    gizmo.line(Vec3::ZERO, Vec3::Z * n as f32, Color::BLUE);
+
+    let color = Color::GRAY;
+    for x in -n..=n {
+        gizmo.ray(vec3(x as f32, 0., -n as f32), Vec3::Z * n as f32 *2., color);
+    }
+    for z in -n..=n {
+        gizmo.ray(vec3(-n as f32, 0., z as f32), Vec3::X * n as f32 *2., color);
+    }
+
+    // View Basis
+    let cam_trans = query_cam.single();
+    let p = cam_trans.translation;
+    let rot = cam_trans.rotation;
+    let n = 0.03;
+    let offset = vec3(0., 0., -0.5);
+    gizmo.ray(p + rot*offset, Vec3::X * n, Color::RED);
+    gizmo.ray(p + rot*offset, Vec3::Y * n, Color::GREEN);
+    gizmo.ray(p + rot*offset, Vec3::Z * n, Color::BLUE);
+    // let (cam_trans, cam_proj) = query_cam.single();
+
+    // let rot = cam_trans.rotation;
+    // let proj = cam_proj.get_projection_matrix();
+    // let px = proj * (vec3(10., 0., 0.)).extend(0.);
+    // let py = proj * (vec3(0., 10., 0.)).extend(0.);
+
+    // gizmo.ray_2d(Vec2::ZERO, px.xy(), Color::RED);
+    // gizmo.ray_2d(Vec2::ZERO, py.xy(), Color::GREEN);
+}
 
 
 // fn update_chunks_loadance(
