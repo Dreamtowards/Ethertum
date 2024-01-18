@@ -311,8 +311,8 @@ fn chunks_remesh(
 
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
-// #[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
 #[reflect(Asset)]
+// #[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
 pub struct TerrainMaterial {
 
     #[sampler(0)]
@@ -325,8 +325,12 @@ pub struct TerrainMaterial {
 
     #[uniform(4)]
     pub triplanar_blend_sharpness: f32,
-
+    #[uniform(5)]
     pub normal_intensity: f32,
+    #[uniform(6)]
+    pub triplanar_blend_pow: f32,
+    #[uniform(7)]
+    pub heightmap_blend_pow: f32,  // littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
 }
 
 impl Default for TerrainMaterial {
@@ -337,6 +341,8 @@ impl Default for TerrainMaterial {
             texture_dram: None,
             triplanar_blend_sharpness: 0.35,
             normal_intensity: 1.0,
+            triplanar_blend_pow: 4.5,
+            heightmap_blend_pow: 0.48,
         }
     }
 }
