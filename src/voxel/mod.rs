@@ -7,6 +7,7 @@ mod material;
 mod meshgen;
 mod worldgen;
 
+use bevy_inspector_egui::quick::AssetInspectorPlugin;
 use chunk::*;
 use futures_lite::future;
 use meshgen::*;
@@ -22,7 +23,7 @@ use bevy::{
     render::{render_resource::{PrimitiveTopology, AsBindGroup}, primitives::Aabb}, 
     utils::{HashMap, FloatOrd}, 
     tasks::{AsyncComputeTaskPool, Task}, 
-    reflect::TypeUuid
+    reflect::TypeUuid, asset::ReflectAsset, asset::ReflectHandle
 };
 
 use std::sync::{Arc, RwLock};
@@ -41,6 +42,7 @@ impl Plugin for VoxelPlugin {
         app.register_type::<ChunkSystem>();
 
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
+        app.register_asset_reflect::<TerrainMaterial>();
 
         app.add_systems(Startup, startup);
 
@@ -65,10 +67,10 @@ fn startup(
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
 ) {
     let mtl = terrain_materials.add(TerrainMaterial {
-        val: 10.,
         texture_diffuse: Some(asset_server.load("cache/atlas_diff.png")), 
         texture_normal: Some(asset_server.load("cache/atlas_norm.png")), 
         texture_dram: Some(asset_server.load("cache/atlas_dram.png")), 
+        ..default()
     });
     chunk_sys.vox_mtl = mtl;
 
@@ -308,20 +310,35 @@ fn chunks_remesh(
 
 
 
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone, TypeUuid)]
-#[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
+// #[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
+#[reflect(Asset)]
 pub struct TerrainMaterial {
-    
-	#[uniform(0)]
-    val: f32,
 
-    #[sampler(1)]
-    #[texture(2)]
+    #[sampler(0)]
+    #[texture(1)]
     pub texture_diffuse: Option<Handle<Image>>,
-    #[texture(3)]
+    #[texture(2)]
     pub texture_normal: Option<Handle<Image>>,
-    #[texture(4)]
+    #[texture(3)]
     pub texture_dram: Option<Handle<Image>>,
+
+    #[uniform(4)]
+    pub triplanar_blend_sharpness: f32,
+
+    pub normal_intensity: f32,
+}
+
+impl Default for TerrainMaterial {
+    fn default() -> Self {
+        Self {
+            texture_diffuse: None,
+            texture_normal: None,
+            texture_dram: None,
+            triplanar_blend_sharpness: 0.35,
+            normal_intensity: 1.0,
+        }
+    }
 }
 
 impl Material for TerrainMaterial {

@@ -59,14 +59,17 @@ fn vertex(
 }
 
 struct TerrainMaterial {
-    val: f32,//vec4<f32>,
+    triplanar_blend_sharpness: f32,
+    normal_intensity: f32
 };
 
-@group(1) @binding(0) var<uniform> material: TerrainMaterial;
-@group(1) @binding(1) var _sampler: sampler;
-@group(1) @binding(2) var tex_diffuse: texture_2d<f32>;
-@group(1) @binding(3) var tex_normal: texture_2d<f32>;
-@group(1) @binding(4) var tex_dram: texture_2d<f32>;
+@group(1) @binding(0) var _sampler: sampler;
+@group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
+@group(1) @binding(2) var tex_normal: texture_2d<f32>;
+@group(1) @binding(3) var tex_dram: texture_2d<f32>;
+
+@group(1) @binding(4) var<uniform> material: TerrainMaterial;
+
 
 fn _mod(v: f32, n: f32) -> f32 {
     let f = v % n;
@@ -118,7 +121,7 @@ fn fragment(
     let bary = in.bary;
 
     var blend_triplanar = abs(worldnorm);
-    blend_triplanar = max(blend_triplanar - vec3<f32>(0.25), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
+    blend_triplanar = max(blend_triplanar - vec3<f32>(0.025), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
 #ifdef BLEND 

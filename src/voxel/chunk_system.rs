@@ -129,7 +129,9 @@ impl ChunkSystem {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
     
-                self.mark_chunk_remesh(neib_chunkpos);
+                if neib_idx < 6 {
+                    self.mark_chunk_remesh(neib_chunkpos);
+                }
 
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = 

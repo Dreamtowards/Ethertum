@@ -198,9 +198,12 @@ impl MeshGen {
         // let E = 1;  // Epsilon
         let val = chunk.get_cell_rel(lp).value;
         vec3(
-            chunk.get_cell_rel(lp + IVec3::X).value - val,//chunk.get_cell(lp - IVec3::X).value,
-            chunk.get_cell_rel(lp + IVec3::Y).value - val,//chunk.get_cell(lp - IVec3::Y).value,
-            chunk.get_cell_rel(lp + IVec3::Z).value - val,//chunk.get_cell(lp - IVec3::Z).value
+            chunk.get_cell_rel(lp + IVec3::X).value - val,
+            chunk.get_cell_rel(lp + IVec3::Y).value - val,
+            chunk.get_cell_rel(lp + IVec3::Z).value - val,
+            // chunk.get_cell_rel(lp + IVec3::X).value - chunk.get_cell_rel(lp - IVec3::X).value,
+            // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
+            // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
         ).normalize()
     }
 
