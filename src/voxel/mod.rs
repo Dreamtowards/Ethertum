@@ -324,7 +324,7 @@ pub struct TerrainMaterial {
     pub texture_dram: Option<Handle<Image>>,
 
     #[uniform(4)]
-    pub triplanar_blend_sharpness: f32,
+    pub sample_scale: f32,
     #[uniform(5)]
     pub normal_intensity: f32,
     #[uniform(6)]
@@ -339,7 +339,7 @@ impl Default for TerrainMaterial {
             texture_diffuse: None,
             texture_normal: None,
             texture_dram: None,
-            triplanar_blend_sharpness: 0.35,
+            sample_scale: 1.0,
             normal_intensity: 1.0,
             triplanar_blend_pow: 4.5,
             heightmap_blend_pow: 0.48,

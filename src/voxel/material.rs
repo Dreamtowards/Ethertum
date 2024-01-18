@@ -28,6 +28,15 @@ impl Default for Material {
 
 }
 
+pub mod mtl {
+    pub const STONE: u16 = 2;
+    pub const DIRT: u16 = 0;
+    pub const GRASS: u16 = 7;
+    pub const WATER: u16 = 23;
+    pub const SAND: u16 = 18;
+
+
+}
 
 
 use crate::util::registry::*;
