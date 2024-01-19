@@ -1,0 +1,91 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      APP_NAME: ethertum
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, rust-src, clippy
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 gcc-mingw-w64 g++-mingw-w64 zip
+
+      - name: Build for Linux
+        run: cargo build --release
+
+      - name: Build for Windows
+        run: cargo build --release --target=x86_64-pc-windows-gnu
+
+      - name: Build for macOS
+        run: cargo build --release --target=x86_64-apple-darwin
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            This is the release of ${APP_NAME}.
+          draft: false
+          prerelease: false
+
+      - name: Upload Artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/release/${APP_NAME}
+          asset_name: ${APP_NAME}-linux-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/x86_64-pc-windows-gnu/release/${APP_NAME}.exe
+          asset_name: ${APP_NAME}-windows-amd64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/x86_64-apple-darwin/release/${APP_NAME}
+          asset_name: ${APP_NAME}-darwin-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Zip Windows Artifact
+        run: zip ${APP_NAME}-windows-amd64.zip ./target/x86_64-pc-windows-gnu/release/${APP_NAME}.exe
+
+      - name: Zip macOS Artifact
+        run: zip ${APP_NAME}-macos-amd64.zip ./target/x86_64-apple-darwin/release/${APP_NAME}
