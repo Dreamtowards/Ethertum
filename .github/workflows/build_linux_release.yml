@@ -44,15 +44,16 @@ jobs:
       # - name: Build for macOS
       #   run: cargo build --release --target=x86_64-apple-darwin
 
+      - name: Zip Artifact
+        run: zip linux-x86_64.zip ./target/release/${APP_NAME}
+
       - name: Upload Artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: actions/upload-artifact@v3
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/release/${APP_NAME}
-          asset_name: ${APP_NAME}-linux-x86_64
-          asset_content_type: application/octet-stream
+          name: linux-artifacts
+          path: |
+            ./linux-x86_64.zip
+            ./target/release/${APP_NAME}
 
       # - name: Upload Artifacts
       #   uses: actions/upload-release-asset@v1

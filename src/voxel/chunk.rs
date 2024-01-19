@@ -112,6 +112,15 @@ impl Chunk {
         self.cells[Chunk::local_cell_idx(localpos)] = *cell;
     }
 
+    pub fn is_neighbors_complete(&self) -> bool {
+        for e in self.neighbor_chunks.iter() {
+            if e.is_none() {
+                return false;
+            }
+        }
+        true
+    }
+
     // pub fn neighbor_chunk(&self, i: i32) -> Option<ChunkPtr> {
     //     if let Some(chunk) = &self.neighbors[i as usize] {
     //         chunk.upgrade()

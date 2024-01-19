@@ -121,12 +121,12 @@ impl ChunkSystem {
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
 
                 // todo: delay remesh or only remesh full-neighbor complete chunks
-                self.mark_chunk_remesh(neib_chunkpos);
 
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = if let Some(neib_chunkptr) =
                     self.get_chunk(neib_chunkpos)
                 {
+
                     // update neighbor's `neighbor_chunk`
                     neib_chunkptr.write().unwrap().neighbor_chunks
                         [Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
@@ -135,6 +135,10 @@ impl ChunkSystem {
                 } else {
                     None
                 }
+            }
+
+            if chunk.is_neighbors_complete() {
+                self.mark_chunk_remesh(chunkpos);
             }
         }
 
