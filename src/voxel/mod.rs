@@ -117,34 +117,54 @@ fn chunks_detect_load_and_unload(
     let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());  // viewer pos
     let vd = chunk_sys.view_distance;
 
+
     // Chunks Detect Load/Gen
-    for y in -vd.y..=vd.y {
-        for z in -vd.x..=vd.x {
-            for x in -vd.x..=vd.x {
-                let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
-                // the chunk already exists, skip.
-                if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos) {
-                    continue;
-                }
+    const MAX_CONCURRENT_LOADING: usize = 10;
+    
+    let max_n = vd.max_element();
+    'outer: for n in 0..max_n {
+        for y in -n..=n {
+            for z in -n..=n {
+                for x in -n..=n {
 
-
-                let task = AsyncComputeTaskPool::get().spawn(async move {
-
-                    let chunkptr = Arc::new(RwLock::new(Chunk::new(chunkpos)));
-
-                    {
-                        let mut chunk = chunkptr.write().unwrap();
-                        
-                        WorldGen::generate_chunk(&mut chunk);
+                    if chunk_sys.chunks_loading.len() > MAX_CONCURRENT_LOADING {
+                        break 'outer;
+                    }
+                    if x.abs()<n && y.abs()<n && z.abs()<n {
+                        continue;
+                    }
+                    if x.abs()>vd.x || y.abs()>vd.y || z.abs()>vd.x {
+                        continue;
                     }
 
-                    info!("Load Chunk: {:?}", chunkpos);
+                    let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
+                    
+                    // the chunk already exists, skip.
+                    if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos) {
+                        continue;
+                    }
 
-                    chunkptr
-                });
+                    let task = AsyncComputeTaskPool::get().spawn(async move {
 
-                chunk_sys.chunks_loading.insert(chunkpos, task);
+                        let chunkptr = Arc::new(RwLock::new(Chunk::new(chunkpos)));
+
+                        {
+                            let mut chunk = chunkptr.write().unwrap();
+                            
+                            WorldGen::generate_chunk(&mut chunk);
+                        }
+
+                        info!("Load Chunk: {:?}", chunkpos);
+
+                        chunkptr
+                    });
+
+                    chunk_sys.chunks_loading.insert(chunkpos, task);
+
+                    // gizmo.cuboid(Transform::from_translation(p.as_vec3()).with_scale(Vec3::splat(16.)), Color::RED);
+
+                }
             }
         }
     }
