@@ -48,6 +48,7 @@ impl Plugin for VoxelPlugin {
             (
                 chunks_remesh,
                 chunks_detect_load_and_unload,
+                gizmos,
                 // chunks_apply_loaded
                 // chunks_apply_remeshed
             )

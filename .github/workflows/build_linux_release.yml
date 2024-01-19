@@ -1,4 +1,4 @@
-name: Rust
+name: Build for Linux
 
 on:
   push:
@@ -30,32 +30,19 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y mingw-w64 gcc-mingw-w64 g++-mingw-w64 zip
           sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0
-          sudo apt-get install libwayland-dev libxkbcommon-dev  # Wayland
-          rustup target add x86_64-apple-darwin
-          #rustup target add x86_64-pc-windows-msvc  # Windows
-          #cargo install xwin
-          #xwin --accept-license splat --output ./.xwin
-
-      - name: Build for macOS
-        run: cargo build --release --target=x86_64-apple-darwin
+          sudo apt-get install libwayland-dev libxkbcommon-dev 
+        # sudo apt-get install -y mingw-w64 gcc-mingw-w64 g++-mingw-w64 zip   
+        # rustup target add x86_64-apple-darwin
+        # rustup target add x86_64-pc-windows-msvc  # Windows
+        # cargo install xwin
+        # xwin --accept-license splat --output ./.xwin
 
       - name: Build for Linux
         run: cargo build --release
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            This is the release of ${APP_NAME}.
-          draft: false
-          prerelease: false
+      # - name: Build for macOS
+      #   run: cargo build --release --target=x86_64-apple-darwin
 
       - name: Upload Artifacts
         uses: actions/upload-release-asset@v1
@@ -64,31 +51,28 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./target/release/${APP_NAME}
-          asset_name: ${APP_NAME}-linux-amd64
+          asset_name: ${APP_NAME}-linux-x86_64
           asset_content_type: application/octet-stream
 
-      - name: Upload Artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/x86_64-pc-windows-gnu/release/${APP_NAME}.exe
-          asset_name: ${APP_NAME}-windows-amd64.exe
-          asset_content_type: application/octet-stream
+      # - name: Upload Artifacts
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./target/x86_64-apple-darwin/release/${APP_NAME}
+      #     asset_name: ${APP_NAME}-darwin-amd64
+      #     asset_content_type: application/octet-stream
 
-      - name: Upload Artifacts
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/x86_64-apple-darwin/release/${APP_NAME}
-          asset_name: ${APP_NAME}-darwin-amd64
-          asset_content_type: application/octet-stream
-
-      - name: Zip Windows Artifact
-        run: zip ${APP_NAME}-windows-amd64.zip ./target/x86_64-pc-windows-gnu/release/${APP_NAME}.exe
-
-      - name: Zip macOS Artifact
-        run: zip ${APP_NAME}-macos-amd64.zip ./target/x86_64-apple-darwin/release/${APP_NAME}
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ github.ref }}
+      #     release_name: Release ${{ github.ref }}
+      #     body: |
+      #       This is the release of ${APP_NAME}.
+      #     draft: false
+      #     prerelease: false

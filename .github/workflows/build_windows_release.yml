@@ -1,0 +1,64 @@
+name: Build for Windows
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    env:
+      APP_NAME: ethertia
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, rust-src, clippy
+
+      - name: Install Dependencies
+        run: |
+          #rustup target add x86_64-pc-windows-msvc  # Windows
+
+      - name: Build for Windows
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc
+          
+      - name: Zip Windows Artifact
+        run: zip ${APP_NAME}-windows-x86_64.zip ./target/x86_64-pc-windows-msvc/release/${APP_NAME}.exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/x86_64-pc-windows-msvc/release/${APP_NAME}.exe
+          asset_name: ${APP_NAME}-windows-x86_64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            This is the release of ${APP_NAME}.
+          draft: false
+          prerelease: false
+
+
