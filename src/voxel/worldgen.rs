@@ -1,23 +1,16 @@
-
 use std::ops::Div;
 
 use bevy::prelude::*;
 
 use super::chunk::*;
 
-use noise::{NoiseFn, Perlin, Fbm};
+use noise::{Fbm, NoiseFn, Perlin};
 
-pub struct WorldGen {
-
-}
+pub struct WorldGen {}
 use super::material::mtl;
 
-
 impl WorldGen {
-
-   
     pub fn generate_chunk(chunk: &mut Chunk) {
-        
         let seed = 100;
         // let perlin = Perlin::new(seed);
         let mut fbm = Fbm::<Perlin>::new(seed);
@@ -36,8 +29,8 @@ impl WorldGen {
                     let f_3d = fbm.get(p.as_dvec3().div(70.).to_array()) as f32;
 
                     let mut val = f_terr - (p.y as f32) / 12. + f_3d * 2.5;
-                    
-                    let mut mtl = mtl::STONE;//(p.x / 2 % 24).abs() as u16;
+
+                    let mut mtl = mtl::STONE; //(p.x / 2 % 24).abs() as u16;
                     if p.y < 0 && val < 0. {
                         val = 0.1;
                         mtl = mtl::WATER;
@@ -47,12 +40,10 @@ impl WorldGen {
             }
         }
 
-
         Self::populate_chunk(chunk);
     }
 
     fn populate_chunk(chunk: &mut Chunk) {
-        
         let perlin = Perlin::new(123);
 
         for lx in 0..Chunk::SIZE {
@@ -73,7 +64,10 @@ impl WorldGen {
 
                     if c.mtl == mtl::STONE {
                         let mut replace = c.mtl;
-                        if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
+                        if p.y < 2
+                            && air_dist <= 2
+                            && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1
+                        {
                             replace = mtl::SAND;
                         } else if air_dist <= 1 {
                             replace = mtl::GRASS;
@@ -88,5 +82,4 @@ impl WorldGen {
             }
         }
     }
-
 }

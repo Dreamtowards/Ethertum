@@ -1,23 +1,22 @@
-
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use bevy::{prelude::*, input::mouse::MouseMotion};
+use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_xpbd_3d::{
-    components::*, plugins::spatial_query::{ShapeHits, ShapeCaster}, parry::na::ComplexField, PhysicsSet, 
+    components::*,
+    parry::na::ComplexField,
+    plugins::spatial_query::{ShapeCaster, ShapeHits},
+    PhysicsSet,
 };
 
 pub struct CharacterControllerPlugin;
 
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
-
         app.register_type::<CharacterController>();
 
         app.add_systems(Update, input_move);
 
-
         app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
-
     }
 }
 
@@ -43,12 +42,8 @@ impl CharacterControllerBundle {
             character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
-            ground_caster: ShapeCaster::new(
-                caster_shape, 
-                Vec3::ZERO,
-                Quat::default(),
-                Vec3::NEG_Y
-            ).with_max_time_of_impact(0.2),
+            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Vec3::NEG_Y)
+                .with_max_time_of_impact(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
             gravity_scale: GravityScale(2.),
@@ -58,7 +53,7 @@ impl CharacterControllerBundle {
     }
 }
 
-/// a tag, sync transform 
+/// a tag, sync transform
 #[derive(Component)]
 pub struct CharacterControllerCamera;
 
@@ -79,17 +74,13 @@ pub struct CharacterController {
 
     pub is_sprinting: bool,
     pub is_sneaking: bool,
-    
+
     // Control Param
     pub jump_impulse: f32,
     pub acceleration: f32,
     pub max_slope_angle: f32,
 
-
-
-
     // Input
-
     pub enable_input: bool,
     // fly_speed: f32,
     // walk_speed: f32,
@@ -120,11 +111,10 @@ impl Default for CharacterController {
             is_sneaking: false,
             jump_impulse: 7.,
             acceleration: 50.,
-            max_slope_angle: PI * 0.25
+            max_slope_angle: PI * 0.25,
         }
     }
 }
-
 
 fn input_move(
     key_input: Res<Input<KeyCode>>,
@@ -146,19 +136,13 @@ fn input_move(
     }
     let dt_sec = time.delta_seconds();
 
-    for (mut trans, 
-        mut ctl, 
-        mut linvel, 
-        mut gravity_scale,
-        hits,
-        rotation,
-    ) in query.iter_mut() {
+    for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
         if !ctl.enable_input {
             continue;
         }
 
         // View Rotation
-        let mouse_delta  = mouse_delta * 0.003;//ctl.mouse_sensitivity;
+        let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
 
         ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
         ctl.yaw -= mouse_delta.x;
@@ -168,11 +152,19 @@ fn input_move(
 
         // Disp Move
         let mut movement = Vec3::ZERO;
-        if key_input.pressed(KeyCode::A)  { movement.x -= 1.; }
-        if key_input.pressed(KeyCode::D) { movement.x += 1.; }
-        if key_input.pressed(KeyCode::W) { movement.z -= 1.; }
-        if key_input.pressed(KeyCode::S)  { movement.z += 1.; }
-        
+        if key_input.pressed(KeyCode::A) {
+            movement.x -= 1.;
+        }
+        if key_input.pressed(KeyCode::D) {
+            movement.x += 1.;
+        }
+        if key_input.pressed(KeyCode::W) {
+            movement.z -= 1.;
+        }
+        if key_input.pressed(KeyCode::S) {
+            movement.z += 1.;
+        }
+
         // Input Sprint
         if key_input.pressed(KeyCode::W) {
             if key_input.pressed(KeyCode::ControlLeft) {
@@ -188,19 +180,21 @@ fn input_move(
             ctl.is_flying = !ctl.is_flying;
         }
 
-
         // Flying
-        gravity_scale.0 = if ctl.is_flying {0.} else {2.};
+        gravity_scale.0 = if ctl.is_flying { 0. } else { 2. };
 
         if ctl.is_flying {
-            if key_input.pressed(KeyCode::ShiftLeft)  { movement.y -= 1.; }
-            if key_input.pressed(KeyCode::Space)      { movement.y += 1.; }
+            if key_input.pressed(KeyCode::ShiftLeft) {
+                movement.y -= 1.;
+            }
+            if key_input.pressed(KeyCode::Space) {
+                movement.y += 1.;
+            }
         }
 
         // Apply Yaw
         let movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
         trans.rotation = Quat::from_rotation_y(ctl.yaw);
-
 
         // Is Grouned
         // The character is grounded if the shape caster has a hit with a normal
@@ -209,22 +203,24 @@ fn input_move(
             // if ctl.max_slope_angle == 0. {
             //     true
             // } else {
-                rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
+            rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
             // }
         });
-        
+
         let time_now = time.elapsed_seconds();
 
         // Jump
         let jump = key_input.pressed(KeyCode::Space);
-        
+
         // Input: Fly: DoubleJump
         if key_input.just_pressed(KeyCode::Space) {
             static mut LAST_FLY_JUMP: f32 = 0.;
-            if time_now - unsafe{LAST_FLY_JUMP} < 0.3 {
+            if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
                 ctl.is_flying = !ctl.is_flying;
             }
-            unsafe {LAST_FLY_JUMP = time_now;}
+            unsafe {
+                LAST_FLY_JUMP = time_now;
+            }
         }
         if ctl.is_grounded && ctl.is_flying {
             ctl.is_flying = false;
@@ -233,15 +229,16 @@ fn input_move(
         // Sprint DoubleW
         if key_input.just_pressed(KeyCode::W) {
             static mut LAST_W: f32 = 0.;
-            if time_now - unsafe{LAST_W} < 0.3 {
+            if time_now - unsafe { LAST_W } < 0.3 {
                 ctl.is_sprinting = true;
             }
-            unsafe {LAST_W = time_now;}
+            unsafe {
+                LAST_W = time_now;
+            }
         }
 
         static mut LAST_JUMP: f32 = 0.;
-        if  jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe {LAST_JUMP} > 0.3  {
-
+        if jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe { LAST_JUMP } > 0.3 {
             linvel.0.y = ctl.jump_impulse;
 
             // info!("JMP {:?}", linvel.0);
@@ -249,7 +246,7 @@ fn input_move(
                 LAST_JUMP = time_now;
             }
         }
-        
+
         // Movement
         let mut acceleration = ctl.acceleration;
         if ctl.is_sprinting {
@@ -264,8 +261,8 @@ fn input_move(
                 acceleration *= 0.3;
             } // else if using item: // Minecraft [UsingItem] * 0.2
 
-            if !ctl.is_grounded {  
-                acceleration *= 0.2;  // LessMove on air MC-Like 0.2 
+            if !ctl.is_grounded {
+                acceleration *= 0.2; // LessMove on air MC-Like 0.2
             }
 
             linvel.x += movement.x * acceleration * dt_sec;
@@ -291,10 +288,8 @@ fn input_move(
         //     linvel.x *= damping_factor;
         //     linvel.z *= damping_factor;
         // }
-
     }
 }
-
 
 #[derive(Default)]
 struct SmoothValue {
@@ -316,15 +311,13 @@ fn sync_camera(
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
-
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.);
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
 
-
-            fov_val.target = if ctl.is_sprinting {90.} else {70.};
+            fov_val.target = if ctl.is_sprinting { 90. } else { 70. };
             fov_val.tick(time.delta_seconds() * 16.);
 
-            if let Projection::Perspective( pp) = proj.as_mut() {
+            if let Projection::Perspective(pp) = proj.as_mut() {
                 pp.fov = fov_val.current.to_radians();
             }
         }

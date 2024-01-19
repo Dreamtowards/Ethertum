@@ -1,35 +1,35 @@
-
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    prelude::*, 
-    window::{CursorGrabMode, PrimaryWindow, WindowMode}, 
-    pbr::{ScreenSpaceAmbientOcclusionBundle, DirectionalLightShadowMap}, 
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin}, math::{vec3, ivec3}, render::camera::CameraProjection, 
+    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
+    math::{ivec3, vec3},
+    pbr::{DirectionalLightShadowMap, ScreenSpaceAmbientOcclusionBundle},
+    prelude::*,
+    render::camera::CameraProjection,
+    window::{CursorGrabMode, PrimaryWindow, WindowMode},
 };
 use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
-use bevy_xpbd_3d::{prelude::*, parry::na::coordinates::X};
+use bevy_xpbd_3d::{parry::na::coordinates::X, prelude::*};
 
-use crate::character_controller::{CharacterControllerCamera, CharacterController, CharacterControllerBundle, CharacterControllerPlugin};
+use crate::character_controller::{
+    CharacterController, CharacterControllerBundle, CharacterControllerCamera,
+    CharacterControllerPlugin,
+};
 
 use crate::voxel::VoxelPlugin;
-
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
 
         // ShadowMap sizes
-        app.insert_resource(DirectionalLightShadowMap {
-            size: 512,
-        });
-        
+        app.insert_resource(DirectionalLightShadowMap { size: 512 });
+
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
@@ -43,30 +43,21 @@ impl Plugin for GamePlugin {
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
 
-
         // WorldInfo
         app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
-        
 
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
-        
-        
 
         app.add_systems(Startup, startup);
         app.add_systems(Update, tick_world);
 
         app.add_systems(Update, handle_inputs);
 
-        
-        app.add_systems(PostUpdate, 
-            gizmo_sys.after(PhysicsSet::Sync));
-        
+        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync));
     }
 }
-
-
 
 // Simple environment
 fn startup(
@@ -92,12 +83,12 @@ fn startup(
             ..default()
         },
         CharacterControllerBundle::new(
-            Collider::capsule(1., 0.4), 
+            Collider::capsule(1., 0.4),
             CharacterController {
                 is_flying: true,
                 ..default()
-            }),
-        
+            },
+        ),
         Name::new("Player"),
     ));
 
@@ -116,7 +107,6 @@ fn startup(
         },
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
         CharacterControllerCamera,
-
         Name::new("Camera"),
     ));
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
@@ -132,10 +122,8 @@ fn startup(
             ..default()
         },
         Sun, // Marks the light as Sun
-        
         Name::new("Sun"),
     ));
-
 
     // commands.spawn((
     //     SceneBundle {
@@ -157,7 +145,7 @@ fn startup(
     //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
     //     RigidBody::Static,
     // ));
-    
+
     // commands.spawn((
     //     PbrBundle {
     //         mesh: meshes.add(Mesh::from(shape::Box::new(5., 8., 5.))),
@@ -180,10 +168,7 @@ fn startup(
     //         ..default()
     //     },
     // ));
-    
 }
-
-
 
 fn tick_world(
     mut atmosphere: AtmosphereMut<Nishita>,
@@ -206,37 +191,33 @@ fn tick_world(
     //     }
     // }
     let dt_sec = time.delta_seconds();
-    
 
     worldinfo.time_inhabited += dt_sec;
-    
+
     // DayTime
-    if  worldinfo.daytime_length != 0. {
+    if worldinfo.daytime_length != 0. {
         worldinfo.daytime += dt_sec / worldinfo.daytime_length;
-        worldinfo.daytime -= worldinfo.daytime.trunc();  // trunc to [0-1]
+        worldinfo.daytime -= worldinfo.daytime.trunc(); // trunc to [0-1]
     }
 
-
-
     // Atmosphere SunPos
-    let sun_ang = worldinfo.daytime * PI*2.;
+    let sun_ang = worldinfo.daytime * PI * 2.;
     atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
 
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
         directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
-        
+
         // or from000.looking_at()
         light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.3);
     }
 }
-
 
 fn gizmo_sys(
     mut gizmo: Gizmos,
     mut gizmo_config: ResMut<GizmoConfig>,
     mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 ) {
-    gizmo_config.depth_bias = -1.;  // always in front
+    gizmo_config.depth_bias = -1.; // always in front
 
     // World Basis Axes
     let n = 5;
@@ -246,10 +227,18 @@ fn gizmo_sys(
 
     let color = Color::GRAY;
     for x in -n..=n {
-        gizmo.ray(vec3(x as f32, 0., -n as f32), Vec3::Z * n as f32 *2., color);
+        gizmo.ray(
+            vec3(x as f32, 0., -n as f32),
+            Vec3::Z * n as f32 * 2.,
+            color,
+        );
     }
     for z in -n..=n {
-        gizmo.ray(vec3(-n as f32, 0., z as f32), Vec3::X * n as f32 *2., color);
+        gizmo.ray(
+            vec3(-n as f32, 0., z as f32),
+            Vec3::X * n as f32 * 2.,
+            color,
+        );
     }
 
     // View Basis
@@ -258,19 +247,17 @@ fn gizmo_sys(
     let rot = cam_trans.rotation;
     let n = 0.03;
     let offset = vec3(0., 0., -0.5);
-    gizmo.ray(p + rot*offset, Vec3::X * n, Color::RED);
-    gizmo.ray(p + rot*offset, Vec3::Y * n, Color::GREEN);
-    gizmo.ray(p + rot*offset, Vec3::Z * n, Color::BLUE);
-    
+    gizmo.ray(p + rot * offset, Vec3::X * n, Color::RED);
+    gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
+    gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
 }
-
 
 // fn update_chunks_loadance(
 //     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 //     mut chunk_sys: ResMut<ChunkSystem>,
 //     mut chunks_loading: Local<HashMap<IVec3, Task<ChunkPtr>>>,
 //     mut chunks_meshing: Local<HashMap<IVec3, ChunkMeshingState>>,
-    
+
 //     mut commands: Commands,
 //     mut meshes: ResMut<Assets<Mesh>>,
 //     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -291,7 +278,7 @@ fn gizmo_sys(
 //                 }
 
 //                 let mut chunk = Chunk::new(chunkpos);
-                
+
 //                 ChunkGenerator::generate_chunk(&mut chunk);
 
 //                 let mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
@@ -318,11 +305,10 @@ fn gizmo_sys(
 //         // FloatOrd(key.as_vec3().distance(player_pos.chunk_min.as_vec3()))
 //     // });
 //     // DoesNeeds? Chunks Loaded IntoWorld Batch (for reduce LockWrite)
-    
+
 //     // chunks_loading.retain(|chunkpos, task| {
 //     //     if task.is_finished() {
 //     //         if let Some(chunk) = future::block_on(future::poll_once(task)) {
-                
 
 //     //             chunk_sys.spawn_chunk(chunk, &mut commands);
 
@@ -346,11 +332,9 @@ fn gizmo_sys(
 //     //     }
 //     // }
 
-
 //     // Chunks Detect Meshing
 //     for (chunkpos, stat) in chunks_meshing.iter_mut() {
 //         if let ChunkMeshingState::Pending = stat {
-
 
 //             // let task = thread_pool.spawn(async move {
 
@@ -375,8 +359,7 @@ fn gizmo_sys(
 //     //     if let ChunkMeshingState::Meshing(task) = stat {
 //     //         if task.is_finished() {
 //     //             if let Some(chunk_mesh) = future::block_on(future::poll_once(task)) {
-                
-                    
+
 //     //                 return false;
 //     //             }
 //     //         }
@@ -384,14 +367,12 @@ fn gizmo_sys(
 //     //     true
 //     // });
 
-
-
 // }
 
 // fn generate_chunk_mesh() -> Mesh {
 //     Mesh::new(PrimitiveTopology::TriangleList)
 //     .with_inserted_attribute(
-//         Mesh::ATTRIBUTE_POSITION, 
+//         Mesh::ATTRIBUTE_POSITION,
 //         vec![
 //             [-0.5, 0.5, -0.5], // vertex with index 0
 //             [0.5, 0.5, -0.5], // vertex with index 1
@@ -400,7 +381,7 @@ fn gizmo_sys(
 //         ]
 //     )
 //     .with_inserted_attribute(
-//         Mesh::ATTRIBUTE_UV_0, 
+//         Mesh::ATTRIBUTE_UV_0,
 //         vec![
 //             // Assigning the UV coords for the top side.
 //             [0.0, 0.2], [0.0, 0.0], [1.0, 0.0], [1.0, 0.25],
@@ -421,9 +402,6 @@ fn gizmo_sys(
 //     ])))
 // }
 
-
-
-
 fn handle_inputs(
     mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
@@ -438,19 +416,23 @@ fn handle_inputs(
         match *event {
             EditorEvent::Toggle { now_active } => {
                 let playing = !now_active;
-                window.cursor.grab_mode = if playing {CursorGrabMode::Locked} else {CursorGrabMode::None};
+                window.cursor.grab_mode = if playing {
+                    CursorGrabMode::Locked
+                } else {
+                    CursorGrabMode::None
+                };
                 window.cursor.visible = !playing;
                 for mut controller in &mut controller_query {
                     controller.enable_input = playing;
                 }
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
-    
+
     // Toggle Fullscreen
-    if  key.just_pressed(KeyCode::F11) ||
-        (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) 
+    if key.just_pressed(KeyCode::F11)
+        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
     {
         window.mode = if window.mode != WindowMode::Fullscreen {
             WindowMode::Fullscreen
@@ -460,15 +442,9 @@ fn handle_inputs(
     }
 }
 
-
-
-
-
-
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct WorldInfo {
-    
     pub seed: u64,
 
     pub name: String,
@@ -476,19 +452,18 @@ pub struct WorldInfo {
     pub daytime: f32,
 
     // seconds a day time long
-    pub daytime_length: f32,  
+    pub daytime_length: f32,
 
     // seconds
     pub time_inhabited: f32,
 
     time_created: u64,
     time_modified: u64,
-    
+
     tick_timer: Timer,
 
     is_paused: bool,
     paused_steps: i32,
-
 }
 
 impl WorldInfo {
@@ -502,7 +477,7 @@ impl WorldInfo {
             time_inhabited: 0.,
             time_created: 0,
             time_modified: 0,
-            
+
             tick_timer: Timer::new(
                 bevy::utils::Duration::from_secs_f32(1. / 20.),
                 TimerMode::Repeating,
@@ -514,8 +489,5 @@ impl WorldInfo {
     }
 }
 
-
 #[derive(Component)]
-struct Sun;  // marker
-
-
+struct Sun; // marker

@@ -1,40 +1,43 @@
-
 use bevy::{
-    prelude::*, 
-    diagnostic::{FrameTimeDiagnosticsPlugin, EntityCountDiagnosticsPlugin, SystemInformationDiagnosticsPlugin, DiagnosticsStore}, 
-    tasks::AsyncComputeTaskPool, 
-    render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo}
+    diagnostic::{
+        DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
+        SystemInformationDiagnosticsPlugin,
+    },
+    prelude::*,
+    render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo},
+    tasks::AsyncComputeTaskPool,
 };
 
-use bevy_egui::{egui::{self, Rounding, style::HandleShape, FontDefinitions, FontData, FontFamily}, EguiContexts, EguiPlugin, EguiSettings};
+use bevy_egui::{
+    egui::{self, style::HandleShape, FontData, FontDefinitions, FontFamily, Rounding},
+    EguiContexts, EguiPlugin, EguiSettings,
+};
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-
         //app.add_plugins(EguiPlugin);
         //app.add_systems(Update, ui_example_system);
 
         // Editor
         use bevy_editor_pls::prelude::*;
-        app.add_plugins(EditorPlugin::default()
-            // .in_new_window(Window {
-            //     title: "Editor".into(),
-            //     ..default()
-            // })
+        app.add_plugins(
+            EditorPlugin::default(), // .in_new_window(Window {
+                                     //     title: "Editor".into(),
+                                     //     ..default()
+                                     // })
         );
 
         app.add_plugins((
-            FrameTimeDiagnosticsPlugin, 
+            FrameTimeDiagnosticsPlugin,
             EntityCountDiagnosticsPlugin,
             //SystemInformationDiagnosticsPlugin
         ));
-        
+
         // Setup Controls
         app.insert_resource(res_editor_controls());
         app.add_systems(Startup, setup_editor_camera_controls);
-
 
         // DebugText
         app.add_systems(Startup, setup_debug_text);
@@ -43,12 +46,9 @@ impl Plugin for EditorPlugin {
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
 
-
         // app.add_systems(Update, ui_example_system);
-
     }
 }
-
 
 fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
     use bevy_editor_pls::controls::*;
@@ -67,23 +67,18 @@ fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
 }
 
 fn setup_editor_camera_controls(
-    mut query: Query<&mut bevy_editor_pls::default_windows::cameras::camera_3d_free::FlycamControls>,
+    mut query: Query<
+        &mut bevy_editor_pls::default_windows::cameras::camera_3d_free::FlycamControls,
+    >,
 ) {
     let mut controls = query.single_mut();
     controls.key_up = KeyCode::E;
     controls.key_down = KeyCode::Q;
 }
 
-
-
-
-fn setup_egui_style(
-    mut egui_settings: ResMut<EguiSettings>,
-    mut _ctx: EguiContexts,
-) {
+fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut _ctx: EguiContexts) {
     let mut ctx = _ctx.ctx_mut();
     ctx.style_mut(|style| {
-
         let mut visuals = &mut style.visuals;
         let round = Rounding::from(2.5);
 
@@ -93,55 +88,51 @@ fn setup_egui_style(
         visuals.widgets.hovered.rounding = round;
         visuals.widgets.active.rounding = round;
         visuals.widgets.open.rounding = round;
-        
+
         visuals.collapsing_header_frame = true;
         visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
         visuals.slider_trailing_fill = true;
     });
 
     let mut fonts = FontDefinitions::default();
-    fonts.font_data.insert("my_font".to_owned(), FontData::from_static(include_bytes!("../../assets/fonts/menlo.ttf")));
+    fonts.font_data.insert(
+        "my_font".to_owned(),
+        FontData::from_static(include_bytes!("../../assets/fonts/menlo.ttf")),
+    );
 
     // Put my font first (highest priority):
-    fonts.families.get_mut(&FontFamily::Proportional).unwrap()
+    fonts
+        .families
+        .get_mut(&FontFamily::Proportional)
+        .unwrap()
         .insert(0, "my_font".to_owned());
-    
+
     // Put my font as last fallback for monospace:
-    fonts.families.get_mut(&FontFamily::Monospace).unwrap()
+    fonts
+        .families
+        .get_mut(&FontFamily::Monospace)
+        .unwrap()
         .push("my_font".to_owned());
-    
+
     ctx.set_fonts(fonts);
 
     //egui_settings.scale_factor = 3.;
-
-
-
 }
-
 
 fn ui_example_system(mut ctx: EguiContexts) {
     egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
         ui.label("world");
-        
-        if ui.button("text").clicked() {
-            
-        }
+
+        if ui.button("text").clicked() {}
     });
 }
 
-
-
 //////////////////// DEBUG TEXT ////////////////////
-
-
 
 #[derive(Component)]
 struct DebugTextTag;
 
-fn setup_debug_text(
-    mut commands: Commands, 
-    asset_server: Res<AssetServer>,
-) {
+fn setup_debug_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/menlo.ttf");
 
     commands.spawn((
@@ -161,8 +152,6 @@ fn setup_debug_text(
         }),
         DebugTextTag,
     ));
-
-    
 }
 
 fn update_debug_text(
@@ -181,9 +170,9 @@ fn update_debug_text(
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
     static mut LAST_UPDATE: f32 = 0.;
-    let dt = time.elapsed_seconds() - unsafe{LAST_UPDATE};
+    let dt = time.elapsed_seconds() - unsafe { LAST_UPDATE };
     if dt > 0.2 {
-        unsafe {LAST_UPDATE = time.elapsed_seconds()};
+        unsafe { LAST_UPDATE = time.elapsed_seconds() };
     } else {
         return;
     }
@@ -198,8 +187,7 @@ fn update_debug_text(
     }
 
     let mut frame_time = time.delta_seconds_f64();
-    if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME)
-    {
+    if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME) {
         if let Some(frame_time_smoothed) = frame_time_diagnostic.smoothed() {
             frame_time = frame_time_smoothed;
         }
@@ -209,16 +197,15 @@ fn update_debug_text(
     // "LANG", "en_US.UTF-8",
     // "USERNAME", "Dreamtowards",
 
-    
     let num_concurrency = std::thread::available_parallelism().unwrap().get();
 
     use sysinfo::{CpuExt, SystemExt};
-    
+
     let cpu_arch = std::env::consts::ARCH;
     let dist_id = std::env::consts::OS;
     let os_ver = sys.long_os_version().unwrap();
     let os_ver_sm = sys.os_version().unwrap();
-    
+
     sys.refresh_cpu();
     sys.refresh_memory();
 
@@ -238,11 +225,11 @@ fn update_debug_text(
     if let Some(usage) = memory_stats::memory_stats() {
         // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
         // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
-        
+
         mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
         mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
     }
-    
+
     let gpu_name = &render_adapter_info.0.name;
     let gpu_backend = &render_adapter_info.0.backend.to_str();
     let gpu_driver_name = &render_adapter_info.0.driver;
@@ -258,8 +245,8 @@ fn update_debug_text(
     let cam_pos_z = cam_pos.z;
 
     // let curr_path = std::env::current_exe().unwrap().display().to_string();
-    let os_lang = std::env::var("LANG").unwrap_or("?lang".into());  // "en_US.UTF-8"
-    //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
+    let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
+                                                                   //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
     let daytime = worldinfo.daytime;
     let world_inhabited = worldinfo.time_inhabited;
@@ -286,7 +273,6 @@ Entity: N; components: N, T: n
 Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.
 "
     );
-
 
     *last_cam_pos = cam_pos;
 }

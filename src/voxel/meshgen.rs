@@ -1,6 +1,10 @@
 use bevy::{
+    math::{ivec3, vec2, vec3},
     prelude::*,
-    render::{mesh::{Mesh, Indices}, render_resource::PrimitiveTopology}, math::{vec3, ivec3, vec2},
+    render::{
+        mesh::{Indices, Mesh},
+        render_resource::PrimitiveTopology,
+    },
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
@@ -16,7 +20,6 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-
     pub fn with_capacity(num_vert: usize) -> Self {
         let mut vtx = VertexBuffer::default();
         vtx.pos.reserve(num_vert);
@@ -36,7 +39,11 @@ impl VertexBuffer {
     }
 
     fn vertex_count(&self) -> usize {
-        if self.is_indexed() {self.indices.len()} else {self.pos.len()}
+        if self.is_indexed() {
+            self.indices.len()
+        } else {
+            self.pos.len()
+        }
     }
 
     pub fn clear(&mut self) {
@@ -47,7 +54,6 @@ impl VertexBuffer {
     }
 
     pub fn make_indexed(&mut self) {
-
         self.indices.clear();
 
         for i in 0..self.pos.len() {
@@ -57,35 +63,36 @@ impl VertexBuffer {
 
     pub fn into_mesh(self) -> Mesh {
         let has_idx = self.is_indexed();
-        
+
         Mesh::new(PrimitiveTopology::TriangleList)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm)
             .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, self.uv)
-            .with_indices(if has_idx {Some(Indices::U32(self.indices))} else {None})
+            .with_indices(if has_idx {
+                Some(Indices::U32(self.indices))
+            } else {
+                None
+            })
     }
 
     pub fn to_mesh(&self, mesh: &mut Mesh) {
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, self.pos.clone());
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm.clone());
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, self.uv.clone());
-        mesh.set_indices(if self.is_indexed() {Some(Indices::U32(self.indices.clone()))} else {None})
+        mesh.set_indices(if self.is_indexed() {
+            Some(Indices::U32(self.indices.clone()))
+        } else {
+            None
+        })
     }
-
 }
 
-
-pub struct MeshGen {
-
-}
+pub struct MeshGen {}
 
 impl MeshGen {
-
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-
         Self::sn_contouring(vbuf, chunk);
         return;
-
 
         // for ly in 0..Chunk::SIZE {
         //     for lz in 0..Chunk::SIZE {
@@ -95,7 +102,6 @@ impl MeshGen {
         //             let cell = chunk.get_cell(lp);
 
         //             if !cell.is_empty() {
-
 
         //                 put_cube(vbuf, lp, chunk);
 
@@ -107,31 +113,43 @@ impl MeshGen {
         // vbuf.make_indexed();
     }
 
-
-
-
-
-    
-    const AXES: [IVec3; 3] = [
-        ivec3(1, 0, 0),
-        ivec3(0, 1, 0),
-        ivec3(0, 0, 1),
-    ];
+    const AXES: [IVec3; 3] = [ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(0, 0, 1)];
     const ADJACENT: [[IVec3; 6]; 3] = [
-        [ivec3(0,0,0), ivec3(0,-1,0), ivec3(0,-1,-1), ivec3(0,-1,-1), ivec3(0,0,-1), ivec3(0,0,0)],
-        [ivec3(0,0,0), ivec3(0,0,-1), ivec3(-1,0,-1), ivec3(-1,0,-1), ivec3(-1,0,0), ivec3(0,0,0)],
-        [ivec3(0,0,0), ivec3(-1,0,0), ivec3(-1,-1,0), ivec3(-1,-1,0), ivec3(0,-1,0), ivec3(0,0,0)]
+        [
+            ivec3(0, 0, 0),
+            ivec3(0, -1, 0),
+            ivec3(0, -1, -1),
+            ivec3(0, -1, -1),
+            ivec3(0, 0, -1),
+            ivec3(0, 0, 0),
+        ],
+        [
+            ivec3(0, 0, 0),
+            ivec3(0, 0, -1),
+            ivec3(-1, 0, -1),
+            ivec3(-1, 0, -1),
+            ivec3(-1, 0, 0),
+            ivec3(0, 0, 0),
+        ],
+        [
+            ivec3(0, 0, 0),
+            ivec3(-1, 0, 0),
+            ivec3(-1, -1, 0),
+            ivec3(-1, -1, 0),
+            ivec3(0, -1, 0),
+            ivec3(0, 0, 0),
+        ],
     ];
 
     const VERT: [IVec3; 8] = [
-        ivec3(0, 0, 0),  // 0
+        ivec3(0, 0, 0), // 0
         ivec3(0, 0, 1),
-        ivec3(0, 1, 0),  // 2
+        ivec3(0, 1, 0), // 2
         ivec3(0, 1, 1),
-        ivec3(1, 0, 0),  // 4
+        ivec3(1, 0, 0), // 4
         ivec3(1, 0, 1),
-        ivec3(1, 1, 0),  // 6
-        ivec3(1, 1, 1)
+        ivec3(1, 1, 0), // 6
+        ivec3(1, 1, 1),
     ];
     // from min to max in each Edge.  axis order x y z.
     // Diagonal Edge in Cell is in-axis-flip-index edge.  i.e. diag of edge[axis*4 +i] is edge[axis*4 +(3-i)]
@@ -145,13 +163,22 @@ impl MeshGen {
      *   |1  0|
      */
     const EDGE: [[usize; 2]; 12] = [
-        [0,4], [1,5], [2,6], [3,7],  // X
-        [5,7], [1,3], [4,6], [0,2],  // Y
-        [4,5], [0,1], [6,7], [2,3]   // Z
+        [0, 4],
+        [1, 5],
+        [2, 6],
+        [3, 7], // X
+        [5, 7],
+        [1, 3],
+        [4, 6],
+        [0, 2], // Y
+        [4, 5],
+        [0, 1],
+        [6, 7],
+        [2, 3], // Z
     ];
 
     fn sn_signchanged(c0: &Cell, c1: &Cell) -> bool {
-        (c0.value > 0.) != (c1.value > 0.)  // use .is_empty() ?
+        (c0.value > 0.) != (c1.value > 0.) // use .is_empty() ?
     }
 
     // Naive SurfaceNets Method of Evaluate FeaturePoint.
@@ -164,11 +191,10 @@ impl MeshGen {
             let edge = Self::EDGE[edge_i];
             let v0 = Self::VERT[edge[0]];
             let v1 = Self::VERT[edge[1]];
-            let c0 = chunk.get_cell_rel(lp + v0); 
-            let c1 = chunk.get_cell_rel(lp + v1); 
+            let c0 = chunk.get_cell_rel(lp + v0);
+            let c1 = chunk.get_cell_rel(lp + v1);
 
             if Self::sn_signchanged(&c0, &c1) {
-
                 // t maybe -INF if accessing a Nil Cell.
                 if let Some(t) = inverse_lerp(c0.value..=c1.value, 0.0) {
                     if !t.is_finite() {
@@ -176,7 +202,7 @@ impl MeshGen {
                     }
                     assert!(t.is_finite(), "t = {}", t);
 
-                    let p = t * (v1 - v0).as_vec3() + v0.as_vec3();  // (v1-v0) must > 0. since every edge vert are min-to-max
+                    let p = t * (v1 - v0).as_vec3() + v0.as_vec3(); // (v1-v0) must > 0. since every edge vert are min-to-max
 
                     fp_sum += p;
                     sign_changes += 1;
@@ -185,7 +211,8 @@ impl MeshGen {
         }
 
         // assert_ne!(sign_changes, 0);
-        if sign_changes == 0 {  // 由于外力修改 eg Water，可能存在非法情况 此时还不至于panic
+        if sign_changes == 0 {
+            // 由于外力修改 eg Water，可能存在非法情况 此时还不至于panic
             return Vec3::ONE * 0.5;
         }
         assert!(fp_sum.is_finite());
@@ -194,7 +221,7 @@ impl MeshGen {
     }
 
     // Evaluate Normal of a Cell FeaturePoint
-    // via Approxiate Differental Gradient  
+    // via Approxiate Differental Gradient
     // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
@@ -206,11 +233,11 @@ impl MeshGen {
             // chunk.get_cell_rel(lp + IVec3::X).value - chunk.get_cell_rel(lp - IVec3::X).value,
             // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
-        ).normalize()
+        )
+        .normalize()
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-
         for ly in 0..Chunk::SIZE {
             for lz in 0..Chunk::SIZE {
                 for lx in 0..Chunk::SIZE {
@@ -232,7 +259,11 @@ impl MeshGen {
                         let winding_flip = c0.is_empty();
 
                         for quadvert_i in 0..6 {
-                            let winded_vi = if winding_flip {5 - quadvert_i} else {quadvert_i};
+                            let winded_vi = if winding_flip {
+                                5 - quadvert_i
+                            } else {
+                                quadvert_i
+                            };
 
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
                             let c = chunk.get_cell_rel(p);
@@ -250,89 +281,59 @@ impl MeshGen {
                                 }
                             }
 
-                            vbuf.push_vertex(
-                                p.as_vec3() + fp, 
-                                vec2(nearest_mtl as f32, 0.), 
-                                norm
-                            );
+                            vbuf.push_vertex(p.as_vec3() + fp, vec2(nearest_mtl as f32, 0.), norm);
                         }
                     }
                 }
             }
         }
     }
-
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static CUBE_POS: [f32;6*6*3] = [
-    0., 0., 1., 0., 1., 1., 0., 1., 0.,  // Left -X
-    0., 0., 1., 0., 1., 0., 0., 0., 0.,
-    1., 0., 0., 1., 1., 0., 1., 1., 1.,  // Right +X
-    1., 0., 0., 1., 1., 1., 1., 0., 1.,
-    0., 0., 1., 0., 0., 0., 1., 0., 0.,  // Bottom -Y
-    0., 0., 1., 1., 0., 0., 1., 0., 1.,
-    0., 1., 1., 1., 1., 1., 1., 1., 0.,  // Bottom +Y
-    0., 1., 1., 1., 1., 0., 0., 1., 0.,
-    0., 0., 0., 0., 1., 0., 1., 1., 0.,  // Front -Z
-    0., 0., 0., 1., 1., 0., 1., 0., 0.,
-    1., 0., 1., 1., 1., 1., 0., 1., 1.,  // Back +Z
+static CUBE_POS: [f32; 6 * 6 * 3] = [
+    0., 0., 1., 0., 1., 1., 0., 1., 0., // Left -X
+    0., 0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 1., 0., 1., 1., 1., // Right +X
+    1., 0., 0., 1., 1., 1., 1., 0., 1., 0., 0., 1., 0., 0., 0., 1., 0., 0., // Bottom -Y
+    0., 0., 1., 1., 0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 1., 1., 1., 0., // Bottom +Y
+    0., 1., 1., 1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 1., 0., // Front -Z
+    0., 0., 0., 1., 1., 0., 1., 0., 0., 1., 0., 1., 1., 1., 1., 0., 1., 1., // Back +Z
     1., 0., 1., 0., 1., 1., 0., 0., 1.,
 ];
 
-static CUBE_UV: [f32;6*6*2] = [
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,  // One Face.
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+static CUBE_UV: [f32; 6 * 6 * 2] = [
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., // One Face.
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
     1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
 ];
 
-static CUBE_NORM: [f32;6*6*3] = [
-    -1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,
-    1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0.,
-    0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0.,
-    0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0.,
-    0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1.,
+static CUBE_NORM: [f32; 6 * 6 * 3] = [
+    -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1.,
+    0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0.,
+    0., -1., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
+    0., 0., 1., 0., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1.,
     0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
 ];
 
 // static CUBE_IDX: [u32;6*6] = [
 // ];
 
-
 fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk) {
-    
     for face_i in 0..6 {
-        let face_dir = Vec3::from_slice(&CUBE_NORM[face_i*18..]);  // 18: 3 scalar * 3 vertex * 2 triangle
+        let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]); // 18: 3 scalar * 3 vertex * 2 triangle
 
         if let Some(neib) = chunk.get_cell_neighbor(lp + face_dir.as_ivec3()) {
             if !neib.is_empty() {
                 continue;
             }
-        } 
+        }
 
         for vert_i in 0..6 {
             vbuf.push_vertex(
-                Vec3::from_slice(&CUBE_POS[face_i*18 + vert_i*3..]) + lp.as_vec3(), 
-                Vec2::from_slice(&CUBE_UV[face_i*12 + vert_i*2..]), 
-                Vec3::from_slice(&CUBE_NORM[face_i*18 + vert_i*3..]), 
+                Vec3::from_slice(&CUBE_POS[face_i * 18 + vert_i * 3..]) + lp.as_vec3(),
+                Vec2::from_slice(&CUBE_UV[face_i * 12 + vert_i * 2..]),
+                Vec3::from_slice(&CUBE_NORM[face_i * 18 + vert_i * 3..]),
             );
         }
     }
-
 }
