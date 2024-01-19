@@ -183,7 +183,7 @@ fn chunks_detect_load_and_unload(
                             ..default()
                         },
                         // Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
-                        // RigidBody::Static,
+                        RigidBody::Static,
                     ))
                     .set_parent(chunksys_entity)
                     .id();
@@ -282,15 +282,22 @@ fn chunks_remesh(
 
     chunk_sys.chunks_meshing.retain(|chunkpos, task| {
         if let Some(r) = future::block_on(future::poll_once(task)) {
+            let not_empty = r.0.indices().is_some_and(|idx| !idx.is_empty());
+            
             // Update Mesh Asset
             *meshes.get_mut(r.3).unwrap() = r.0;
 
             // Update Phys Collider TriMesh
             if let Some(collider) = r.1 {
                 if let Some(mut cmds) = commands.get_entity(r.2) {
-                    cmds.remove::<Collider>()
-                        // .insert(collider)
-                        .insert(Visibility::Visible);
+                    cmds.remove::<Collider>();
+                    if not_empty {
+                        cmds.insert(collider)
+                            .insert(Visibility::Visible);
+                    } else {
+                        cmds.insert(Visibility::Hidden);
+                    }
+                    assert!(not_empty);
                 }
             }
 

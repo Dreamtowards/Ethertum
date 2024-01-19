@@ -116,6 +116,8 @@ impl ChunkSystem {
             let mut chunk = chunkptr.write().unwrap();
             chunkpos = chunk.chunkpos;
 
+            let mut load = Vec::new();
+
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
@@ -126,10 +128,16 @@ impl ChunkSystem {
                 chunk.neighbor_chunks[neib_idx] = if let Some(neib_chunkptr) =
                     self.get_chunk(neib_chunkpos)
                 {
+                    {
+                        let mut neib_chunk = neib_chunkptr.write().unwrap();
+                        
+                        // update neighbor's `neighbor_chunk`
+                        neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
-                    // update neighbor's `neighbor_chunk`
-                    neib_chunkptr.write().unwrap().neighbor_chunks
-                        [Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
+                        if neib_chunk.is_neighbors_complete() {
+                            load.push(neib_chunk.chunkpos);
+                        }
+                    }
 
                     Some(Arc::downgrade(neib_chunkptr))
                 } else {
@@ -139,6 +147,9 @@ impl ChunkSystem {
 
             if chunk.is_neighbors_complete() {
                 self.mark_chunk_remesh(chunkpos);
+            }
+            for cp in load {
+                self.mark_chunk_remesh(cp);
             }
         }
 
