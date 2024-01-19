@@ -2,7 +2,6 @@ use std::sync::{Arc, RwLock, Weak};
 
 use bevy::{math::ivec3, prelude::*};
 
-use super::chunk_system::ChunkPtr;
 
 // Voxel System
 
@@ -187,12 +186,7 @@ impl Chunk {
     ];
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
-        for i in 0..Chunk::NEIGHBOR_DIR.len() {
-            if Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::SIZE)) {
-                return Some(i);
-            }
-        }
-        None
+        (0..Chunk::NEIGHBOR_DIR.len()).find(|&i| Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::SIZE)))
     }
 
     // assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[opposite_idx] == IVec3::ZERO, "idx = {}, opposite = {}", idx, opposite_idx);

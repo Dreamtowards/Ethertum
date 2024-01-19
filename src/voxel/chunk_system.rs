@@ -149,15 +149,11 @@ impl ChunkSystem {
     }
 
     pub fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
-        if let Some(chunk) = self.chunks.remove(&chunkpos) {
-            //.write().unwrap()
+        let chunk = self.chunks.remove(&chunkpos)?;
 
             //cmds.entity(chunk.entity).despawn_recursive();
 
-            Some(chunk)
-        } else {
-            None
-        }
+        Some(chunk)
     }
 
     pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {

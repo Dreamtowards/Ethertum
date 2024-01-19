@@ -1,11 +1,9 @@
 use bevy::{
     diagnostic::{
         DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
-        SystemInformationDiagnosticsPlugin,
     },
     prelude::*,
-    render::{render_resource::WgpuAdapterInfo, renderer::RenderAdapterInfo},
-    tasks::AsyncComputeTaskPool,
+    render::renderer::RenderAdapterInfo,
 };
 
 use bevy_egui::{
@@ -76,7 +74,10 @@ fn setup_editor_camera_controls(
     controls.key_down = KeyCode::Q;
 }
 
-fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut _ctx: EguiContexts) {
+fn setup_egui_style(
+    mut egui_settings: ResMut<EguiSettings>, 
+    mut _ctx: EguiContexts
+) {
     let mut ctx = _ctx.ctx_mut();
     ctx.style_mut(|style| {
         let mut visuals = &mut style.visuals;

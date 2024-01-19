@@ -6,7 +6,6 @@ mod meshgen;
 mod worldgen;
 
 use crate::character_controller::CharacterControllerCamera;
-use bevy_inspector_egui::quick::AssetInspectorPlugin;
 use chunk::*;
 use futures_lite::future;
 use meshgen::*;
@@ -18,9 +17,7 @@ use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidB
 
 use bevy::{
     asset::ReflectAsset,
-    asset::ReflectHandle,
     prelude::*,
-    reflect::TypeUuid,
     render::{
         primitives::Aabb,
         render_resource::{AsBindGroup, PrimitiveTopology},
@@ -115,13 +112,14 @@ fn chunks_detect_load_and_unload(
 
     // Chunks Detect Load/Gen
 
-    const MAX_CONCURRENT_LOADING: usize = 10;
+    const MAX_CONCURRENT_LOADING: usize = 16;
 
     let max_n = vd.max_element();
     'outer: for n in 0..max_n {
         for y in -n..=n {
             for z in -n..=n {
                 for x in -n..=n {
+                    
                     if chunk_sys.chunks_loading.len() > MAX_CONCURRENT_LOADING {
                         break 'outer;
                     }
@@ -135,8 +133,7 @@ fn chunks_detect_load_and_unload(
                     let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
                     // the chunk already exists, skip.
-                    if chunk_sys.has_chunk(chunkpos)
-                        || chunk_sys.chunks_loading.contains_key(&chunkpos)
+                    if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos)
                     {
                         continue;
                     }
@@ -184,8 +181,8 @@ fn chunks_detect_load_and_unload(
                             visibility: Visibility::Hidden, // Hidden is required since Mesh is empty.
                             ..default()
                         },
-                        Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
-                        RigidBody::Static,
+                        // Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                        // RigidBody::Static,
                     ))
                     .set_parent(chunksys_entity)
                     .id();
@@ -225,16 +222,17 @@ static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
 fn chunks_remesh(
     mut commands: Commands,
 
+    mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 ) {
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
-    let p = IVec3::ZERO;
+    let p = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());
     chunks_remesh.sort_unstable_by_key(|v| FloatOrd(v.distance_squared(p) as f32));
 
-    const MAX_CONCURRENT_MESHING: usize = 10;
+    const MAX_CONCURRENT_MESHING: usize = 16;
 
     for chunkpos in chunks_remesh {
         if chunk_sys.chunks_meshing.len() > MAX_CONCURRENT_MESHING {
@@ -290,7 +288,7 @@ fn chunks_remesh(
             if let Some(collider) = r.1 {
                 if let Some(mut cmds) = commands.get_entity(r.2) {
                     cmds.remove::<Collider>()
-                        .insert(collider)
+                        // .insert(collider)
                         .insert(Visibility::Visible);
                 }
             }
@@ -302,6 +300,31 @@ fn chunks_remesh(
         true
     });
 }
+
+
+fn gizmos(
+    mut gizmos: Gizmos,
+    chunk_sys: Res<ChunkSystem>,
+) {
+
+
+    // chunks loading
+    for cp in chunk_sys.chunks_loading.keys() {
+        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::GREEN);
+    }
+
+    // chunks remesh
+    for cp in chunk_sys.chunks_remesh.iter() {
+        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::ORANGE);
+    }
+
+    // chunks meshing
+    for cp in chunk_sys.chunks_meshing.keys() {
+        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::RED);
+    }
+
+}
+
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Asset)]

@@ -1,11 +1,9 @@
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    core_pipeline::experimental::taa::{TemporalAntiAliasBundle, TemporalAntiAliasPlugin},
-    math::{ivec3, vec3},
-    pbr::{DirectionalLightShadowMap, ScreenSpaceAmbientOcclusionBundle},
+    math::vec3,
+    pbr::DirectionalLightShadowMap,
     prelude::*,
-    render::camera::CameraProjection,
     window::{CursorGrabMode, PrimaryWindow, WindowMode},
 };
 use bevy_atmosphere::prelude::*;
