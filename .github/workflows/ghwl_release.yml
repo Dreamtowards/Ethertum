@@ -35,7 +35,7 @@ jobs:
           sudo apt-get install libwayland-dev libxkbcommon-dev  # Wayland
           rustup target add x86_64-pc-windows-msvc  # Windows
           cargo install xwin
-          xwin --accept-license splat --output /home/me/.xwin
+          xwin --accept-license splat --output ./.xwin
 
       - name: Build for Linux
         run: cargo build --release
