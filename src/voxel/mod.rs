@@ -260,16 +260,18 @@ fn chunks_remesh(
                     mesh_handle = chunk.mesh_handle.clone();
                 }
 
+                info!("Generated ReMesh {}", vbuf.vertex_count());
+
                 // vbuf.compute_flat_normals();
-                vbuf.compute_smooth_normals();
+                // vbuf.compute_smooth_normals();
                 vbuf.compute_indexed();
-                let mut mesh = vbuf.clone().into_mesh(); // exoprt mesh
+
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                vbuf.to_mesh(&mut mesh);
                 vbuf.clear();
 
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
-
-                info!("Generated ReMesh");
 
                 (mesh, collider, entity, mesh_handle)
             });
@@ -281,21 +283,21 @@ fn chunks_remesh(
     }
 
     chunk_sys.chunks_meshing.retain(|chunkpos, task| {
-        if let Some((mesh, Some(collider), entity, mesh_handle)) = future::block_on(future::poll_once(task)) {
+        if let Some((mesh, collider, entity, mesh_handle)) = future::block_on(future::poll_once(task)) {
             
             // Update Mesh Asset
             *meshes.get_mut(mesh_handle).unwrap() = mesh;
 
             // Update Phys Collider TriMesh
-            if let Some(mut cmds) = commands.get_entity(entity) {  // the entity may be already unloaded ?
-                cmds.remove::<Collider>()
-                    .insert(collider)
-                    .insert(Visibility::Visible);
-                
+            if let Some(collider) = collider {
+                if let Some(mut cmds) = commands.get_entity(entity) {  // the entity may be already unloaded ?
+                    cmds.remove::<Collider>()
+                        .insert(collider)
+                        .insert(Visibility::Visible);
+                }
             }
 
             info!("Applied ReMesh");
-
             return false;
         }
         true

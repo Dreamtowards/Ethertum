@@ -1,4 +1,4 @@
-#![rustfmt::skip]
+// #![rustfmt::skip]
 
 use bevy::{prelude::*, window::WindowResolution};
 
