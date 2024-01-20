@@ -1,0 +1,8 @@
+unstable_features = true
+
+max_width = 150
+
+ignore = [
+    "src/example/",
+    "src/constants.rs",
+]
