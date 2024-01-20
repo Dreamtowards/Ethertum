@@ -281,24 +281,17 @@ fn chunks_remesh(
     }
 
     chunk_sys.chunks_meshing.retain(|chunkpos, task| {
-        if let Some(r) = future::block_on(future::poll_once(task)) {
-            let not_empty = r.0.indices().is_some_and(|idx| !idx.is_empty());
+        if let Some((mesh, Some(collider), entity, mesh_handle)) = future::block_on(future::poll_once(task)) {
             
             // Update Mesh Asset
-            *meshes.get_mut(r.3).unwrap() = r.0;
+            *meshes.get_mut(mesh_handle).unwrap() = mesh;
 
             // Update Phys Collider TriMesh
-            if let Some(collider) = r.1 {
-                if let Some(mut cmds) = commands.get_entity(r.2) {
-                    cmds.remove::<Collider>();
-                    if not_empty {
-                        cmds.insert(collider)
-                            .insert(Visibility::Visible);
-                    } else {
-                        cmds.insert(Visibility::Hidden);
-                    }
-                    assert!(not_empty);
-                }
+            if let Some(mut cmds) = commands.get_entity(entity) {  // the entity may be already unloaded ?
+                cmds.remove::<Collider>()
+                    .insert(collider)
+                    .insert(Visibility::Visible);
+                
             }
 
             info!("Applied ReMesh");

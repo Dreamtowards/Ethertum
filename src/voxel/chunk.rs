@@ -76,7 +76,6 @@ impl Chunk {
         }
     }
 
-    #[inline]
     pub fn get_cell(&self, localpos: IVec3) -> &Cell {
         &self.cells[Chunk::local_cell_idx(localpos)]
     }
