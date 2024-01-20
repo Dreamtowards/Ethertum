@@ -6,7 +6,7 @@ use bevy::{
     render::{
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
-    }, utils::{HashMap},
+    }, utils::{HashMap, hashbrown::hash_map::{OccupiedEntry, VacantEntry}, Entry},
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
@@ -22,22 +22,8 @@ impl Hash for HashVec3 {
         self.0.z.to_bits().hash(state);
     }
 }
-// impl PartialEq for HashVec3 {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.x == other.x && self.y == other.y && self.z == other.z
-//     }
-// }
 impl Eq for HashVec3 {
 }
-// impl HashVec3 {
-//     fn from(v: Vec3) -> Self {
-//         Self {
-//             x: v.x,
-//             y: v.y,
-//             z: v.z,
-//         }
-//     }
-// }
 
 
 #[derive(Default)]
@@ -141,10 +127,29 @@ impl VertexBuffer {
     }
 
     pub fn compute_indexed(&mut self) {
+        assert!(!self.is_indexed());
         self.indices.clear();
+        self.indices.reserve(self.vertex_count());
+        
+        let mut vert2idx = HashMap::<HashVec3, u32>::new();
+        let mut verts = Vec::new();
 
-        for i in 0..self.pos.len() {
-            self.indices.push(i as u32);
+        for vert in self.pos.iter() {
+            
+            match vert2idx.entry(HashVec3(*vert)) {
+                Entry::Occupied(e) => {
+                    let idx = *e.get();
+                    self.indices.push(idx);
+                },
+                Entry::Vacant(e) => {
+                    let idx = verts.len() as u32;
+                    e.insert(idx);
+                    verts.push(vert);
+                    self.indices.push(idx);
+                }
+            }
+            todo!("Sth");
+
         }
     }
 
