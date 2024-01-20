@@ -162,6 +162,7 @@ impl Chunk {
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }
 
+    #[rustfmt::skip]
     pub const NEIGHBOR_DIR: [IVec3; 6 + 12 + 8] = [
         // 6 Faces
         ivec3(-1, 0, 0),
