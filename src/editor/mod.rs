@@ -3,7 +3,7 @@ use bevy::{
         DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
     },
     prelude::*,
-    render::renderer::RenderAdapterInfo,
+    render::{renderer::RenderAdapterInfo, view::VisibleEntities},
 };
 
 use bevy_egui::{
@@ -155,12 +155,32 @@ fn setup_debug_text(mut commands: Commands, asset_server: Res<AssetServer>) {
     ));
 }
 
+trait TimeIntervalDetect {
+    fn intervals_passed(&self, interval: f32) -> usize;
+
+    fn just_passed(&self, interval: f32) -> bool {
+        self.intervals_passed(interval) != 0
+    }
+
+    fn intervals(t: f32, dt: f32, u: f32) -> usize {
+        ((t / u).floor() - ((t-dt) / u).floor()) as usize
+    }
+}
+impl TimeIntervalDetect for Time {
+    fn intervals_passed(&self, u: f32) -> usize {
+        Self::intervals(self.elapsed_seconds(), self.delta_seconds(), u)
+    }
+}
+
 fn update_debug_text(
+    // world: &World,
+    cmds: Commands,
+
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
     mut query_text: Query<&mut Text, With<DebugTextTag>>,
 
-    query_cam: Query<&Transform, With<crate::character_controller::CharacterControllerCamera>>,
+    query_cam: Query<(&Transform, &VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
 
     mut sys: Local<sysinfo::System>,
@@ -168,13 +188,21 @@ fn update_debug_text(
 
     chunk_sys: Res<crate::voxel::ChunkSystem>,
     worldinfo: Res<crate::game::WorldInfo>,
+
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
-    static mut LAST_UPDATE: f32 = 0.;
-    let dt = time.elapsed_seconds() - unsafe { LAST_UPDATE };
-    if dt > 0.2 {
-        unsafe { LAST_UPDATE = time.elapsed_seconds() };
-    } else {
+    // static mut LAST_UPDATE: f32 = 0.;
+    let dt = 0.5;//time.elapsed_seconds() - unsafe { LAST_UPDATE };
+    // if dt > 0.2 {
+    //     unsafe { LAST_UPDATE = time.elapsed_seconds() };
+    // } else {
+    //     return;
+    // }
+    if time.just_passed(2.0) {
+        sys.refresh_cpu();
+        sys.refresh_memory();
+    }
+    if !time.just_passed(dt) {
         return;
     }
 
@@ -207,9 +235,6 @@ fn update_debug_text(
     let os_ver = sys.long_os_version().unwrap();
     let os_ver_sm = sys.os_version().unwrap();
 
-    sys.refresh_cpu();
-    sys.refresh_memory();
-
     let cpu_cores = sys.physical_core_count().unwrap();
     let cpu_name = sys.global_cpu_info().brand().trim().to_string();
     let cpu_usage = sys.global_cpu_info().cpu_usage();
@@ -236,7 +261,7 @@ fn update_debug_text(
     let gpu_driver_name = &render_adapter_info.0.driver;
     let gpu_driver_info = &render_adapter_info.0.driver_info;
 
-    let cam_trans = query_cam.single();
+    let (cam_trans, cam_visible_entities) = query_cam.single();
     let cam_pos = cam_trans.translation;
     let cam_pos_diff = cam_pos - *last_cam_pos;
     let cam_pos_spd = cam_pos_diff.length() / dt;
@@ -244,6 +269,9 @@ fn update_debug_text(
     let cam_pos_x = cam_pos.x;
     let cam_pos_y = cam_pos.y;
     let cam_pos_z = cam_pos.z;
+
+    let cam_visible_entities_num = cam_visible_entities.entities.len();
+    let num_all_entities = 0;//world.entities().len();
 
     // let curr_path = std::env::current_exe().unwrap().display().to_string();
     let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
@@ -261,6 +289,7 @@ fn update_debug_text(
     text.sections[0].value = format!(
 "fps: {fps:.1}, dt: {frame_time:.4}ms
 cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
+visible entities: {cam_visible_entities_num} / all {num_all_entities}.
 
 OS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
 CPU: {cpu_name}, usage {cpu_usage:.1}%

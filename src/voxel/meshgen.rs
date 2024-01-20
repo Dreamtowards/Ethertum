@@ -1,10 +1,12 @@
+use std::{default, collections::BTreeMap};
+
 use bevy::{
     math::{ivec3, vec2, vec3},
     prelude::*,
     render::{
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
-    },
+    }, utils::HashMap,
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
@@ -46,6 +48,10 @@ impl VertexBuffer {
         }
     }
 
+    fn triangles_count(&self) -> usize {
+        self.vertex_count() / 3
+    }
+
     pub fn clear(&mut self) {
         self.pos.clear();
         self.norm.clear();
@@ -53,7 +59,55 @@ impl VertexBuffer {
         self.indices.clear();
     }
 
-    pub fn make_indexed(&mut self) {
+    pub fn compute_flat_normals(&mut self) {
+        assert!(!self.is_indexed());
+        self.norm.clear();
+        self.norm.reserve(self.pos.len());
+
+        let pos = &self.pos;
+        for tri_i in 0..self.triangles_count() {
+            let p0 = pos[tri_i*3];
+            let p1 = pos[tri_i*3+1];
+            let p2 = pos[tri_i*3+2];
+
+            let n = (p1 - p0).cross(p2 - p0).normalize();
+
+            self.norm.push(n);
+            self.norm.push(n);
+            self.norm.push(n);
+        }
+    }
+
+    pub fn compute_smooth_normals(&mut self) {
+        assert!(!self.is_indexed());
+        self.norm.clear();
+        self.norm.reserve(self.pos.len());
+        
+        let mut pos2norm = BTreeMap::<Vec3, Vec3>::new();
+
+        let pos = &self.pos;
+        for tri_i in 0..self.triangles_count() {
+            let p0 = pos[tri_i*3];
+            let p1 = pos[tri_i*3+1];
+            let p2 = pos[tri_i*3+2];
+
+            let n = (p1 - p0).cross(p2 - p0);
+
+            let a0 = (p1 - p0).angle_between(p2 - p0);
+            let a1 = (p2 - p1).angle_between(p0 - p1);
+            let a2 = (p0 - p2).angle_between(p1 - p2);
+
+            // pos2norm.get(p0);
+
+            self.norm.push(n * a0);
+            self.norm.push(n * a1);
+            self.norm.push(n * a2);
+        }
+
+
+    }
+
+    pub fn compute_indexed(&mut self) {
         self.indices.clear();
 
         for i in 0..self.pos.len() {
@@ -75,17 +129,29 @@ impl VertexBuffer {
             })
     }
 
-    pub fn to_mesh(&self, mesh: &mut Mesh) {
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, self.pos.clone());
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm.clone());
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, self.uv.clone());
-        mesh.set_indices(if self.is_indexed() {
-            Some(Indices::U32(self.indices.clone()))
-        } else {
-            None
-        })
+    // pub fn to_mesh(&self, mesh: &mut Mesh) {
+    //     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, self.pos.clone());
+    //     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, self.norm.clone());
+    //     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, self.uv.clone());
+    //     mesh.set_indices(if self.is_indexed() {
+    //         Some(Indices::U32(self.indices.clone()))
+    //     } else {
+    //         None
+    //     })
+    // }
+}
+
+impl Clone for VertexBuffer {
+    fn clone(&self) -> Self {
+        Self {
+            pos: self.pos.clone(),
+            norm: self.norm.clone(),
+            uv: self.uv.clone(),
+            indices: self.indices.clone(),
+        }        
     }
 }
+
 
 pub struct MeshGen {}
 

@@ -65,9 +65,9 @@ impl Default for ChunkSystem {
 }
 
 impl ChunkSystem {
-    pub fn new(view_distance: i32) -> Self {
+    pub fn new(view_distance: IVec2) -> Self {
         Self {
-            view_distance: IVec2::new(view_distance, view_distance),
+            view_distance,
             // chunks_loading: HashSet::new(),
             // chunks_meshing: HashMap::new(),
             ..default()

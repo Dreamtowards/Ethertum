@@ -23,7 +23,7 @@ use bevy::{
         render_resource::{AsBindGroup, PrimitiveTopology},
     },
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{FloatOrd, HashMap},
+    utils::{FloatOrd, HashMap}, math::ivec2,
 };
 
 use once_cell::sync::Lazy;
@@ -35,7 +35,7 @@ pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ChunkSystem::new(2));
+        app.insert_resource(ChunkSystem::new(ivec2(10, 3)));
         app.register_type::<ChunkSystem>();
 
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
@@ -260,11 +260,11 @@ fn chunks_remesh(
                     mesh_handle = chunk.mesh_handle.clone();
                 }
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                vbuf.make_indexed();
-                vbuf.to_mesh(&mut mesh); // exoprt mesh
+                vbuf.compute_flat_normals();
+                vbuf.compute_smooth_normals();
+                vbuf.compute_indexed();
+                let mut mesh = vbuf.clone().into_mesh(); // exoprt mesh
                 vbuf.clear();
-                // mesh.compute_flat_normals();
 
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);

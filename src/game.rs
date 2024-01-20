@@ -219,10 +219,11 @@ fn gizmo_sys(
 
     // World Basis Axes
     let n = 5;
-    gizmo.line(Vec3::ZERO, Vec3::X * n as f32, Color::RED);
-    gizmo.line(Vec3::ZERO, Vec3::Y * n as f32, Color::GREEN);
-    gizmo.line(Vec3::ZERO, Vec3::Z * n as f32, Color::BLUE);
+    gizmo.line(Vec3::ZERO, Vec3::X * 2.*n as f32, Color::RED);
+    gizmo.line(Vec3::ZERO, Vec3::Y * 2.*n as f32, Color::GREEN);
+    gizmo.line(Vec3::ZERO, Vec3::Z * 2.*n as f32, Color::BLUE);
 
+    
     let color = Color::GRAY;
     for x in -n..=n {
         gizmo.ray(
