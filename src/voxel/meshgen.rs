@@ -1,4 +1,4 @@
-use std::{default, collections::BTreeMap};
+use std::{hash::Hash};
 
 use bevy::{
     math::{ivec3, vec2, vec3},
@@ -6,11 +6,39 @@ use bevy::{
     render::{
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
-    }, utils::HashMap,
+    }, utils::{HashMap},
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
 use super::{chunk::*, chunk_system::ChunkPtr};
+
+
+#[derive(PartialEq)]
+struct HashVec3(Vec3);
+impl Hash for HashVec3 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.x.to_bits().hash(state);
+        self.0.y.to_bits().hash(state);
+        self.0.z.to_bits().hash(state);
+    }
+}
+// impl PartialEq for HashVec3 {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.x == other.x && self.y == other.y && self.z == other.z
+//     }
+// }
+impl Eq for HashVec3 {
+}
+// impl HashVec3 {
+//     fn from(v: Vec3) -> Self {
+//         Self {
+//             x: v.x,
+//             y: v.y,
+//             z: v.z,
+//         }
+//     }
+// }
+
 
 #[derive(Default)]
 pub struct VertexBuffer {
@@ -80,10 +108,8 @@ impl VertexBuffer {
 
     pub fn compute_smooth_normals(&mut self) {
         assert!(!self.is_indexed());
-        self.norm.clear();
-        self.norm.reserve(self.pos.len());
         
-        let mut pos2norm = BTreeMap::<Vec3, Vec3>::new();
+        let mut pos2norm = HashMap::<HashVec3, Vec3>::new();
 
         let pos = &self.pos;
         for tri_i in 0..self.triangles_count() {
@@ -97,13 +123,20 @@ impl VertexBuffer {
             let a1 = (p2 - p1).angle_between(p0 - p1);
             let a2 = (p0 - p2).angle_between(p1 - p2);
 
-            // pos2norm.get(p0);
-
-            self.norm.push(n * a0);
-            self.norm.push(n * a1);
-            self.norm.push(n * a2);
+            *pos2norm.entry(HashVec3(p0)).or_default() += n * a0;
+            *pos2norm.entry(HashVec3(p1)).or_default() += n * a1;
+            *pos2norm.entry(HashVec3(p2)).or_default() += n * a2;
         }
 
+        for norm in pos2norm.values_mut() {
+            *norm = norm.normalize();
+        }
+
+        self.norm.clear();
+        self.norm.reserve(self.pos.len());
+        for pos in self.pos.iter() {
+            self.norm.push(*pos2norm.get(&HashVec3(*pos)).unwrap());
+        }
 
     }
 

@@ -174,7 +174,7 @@ impl TimeIntervalDetect for Time {
 
 fn update_debug_text(
     // world: &World,
-    cmds: Commands,
+    // cmds: Commands,
 
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
@@ -188,7 +188,6 @@ fn update_debug_text(
 
     chunk_sys: Res<crate::voxel::ChunkSystem>,
     worldinfo: Res<crate::game::WorldInfo>,
-
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
     // static mut LAST_UPDATE: f32 = 0.;
@@ -208,17 +207,17 @@ fn update_debug_text(
 
     let mut text = query_text.single_mut();
 
-    let mut fps = 0.0;
-    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-        if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
-            fps = fps_smoothed;
-        }
-    }
-
     let mut frame_time = time.delta_seconds_f64();
     if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME) {
         if let Some(frame_time_smoothed) = frame_time_diagnostic.smoothed() {
             frame_time = frame_time_smoothed;
+        }
+    }
+
+    let mut fps = frame_time / 1.0;
+    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
+            fps = fps_smoothed;
         }
     }
 

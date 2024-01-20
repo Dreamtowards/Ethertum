@@ -260,7 +260,7 @@ fn chunks_remesh(
                     mesh_handle = chunk.mesh_handle.clone();
                 }
 
-                vbuf.compute_flat_normals();
+                // vbuf.compute_flat_normals();
                 vbuf.compute_smooth_normals();
                 vbuf.compute_indexed();
                 let mut mesh = vbuf.clone().into_mesh(); // exoprt mesh
