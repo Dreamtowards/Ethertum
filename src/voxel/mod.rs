@@ -148,7 +148,7 @@ fn chunks_detect_load_and_unload(
                             WorldGen::generate_chunk(&mut chunk);
                         }
 
-                        info!("Load Chunk: {:?}", chunkpos);
+                        // info!("Load Chunk: {:?}", chunkpos);
 
                         chunkptr
                     });
@@ -207,7 +207,7 @@ fn chunks_detect_load_and_unload(
             || (vp.z - chunkpos.z).abs() > vd.x * Chunk::SIZE
             || (vp.y - chunkpos.y).abs() > vd.y * Chunk::SIZE
         {
-            info!("Unload Chunk: {:?}", chunkpos);
+            // info!("Unload Chunk: {:?}", chunkpos);
             commands.entity(entity).despawn_recursive();
             chunk_sys.despawn_chunk(chunkpos);
         } else if chunk_sys.dbg_remesh_all_chunks {
@@ -223,7 +223,7 @@ static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
 fn chunks_remesh(
     mut commands: Commands,
 
-    mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
@@ -260,11 +260,16 @@ fn chunks_remesh(
                     mesh_handle = chunk.mesh_handle.clone();
                 }
 
-                info!("Generated ReMesh {}", vbuf.vertex_count());
-
                 // vbuf.compute_flat_normals();
-                // vbuf.compute_smooth_normals();
+                vbuf.compute_smooth_normals();
+
+                let nv = vbuf.vertices.len();
                 vbuf.compute_indexed();
+
+                if nv != 0 {
+                    info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%", 
+                    vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
+                }
 
                 let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
                 vbuf.to_mesh(&mut mesh);
@@ -276,7 +281,7 @@ fn chunks_remesh(
                 (mesh, collider, entity, mesh_handle)
             });
 
-            info!("Queued ReMesh");
+            // info!("Queued ReMesh");
             chunk_sys.chunks_meshing.insert(chunkpos, task);
         }
         chunk_sys.chunks_remesh.remove(&chunkpos);
@@ -297,7 +302,6 @@ fn chunks_remesh(
                 }
             }
 
-            info!("Applied ReMesh");
             return false;
         }
         true
