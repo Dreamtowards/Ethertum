@@ -139,7 +139,6 @@ impl VertexBuffer {
     }
 
     pub fn compute_smooth_normals(&mut self) {
-        assert!(!self.is_indexed());  // todo: could support indexed
         const SCALE: f32 = 100.;
         
         let mut pos2norm = HashMap::<IVec3, Vec3>::new();
@@ -190,9 +189,6 @@ impl VertexBuffer {
 
         for vert in self.vertices.iter() {
 
-            self.indices.push(vertices.len() as u32);
-            vertices.push(*vert);
-            
             // if let Some(idx) = vert2idx.get(vert) {
             //     self.indices.push(*idx);
             // } else {
@@ -202,21 +198,20 @@ impl VertexBuffer {
             //     self.indices.push(idx);
             // }
 
-            // match vert2idx.entry(*vert) {
-            //     Entry::Occupied(e) => {
-            //         let idx = *e.get();
-            //         self.indices.push(idx);
-            //     },
-            //     Entry::Vacant(e) => {
-            //         let idx = vertices.len() as u32;
-            //         e.insert(idx);
-            //         vertices.push(*vert);
-            //         self.indices.push(idx);
-            //     }
-            // }
+            match vert2idx.entry(*vert) {
+                Entry::Occupied(e) => {
+                    let idx = *e.get();
+                    self.indices.push(idx);
+                },
+                Entry::Vacant(e) => {
+                    let idx = vertices.len() as u32;
+                    e.insert(idx);
+                    vertices.push(*vert);
+                    self.indices.push(idx);
+                }
+            }
         }
 
-        self.vertices.clear();
         self.vertices = vertices;
     }
 

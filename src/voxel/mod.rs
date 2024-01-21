@@ -261,15 +261,21 @@ fn chunks_remesh(
                 }
 
                 // vbuf.compute_flat_normals();
-                vbuf.compute_smooth_normals();
+                // vbuf.compute_smooth_normals();
 
-                let nv = vbuf.vertices.len();
-                vbuf.compute_indexed();
+                // let nv = vbuf.vertices.len();
+                // vbuf.compute_indexed();  // save 70%+ vertex data space!
+                // todo: Cannot use Real IndexedBuffer, it caused WGSL @builtin(vertex_index) produce invalid Barycentric Coordinate, fails material interpolation.
+                // vulkan also have this issue, but extension
+                //   #extension GL_EXT_fragment_shader_barycentric : enable
+                //   layout(location = 2) pervertexEXT in int in_MtlIds[];  gl_BaryCoordEXT
+                // would fix the problem in vulkan. 
+                vbuf.compute_indexed_naive();
 
-                if nv != 0 {
-                    info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%", 
-                    vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
-                }
+                // if nv != 0 {
+                //     info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%", 
+                //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
+                // }
 
                 let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
                 vbuf.to_mesh(&mut mesh);

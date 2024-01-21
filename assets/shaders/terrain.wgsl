@@ -58,10 +58,6 @@ fn vertex(
     return out;
 }
 
-struct TerrainMaterial {
-    triplanar_blend_sharpness: f32,
-    normal_intensity: f32
-};
 
 @group(1) @binding(0) var _sampler: sampler;
 @group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
@@ -189,7 +185,7 @@ fn fragment(
     
     // var color = base_color;
     // color = vec4<f32>(vec3<f32>(select(0.0, 1.0, round(mtls[vi_mtl]) == 10.)), 1.0); 
-    // color = vec4<f32>(vec3<f32>(roughness), 1.0); 
+    // color = vec4<f32>(bary, 1.0); 
     // color = vec4<f32>(world_normal, 1.0); 
     return color;
 }
