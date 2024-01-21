@@ -5,7 +5,7 @@ mod material;
 mod meshgen;
 mod worldgen;
 
-use crate::character_controller::CharacterControllerCamera;
+use crate::{character_controller::{CharacterControllerCamera, CharacterController}, util::iter};
 use chunk::*;
 use futures_lite::future;
 use meshgen::*;
@@ -13,7 +13,7 @@ use worldgen::*;
 
 pub use chunk_system::{ChunkPtr, ChunkSystem};
 
-use bevy_xpbd_3d::components::{AsyncCollider, Collider, ComputedCollider, RigidBody};
+use bevy_xpbd_3d::{components::{AsyncCollider, Collider, ComputedCollider, RigidBody}, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
 use bevy::{
     asset::ReflectAsset,
@@ -23,13 +23,15 @@ use bevy::{
         render_resource::{AsBindGroup, PrimitiveTopology},
     },
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{FloatOrd, HashMap}, math::ivec2,
+    utils::{FloatOrd, HashMap}, math::{ivec2, ivec3},
 };
 
 use once_cell::sync::Lazy;
 use std::cell::RefCell;
 use std::sync::{Arc, RwLock};
 use thread_local::ThreadLocal;
+
+use self::material::mtl;
 
 pub struct VoxelPlugin;
 
@@ -42,6 +44,9 @@ impl Plugin for VoxelPlugin {
         app.register_asset_reflect::<TerrainMaterial>();
 
         app.add_systems(Startup, startup);
+
+        app.insert_resource(HitResult::default());
+        app.add_systems(Update, raycast);
 
         app.add_systems(
             Update,
@@ -182,7 +187,7 @@ fn chunks_detect_load_and_unload(
                             visibility: Visibility::Hidden, // Hidden is required since Mesh is empty.
                             ..default()
                         },
-                        // Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                        Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
                         RigidBody::Static,
                     ))
                     .set_parent(chunksys_entity)
@@ -261,7 +266,7 @@ fn chunks_remesh(
                 }
 
                 // vbuf.compute_flat_normals();
-                // vbuf.compute_smooth_normals();
+                vbuf.compute_smooth_normals();
 
                 // let nv = vbuf.vertices.len();
                 // vbuf.compute_indexed();  // save 70%+ vertex data space!
@@ -336,6 +341,89 @@ fn gizmos(
         gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::RED);
     }
 
+}
+
+#[derive(Resource, Reflect, Default, Debug)]
+#[reflect(Resource)]
+pub struct HitResult {
+    pub is_hit: bool,
+    pub position: Vec3,
+    pub normal: Vec3,
+    pub distance: f32,
+    // entity: Entity,
+
+    pub is_voxel: bool,
+}
+
+fn raycast(
+    commands: Commands,
+    spatial_query: SpatialQuery,
+
+    query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>,
+    query_player: Query<Entity, With<CharacterController>>,
+    
+    mut hit_result: ResMut<HitResult>,
+
+    mouse_btn: Res<Input<MouseButton>>, 
+
+    mut chunk_sys: ResMut<ChunkSystem>,
+) {
+    let cam_trans = query_cam.single();
+    let ray_pos = cam_trans.translation();
+    let ray_dir = cam_trans.forward();
+
+    let player_entity = query_player.single();
+
+    if let Some(hit) = spatial_query.cast_ray(ray_pos, ray_dir, 
+        100., true, SpatialQueryFilter::default().without_entities(vec![player_entity])
+    ) {
+        hit_result.is_hit = true;
+        hit_result.normal = hit.normal;
+        // hit_result.entity = hit.entity;
+        let dist = hit.time_of_impact;
+        hit_result.distance = dist;
+        hit_result.position = ray_pos + ray_dir * dist;
+
+        // commands.entity(hit.entity)
+    } else {
+        hit_result.is_hit = false;
+    }
+
+    let do_break = mouse_btn.just_pressed(MouseButton::Left);
+    let do_place = mouse_btn.just_pressed(MouseButton::Right);
+    if hit_result.is_hit && (do_break || do_place) {
+
+        let n = 5;
+
+        // for lx in -n..n {
+        //     for ly in -n..n {
+        //         for lz in -n..n {
+        //             let lp = ivec3(lx, ly, lz);
+
+        //             let chunk = chunk_sys.get_chunk(chunkpos).unwrap().write().unwrap();
+        //             chunk.get_cell_mut(localpos);
+
+        //         }
+        //     }
+        // }
+        iter::iter_aabb(n, n, |lp| {
+            let p = hit_result.position.as_ivec3() + *lp;
+
+            chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
+
+            let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
+            
+            let c = chunk.get_cell_mut(Chunk::as_localpos(p));
+
+            let dif = (n as f32 - lp.as_vec3().length()).max(0.);
+
+            c.value += if do_break {-dif} else {dif};
+
+            if do_place && c.mtl == 0 {
+                c.mtl = mtl::STONE;
+            }
+        });
+    }
 }
 
 

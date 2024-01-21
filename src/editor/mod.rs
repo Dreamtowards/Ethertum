@@ -11,6 +11,8 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
+use crate::voxel::HitResult;
+
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
@@ -188,6 +190,8 @@ fn update_debug_text(
 
     chunk_sys: Res<crate::voxel::ChunkSystem>,
     worldinfo: Res<crate::game::WorldInfo>,
+
+    hit_result: Res<HitResult>,
 ) {
     // static mut sys: sysinfo::System = sysinfo::System::new();
     // static mut LAST_UPDATE: f32 = 0.;
@@ -285,6 +289,12 @@ fn update_debug_text(
     let num_chunks_remesh = chunk_sys.chunks_remesh.len();
     let num_chunks_meshing = chunk_sys.chunks_meshing.len();
 
+    let mut hit_str = "none".into();
+    if hit_result.is_hit {
+        hit_str = format!("p: {}, n: {}, d: {}, vox: {}", 
+                          hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel);
+    }
+
     text.sections[0].value = format!(
 "fps: {fps:.1}, dt: {frame_time:.4}ms
 cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
@@ -295,7 +305,7 @@ CPU: {cpu_name}, usage {cpu_usage:.1}%
 GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
 RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB
 
-Hit: p, d, vox
+Hit: {hit_str},
 
 World: '', daytime: {daytime}. inhabited: {world_inhabited}, seed: {world_seed}
 Entity: N; components: N, T: n

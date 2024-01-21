@@ -5,7 +5,7 @@ use bevy::{
 };
 use bevy_xpbd_3d::components::Collider;
 
-use super::{chunk::*, TerrainMaterial};
+use super::{chunk::{*, self}, TerrainMaterial};
 
 use std::sync::{Arc, RwLock};
 
@@ -93,6 +93,12 @@ impl ChunkSystem {
 
     pub fn num_chunks(&self) -> usize {
         self.chunks.len() //.read().unwrap().len()
+    }
+
+
+    pub fn get_cell(&self, p: IVec3) -> Option<Cell> {
+        let chunk = self.get_chunk(Chunk::as_chunkpos(p))?.read().unwrap();
+        Some(*chunk.get_cell(Chunk::as_localpos(p)))
     }
 
     // pub fn provide_chunk(&self, chunkpos: IVec3) -> ChunkPtr {
