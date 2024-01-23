@@ -123,6 +123,8 @@ fn startup(
         Name::new("Sun"),
     ));
 
+    
+
     // commands.spawn((
     //     SceneBundle {
     //         scene: assets.load("spaceship.glb#Scene0"),
