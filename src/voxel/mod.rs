@@ -171,7 +171,8 @@ fn chunks_detect_load_and_unload(
     let material_handle = chunk_sys.vox_mtl.clone();
     let mut goingtospawn = Vec::new();
     chunk_sys.chunks_loading.retain(|chunkpos, task| {
-        if let Some(chunkptr) = future::block_on(future::poll_once(task)) {
+        if task.is_finished() {
+            let chunkptr = future::block_on(future::poll_once(task)).unwrap();
             {
                 let mut chunk = chunkptr.write().unwrap();
 
@@ -196,7 +197,7 @@ fn chunks_detect_load_and_unload(
 
             goingtospawn.push(chunkptr);
 
-            return false;
+            return false;  // remove task.
         }
         true
     });
@@ -298,9 +299,10 @@ fn chunks_remesh(
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    chunk_sys.chunks_meshing.retain(|chunkpos, task| {
-        if let Some((mesh, collider, entity, mesh_handle)) = future::block_on(future::poll_once(task)) {
-            
+    chunk_sys.chunks_meshing.retain(|_chunkpos, task| {
+        if task.is_finished() {
+            let (mesh, collider, entity, mesh_handle) = future::block_on(future::poll_once(task)).unwrap();
+                
             // Update Mesh Asset
             *meshes.get_mut(mesh_handle).unwrap() = mesh;
 
@@ -313,7 +315,7 @@ fn chunks_remesh(
                 }
             }
 
-            return false;
+            return false;  // remove task.
         }
         true
     });
