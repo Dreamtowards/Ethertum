@@ -122,13 +122,13 @@ fn setup_egui_style(
     //egui_settings.scale_factor = 3.;
 }
 
-fn ui_example_system(mut ctx: EguiContexts) {
-    egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
-        ui.label("world");
+// fn ui_example_system(mut ctx: EguiContexts) {
+//     egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
+//         ui.label("world");
 
-        if ui.button("text").clicked() {}
-    });
-}
+//         if ui.button("text").clicked() {}
+//     });
+// }
 
 //////////////////// DEBUG TEXT ////////////////////
 

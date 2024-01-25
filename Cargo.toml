@@ -18,6 +18,7 @@ bevy_editor_pls = "0.7"
 bevy_xpbd_3d = "0.3"
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
+bevy_renet = "0.0"
 
 noise = "0.8"
 

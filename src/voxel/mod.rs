@@ -11,7 +11,7 @@ use futures_lite::future;
 use meshgen::*;
 use worldgen::*;
 
-pub use chunk_system::{ChunkPtr, ChunkSystem};
+pub use chunk_system::*;
 
 use bevy_xpbd_3d::{components::{AsyncCollider, Collider, ComputedCollider, RigidBody}, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
@@ -23,7 +23,8 @@ use bevy::{
         render_resource::{AsBindGroup, PrimitiveTopology},
     },
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{FloatOrd, HashMap}, math::{ivec2, ivec3},
+    utils::{FloatOrd, HashMap}, 
+    math::{ivec2, ivec3},
 };
 
 use once_cell::sync::Lazy;

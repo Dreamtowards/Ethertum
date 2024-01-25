@@ -5,9 +5,11 @@ use bevy::{prelude::*, window::WindowResolution};
 mod game;
 mod util;
 mod voxel;
+mod net;
 
 mod character_controller;
 mod editor;
+
 
 fn main() {
     //std::env::set_var("RUST_BACKTRACE", "full");

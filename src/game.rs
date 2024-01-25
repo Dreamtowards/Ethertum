@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
-use bevy_xpbd_3d::{parry::na::coordinates::X, prelude::*};
+use bevy_xpbd_3d::prelude::*;
 
 use crate::character_controller::{
     CharacterController, CharacterControllerBundle, CharacterControllerCamera,
@@ -21,6 +21,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
@@ -54,6 +55,10 @@ impl Plugin for GamePlugin {
         app.add_systems(Update, handle_inputs);
 
         app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync));
+
+
+
+
     }
 }
 
