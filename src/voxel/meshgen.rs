@@ -399,7 +399,7 @@ impl MeshGen {
                         if !c1.value.is_finite() {
                             continue;
                         }
-                        if !Self::sn_signchanged(&c0, &c1) {
+                        if !Self::sn_signchanged(c0, &c1) {
                             continue;
                         }
 

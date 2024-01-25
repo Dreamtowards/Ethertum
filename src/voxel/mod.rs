@@ -359,7 +359,6 @@ pub struct HitResult {
 }
 
 fn raycast(
-    commands: Commands,
     spatial_query: SpatialQuery,
 
     query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>,

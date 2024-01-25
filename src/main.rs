@@ -2,13 +2,8 @@
 
 use bevy::{prelude::*, window::WindowResolution};
 
-mod game;
-mod util;
-mod voxel;
-mod net;
-
-mod character_controller;
-mod editor;
+use ethertia::editor::EditorPlugin;
+use ethertia::game::GamePlugin;
 
 
 fn main() {
@@ -26,7 +21,7 @@ fn main() {
                 ..default()
             })
         )
-        .add_plugins(editor::EditorPlugin)
-        .add_plugins(game::GamePlugin)
+        .add_plugins(EditorPlugin)
+        .add_plugins(GamePlugin)
         .run();
 }

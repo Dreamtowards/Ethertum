@@ -1,7 +1,5 @@
 
-use std::time::Duration;
-
-use bevy::{prelude::*, log::LogPlugin, app::ScheduleRunnerPlugin};
+use bevy::{prelude::*, log::LogPlugin};
 
 use ethertia::net::NetworkServerPlugin;
 

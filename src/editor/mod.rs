@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use bevy_egui::{
-    egui::{self, style::HandleShape, FontData, FontDefinitions, FontFamily, Rounding},
+    egui::{style::HandleShape, FontData, FontDefinitions, FontFamily, Rounding},
     EguiContexts, EguiPlugin, EguiSettings,
 };
 

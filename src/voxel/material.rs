@@ -26,6 +26,5 @@ pub mod mtl {
     pub const SAND: u16 = 18;
 }
 
-use crate::util::registry::*;
-
+// use crate::util::registry::*;
 // static REGISTRY: Registry<Material> = Registry::default();

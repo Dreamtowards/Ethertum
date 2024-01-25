@@ -223,7 +223,7 @@ fn tick_world(
 fn gizmo_sys(
     mut gizmo: Gizmos,
     mut gizmo_config: ResMut<GizmoConfig>,
-    mut query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 ) {
     gizmo_config.depth_bias = -1.; // always in front
 
@@ -273,20 +273,17 @@ fn handle_inputs(
 
     // Toggle MouseGrab
     for event in editor_events.read() {
-        match *event {
-            EditorEvent::Toggle { now_active } => {
-                let playing = !now_active;
-                window.cursor.grab_mode = if playing {
-                    CursorGrabMode::Locked
-                } else {
-                    CursorGrabMode::None
-                };
-                window.cursor.visible = !playing;
-                for mut controller in &mut controller_query {
-                    controller.enable_input = playing;
-                }
+        if let EditorEvent::Toggle { now_active } = *event {
+            let playing = !now_active;
+            window.cursor.grab_mode = if playing {
+                CursorGrabMode::Locked
+            } else {
+                CursorGrabMode::None
+            };
+            window.cursor.visible = !playing;
+            for mut controller in &mut controller_query {
+                controller.enable_input = playing;
             }
-            _ => (),
         }
     }
 

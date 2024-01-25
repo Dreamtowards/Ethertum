@@ -1,3 +1,4 @@
+use std::sync::{Arc, RwLock};
 use bevy::{
     prelude::*,
     tasks::Task,
@@ -5,15 +6,11 @@ use bevy::{
 };
 use bevy_xpbd_3d::components::Collider;
 
-use super::{chunk::{*, self}, TerrainMaterial};
+use super::{chunk::*, TerrainMaterial};
 
-use std::sync::{Arc, RwLock};
 
-// pub enum ChunkMeshingState {
-//     Pending,
-//     Meshing,//(Task<Mesh>),
-//     Completed,
-// }
+
+
 
 // Box<Chunk>;         not supported for SharedPtr
 // Arc<RwLock<Chunk>>; non convinent for readonly ops
@@ -23,8 +20,6 @@ pub type ChunkPtr = Arc<RwLock<Chunk>>;
 #[reflect(Resource)]
 pub struct ChunkSystem {
     /// all loaded chunks.
-    /// ChunkList can be read (by multiple threads) at the same time, but only one can be writing at the same time and no other can be reading at this time.
-    // 设计一个高性能区块系统，这两个区块列表 及每个区块 都有RwLock特性，即 可同时可被多处读，但只能被互斥写
     // linear-list of loaded chunks.
     // chunks: Arc<RwLock<HashMap<IVec3, Arc<RwLock<Chunk>>>>>,
     #[reflect(ignore)]

@@ -1,7 +1,7 @@
 
 use std::{net::{UdpSocket, SocketAddr}, time::SystemTime};
 
-use bevy::{prelude::*, transform::commands};
+use bevy::{prelude::*};
 use bevy_egui::{EguiContexts, egui};
 use bevy_renet::{
     RenetServerPlugin, 
@@ -73,6 +73,7 @@ fn ui_net(
         if ui.button("Connect Server").clicked() {
             let addr = (server_addr).parse().unwrap();
             commands.insert_resource(new_netcode_client_transport(addr));
+            // commands.insert_resource(RenetClient::new(ConnectionConfig::default()));
         }
 
         if ui.button("Send Pack").clicked() {
@@ -108,7 +109,7 @@ fn new_netcode_client_transport(server_addr: SocketAddr) -> NetcodeClientTranspo
     let client_id = current_time.as_millis() as u64;
     let authentication = ClientAuthentication::Unsecure { 
         protocol_id: PROTOCOL_ID,
-        client_id: client_id, 
+        client_id, 
         server_addr: server_addr, 
         user_data: None
     };
