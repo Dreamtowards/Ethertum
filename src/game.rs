@@ -10,10 +10,10 @@ use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::character_controller::{
+use crate::{character_controller::{
     CharacterController, CharacterControllerBundle, CharacterControllerCamera,
     CharacterControllerPlugin,
-};
+}, net::NetworkClientPlugin};
 
 use crate::voxel::VoxelPlugin;
 
@@ -21,7 +21,7 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        
+
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
@@ -56,6 +56,9 @@ impl Plugin for GamePlugin {
 
         app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync));
 
+
+        // Network Client
+        app.add_plugins(NetworkClientPlugin);
 
 
 

@@ -1,7 +1,7 @@
 
 use std::{net::{UdpSocket, SocketAddr}, time::SystemTime};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, transform::commands};
 use bevy_egui::{EguiContexts, egui};
 use bevy_renet::{
     RenetServerPlugin, 
@@ -26,7 +26,7 @@ impl Plugin for NetworkServerPlugin {
         app.add_plugins(NetcodeServerPlugin);
         
         app.insert_resource(RenetServer::new(ConnectionConfig::default()));
-        app.insert_resource(new_renet_server(addr, 64));
+        app.insert_resource(new_netcode_server_transport(addr, 64));
         info!("Server bind endpoint at {}", addr);
 
         app.add_systems(Update, server_sys);
@@ -38,14 +38,10 @@ pub struct NetworkClientPlugin;
 impl Plugin for NetworkClientPlugin {
     fn build(&self, app: &mut App) {
         
-        let addr = "127.0.0.1:4000".parse().unwrap();
-        
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 
-        let (client, transport) = new_renet_client(addr);
-        app.insert_resource(client);
-        app.insert_resource(transport);
+        app.insert_resource(RenetClient::new(ConnectionConfig::default()));
         
         app.add_systems(Update, client_sys);
 
@@ -56,7 +52,10 @@ impl Plugin for NetworkClientPlugin {
 
 fn ui_net(
     mut ctx: EguiContexts, 
+    mut client: ResMut<RenetClient>,
     mut server_addr: Local<String>,
+
+    mut commands: Commands,
 ) {
     egui::Window::new("Network").show(ctx.ctx_mut(), |ui| {
         ui.label("Server:");
@@ -72,7 +71,16 @@ fn ui_net(
         ui.text_edit_singleline(&mut *server_addr);
 
         if ui.button("Connect Server").clicked() {
-            
+            let addr = (server_addr).parse().unwrap();
+            commands.insert_resource(new_netcode_client_transport(addr));
+        }
+
+        if ui.button("Send Pack").clicked() {
+            client.send_message(DefaultChannel::ReliableOrdered, "Some Data Message");
+        }
+
+        if ui.button("Disconnect").clicked() {
+            client.disconnect();
         }
     });
 }
@@ -80,7 +88,7 @@ fn ui_net(
 
 
 
-fn new_renet_server(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
+fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
     // let public_addr = "127.0.0.1:4000".parse().unwrap();  // SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)
     let socket = UdpSocket::bind(public_addr).unwrap();
     let server_config = ServerConfig {
@@ -93,7 +101,7 @@ fn new_renet_server(public_addr: SocketAddr, max_clients: usize) -> NetcodeServe
     NetcodeServerTransport::new(server_config, socket).unwrap()
 }
 
-fn new_renet_client(server_addr: SocketAddr) -> (RenetClient, NetcodeClientTransport) {
+fn new_netcode_client_transport(server_addr: SocketAddr) -> NetcodeClientTransport {
     // let server_addr = "127.0.0.1:5000".parse().unwrap();
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
@@ -104,11 +112,7 @@ fn new_renet_client(server_addr: SocketAddr) -> (RenetClient, NetcodeClientTrans
         server_addr: server_addr, 
         user_data: None
     };
-
-    let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
-    let client = RenetClient::new(ConnectionConfig::default());
-
-    (client, transport)
+    NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
 }
 
 
@@ -119,7 +123,7 @@ fn server_sys(
     for event in server_events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
-                println!("Client {client_id} connected");
+                println!("Client {client_id} connected {}", server.connected_clients());
 
                 server.send_message(*client_id, DefaultChannel::ReliableOrdered, "You connected");
                 server.broadcast_message(DefaultChannel::ReliableOrdered, "A Client connected");
@@ -127,7 +131,6 @@ fn server_sys(
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 println!("Client {client_id} disconnected: {reason}");
                 
-                server.send_message(*client_id, DefaultChannel::ReliableOrdered, "You connected");
                 server.broadcast_message(DefaultChannel::ReliableOrdered, "A Client Disconnected");
             }
         }
