@@ -65,6 +65,7 @@ impl Plugin for GamePlugin {
     }
 }
 
+
 // Simple environment
 fn startup(
     assets: Res<AssetServer>,
