@@ -1,5 +1,7 @@
 // pub mod registry;
 
+use std::time::{SystemTime, Duration};
+
 
 
 pub mod iter {
@@ -16,4 +18,13 @@ pub mod iter {
         }
     }
 
+}
+
+
+pub fn current_timestamp() -> Duration {
+    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
+}
+
+pub fn current_timestamp_millis() -> u64 {
+    current_timestamp().as_millis() as u64
 }

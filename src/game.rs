@@ -65,6 +65,18 @@ impl Plugin for GamePlugin {
     }
 }
 
+fn console_thread() {
+    std::thread::spawn(|| {
+        let stdin = std::io::stdin();
+        let mut buf = String::new();
+        loop {
+            if let Ok(n) = stdin.read_line(&mut buf) {
+                
+            }
+        }
+    });
+}
+
 
 // Simple environment
 fn startup(
