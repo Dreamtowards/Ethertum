@@ -28,7 +28,7 @@ use bevy::{
 };
 
 use once_cell::sync::Lazy;
-use std::cell::RefCell;
+use std::{cell::RefCell, time::Instant};
 use std::sync::{Arc, RwLock};
 use thread_local::ThreadLocal;
 
@@ -255,6 +255,7 @@ fn chunks_remesh(
                     .get_or(|| RefCell::new(VertexBuffer::default()))
                     .borrow_mut();
 
+                let dbg_time = Instant::now();
                 let entity;
                 let mesh_handle;
                 {
@@ -263,9 +264,11 @@ fn chunks_remesh(
                     // Generate Mesh
                     MeshGen::generate_chunk_mesh(&mut vbuf, &chunk);
 
+
                     entity = chunk.entity;
                     mesh_handle = chunk.mesh_handle.clone();
                 }
+                let dbg_time = Instant::now() - dbg_time;
 
                 // vbuf.compute_flat_normals();
                 vbuf.compute_smooth_normals();
@@ -397,17 +400,6 @@ fn raycast(
 
         let n = 5;
 
-        // for lx in -n..n {
-        //     for ly in -n..n {
-        //         for lz in -n..n {
-        //             let lp = ivec3(lx, ly, lz);
-
-        //             let chunk = chunk_sys.get_chunk(chunkpos).unwrap().write().unwrap();
-        //             chunk.get_cell_mut(localpos);
-
-        //         }
-        //     }
-        // }
         iter::iter_aabb(n, n, |lp| {
             let p = hit_result.position.as_ivec3() + *lp;
 

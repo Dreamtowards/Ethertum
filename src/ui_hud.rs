@@ -6,13 +6,15 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
 
-        app.insert_resource(UiResource::default());
+        // app.insert_resource(UiResource::default());
 
-        app.add_systems(Startup, ui_init_resources);
+        // app.add_systems(Startup, ui_init_resources);
 
 
     }
 }
+
+
 
 // #[derive(Resource, Default)]
 // pub struct UiResource {

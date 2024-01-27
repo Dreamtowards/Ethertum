@@ -20,7 +20,9 @@ bevy_xpbd_3d = "0.3"
 # bevy_rapier3d = "0.23"
 bevy_renet = "0.0"
 
+
 noise = "0.8"
+bincode = "1.3"
 
 thread_local = "1.1"
 once_cell = "1.19"

@@ -96,20 +96,6 @@ impl ChunkSystem {
         Some(*chunk.get_cell(Chunk::as_localpos(p)))
     }
 
-    // pub fn provide_chunk(&self, chunkpos: IVec3) -> ChunkPtr {
-    //     assert!(!self.has_chunk(chunkpos));
-
-    //     let mut chunk = Arc::new(RwLock::new(Chunk::new(chunkpos)));
-
-    //     let load = false;  // chunk_loader.load_chunk(chunk);
-
-    //     if !load {
-
-    //         ChunkGenerator::generate_chunk(chunk.write().unwrap().borrow_mut());
-    //     }
-
-    //     chunk
-    // }
 
     pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let chunkpos;

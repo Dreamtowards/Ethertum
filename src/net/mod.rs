@@ -30,6 +30,8 @@ impl Plugin for NetworkServerPlugin {
         info!("Server bind endpoint at {}", addr);
 
         app.add_systems(Update, server_sys);
+        
+        app.add_systems(Update, ui_server_net);
     }
 }
 
@@ -45,12 +47,12 @@ impl Plugin for NetworkClientPlugin {
         
         app.add_systems(Update, client_sys);
 
-        app.add_systems(Update, ui_net);
+        app.add_systems(Update, ui_client_net);
 
     }
 }
 
-fn ui_net(
+fn ui_client_net(
     mut ctx: EguiContexts, 
     mut client: ResMut<RenetClient>,
     mut server_addr: Local<String>,
@@ -86,6 +88,23 @@ fn ui_net(
     });
 }
 
+fn ui_server_net(
+    mut ctx: EguiContexts, 
+    mut client: ResMut<RenetClient>,
+    mut server_addr: Local<String>,
+
+    mut commands: Commands,
+) {
+    egui::Window::new("Network").show(ctx.ctx_mut(), |ui| {
+        ui.label("Server:");
+
+        ui.text_edit_singleline(&mut *server_addr);
+
+        if ui.button("Bind Endpoint").clicked() {
+
+        }
+    });
+}
 
 
 
@@ -139,10 +158,12 @@ fn server_sys(
     
     // Receive message from all clients
     for client_id in server.clients_id() {
-        while let Some(message) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
+        while let Some(bytes) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
             // Handle received message
 
-            info!("Server Received: {}", String::from_utf8_lossy(&message));
+            // let p = bincode::deserialize(&bytes[..]);
+
+            info!("Server Received: {}", String::from_utf8_lossy(&bytes));
         }
     }
 }
@@ -151,7 +172,6 @@ fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
     mut client: ResMut<RenetClient>,
 ) {
-
 
     while let Some(message) = client.receive_message(DefaultChannel::ReliableOrdered) {
         // let server_message = bincode::
@@ -167,3 +187,119 @@ fn client_sys(
 
 
 
+pub mod packet {
+
+}
+
+
+pub enum CPacket {
+    
+    // Handshake & Server Query & Login
+
+    Handshake {
+        protocol_version: u32,
+    },
+    ServerQuery {
+
+    },
+    Ping {
+        client_time: u64,
+    },
+
+    Login {
+        uuid: u64,
+        access_token: u64,
+    },
+
+    // Play
+
+    ChatMessage {
+        message: String,
+    }
+}
+
+pub enum SPacket {
+
+    // Handshake & Server Query & Login
+
+    Disconnect {
+        reason: String,
+    },
+    ServerInfo {
+        motd: String,
+        num_players_limit: u32,
+        num_players_online: u32,
+        // online_players: Vec<(u64 uuid, String name)>
+        protocol_version: u32,
+        favicon: String,
+    },
+    Pong {
+        client_time: u64,
+        server_time: u64,
+    },
+    LoginSuccess {
+        // uuid, username
+    },
+
+    // Play
+
+    Chat {
+        message: String,
+    },
+}
+
+
+
+
+// Handshake
+struct CPacketHandshake {
+    protocol_version: u32,
+}
+
+struct SPacketDisconnect {
+    reason: String,
+}
+
+// Server Query
+
+struct CPacketServerQuery {
+}
+
+struct SPacketServerInfo {
+    motd: String,
+    num_players_limit: u32,
+    num_players_online: u32,
+    // online_players: Vec<(u64 uuid, String name)>
+    protocol_version: u32,
+    favicon: String,
+}
+
+struct CPacketPing {
+    client_time: u64,
+}
+struct SPacketPong {
+    client_time: u64,
+    server_time: u64,
+}
+
+
+// Login
+
+struct CPacketLogin {
+    uuid: u64,
+    access_token: u64,
+}
+struct SPacketLoginSuccess {
+    // uuid, username
+}
+
+
+// Play
+
+struct CPacketChatMessage {
+    message: String,
+}
+
+struct SPacketChat {
+    message: String,
+}

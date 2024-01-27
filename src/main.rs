@@ -4,6 +4,7 @@ use bevy::{prelude::*, window::WindowResolution};
 
 use ethertia::editor::EditorPlugin;
 use ethertia::game::GamePlugin;
+use ethertia::net::NetworkServerPlugin;
 
 
 fn main() {
@@ -23,5 +24,6 @@ fn main() {
         )
         .add_plugins(EditorPlugin)
         .add_plugins(GamePlugin)
+        .add_plugins(NetworkServerPlugin)
         .run();
 }
