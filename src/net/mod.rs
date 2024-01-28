@@ -1,19 +1,21 @@
 
-use std::{net::{UdpSocket, SocketAddr}, time::SystemTime};
+use std::net::{UdpSocket, SocketAddr};
 
 use bevy::prelude::*;
 use bevy_egui::{EguiContexts, egui};
 use bevy_renet::{
     RenetServerPlugin, 
     renet::{
-        transport::{ServerConfig, ServerAuthentication, NetcodeServerTransport, ClientAuthentication, NetcodeClientTransport}, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent
+        transport::{ServerConfig, ServerAuthentication, NetcodeServerTransport, ClientAuthentication, NetcodeClientTransport}, 
+        ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent
     }, 
     transport::{NetcodeServerPlugin, NetcodeClientPlugin}, RenetClientPlugin
 };
 use serde::{Deserialize, Serialize};
-
 use crate::util::{current_timestamp, current_timestamp_millis};
 
+mod packet;
+use packet::{CPacket, SPacket};
 
 const PROTOCOL_ID: u64 = 1;
 
@@ -275,120 +277,3 @@ impl RenetClientHelper for RenetClient {
     }
 }
 
-
-
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum CPacket {
-    
-    // Handshake & Server Query & Login
-
-    Handshake {
-        protocol_version: u64,
-    },
-    ServerQuery {
-
-    },
-    Ping {
-        client_time: u64,
-    },
-
-    Login {
-        uuid: u64,
-        access_token: u64,
-    },
-
-    // Play
-
-    ChatMessage {
-        message: String,
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum SPacket {
-
-    // Handshake & Server Query & Login
-
-    Disconnect {
-        reason: String,
-    },
-    ServerInfo {
-        motd: String,
-        num_players_limit: u32,
-        num_players_online: u32,
-        // online_players: Vec<(u64 uuid, String name)>
-        protocol_version: u64,
-        favicon: String,
-    },
-    Pong {
-        client_time: u64,
-        server_time: u64,
-    },
-    LoginSuccess {
-        // uuid, username
-    },
-
-    // Play
-
-    Chat {
-        message: String,
-    },
-}
-
-
-
-
-// // Handshake
-// struct CPacketHandshake {
-//     protocol_version: u32,
-// }
-
-// struct SPacketDisconnect {
-//     reason: String,
-// }
-
-// // Server Query
-
-// struct CPacketServerQuery {
-// }
-
-// struct SPacketServerInfo {
-//     motd: String,
-//     num_players_limit: u32,
-//     num_players_online: u32,
-//     // online_players: Vec<(u64 uuid, String name)>
-//     protocol_version: u32,
-//     favicon: String,
-// }
-
-// struct CPacketPing {
-//     client_time: u64,
-// }
-// struct SPacketPong {
-//     client_time: u64,
-//     server_time: u64,
-// }
-
-
-// // Login
-
-// struct CPacketLogin {
-//     uuid: u64,
-//     access_token: u64,
-// }
-// struct SPacketLoginSuccess {
-//     // uuid, username
-// }
-
-
-// // Play
-
-// struct CPacketChatMessage {
-//     message: String,
-// }
-
-// struct SPacketChat {
-//     message: String,
-// }

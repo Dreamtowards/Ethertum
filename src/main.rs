@@ -16,7 +16,7 @@ fn main() {
                 primary_window: Some(Window {
                     present_mode: bevy::window::PresentMode::AutoNoVsync,
                     resolution: WindowResolution::new(1920., 1080.),
-                    title: "Ethertia 0.1.5 2024.01e EnhancedVoxel Part 3. The Dig.".into(),
+                    title: "Ethertia 0.2.1 2024.01f Network Basic".into(),
                     ..default()
                 }),   
                 ..default()

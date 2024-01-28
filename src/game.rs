@@ -8,6 +8,7 @@ use bevy::{
 };
 use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
+use bevy_egui::EguiContext;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{character_controller::{
@@ -60,25 +61,13 @@ impl Plugin for GamePlugin {
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-
+        app.add_systems(Update, crate::ui::ui_main_menu);
 
     }
 }
 
-fn console_thread() {
-    std::thread::spawn(|| {
-        let stdin = std::io::stdin();
-        let mut buf = String::new();
-        loop {
-            if let Ok(n) = stdin.read_line(&mut buf) {
-                
-            }
-        }
-    });
-}
 
 
-// Simple environment
 fn startup(
     assets: Res<AssetServer>,
     mut commands: Commands,
@@ -164,16 +153,6 @@ fn startup(
     //         ..default()
     //     },
     //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-    //     RigidBody::Static,
-    // ));
-
-    // commands.spawn((
-    //     PbrBundle {
-    //         mesh: meshes.add(Mesh::from(shape::Box::new(5., 8., 5.))),
-    //         transform: Transform::from_xyz(0.5, -5.5, 0.5),
-    //         ..default()
-    //     },
-    //     AsyncCollider(ComputedCollider::TriMesh),
     //     RigidBody::Static,
     // ));
 
@@ -332,8 +311,8 @@ pub struct WorldInfo {
 
     tick_timer: Timer,
 
-    is_paused: bool,
-    paused_steps: i32,
+    pub is_paused: bool,
+    pub paused_steps: i32,
 }
 
 impl WorldInfo {
