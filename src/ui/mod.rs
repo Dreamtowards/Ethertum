@@ -58,14 +58,6 @@ pub fn ui_main_menu(
 
     });
 
-    egui::TopBottomPanel::bottom("bottom_panel").show(ctx.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
-            ui.small("127.0.0.1:4000 | 21ms (9+12) | ");
-            ui.small("10M/s\n8K/s");
-            ui.small("108M\n30K");
-        });
-    });
-
     egui::Window::new("Main Menu").show(ctx.ctx_mut(), |ui| {
 
         ui.label("Ethertia");
