@@ -54,6 +54,7 @@ impl Plugin for GamePlugin {
         app.add_plugins(VoxelPlugin);
 
         app.add_systems(OnEnter(AppState::InGame), startup);
+        app.add_systems(OnExit(AppState::InGame), cleanup);
         app.add_systems(Update, tick_world.run_if(in_state(AppState::InGame)));
 
         app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(in_state(AppState::InGame)));
@@ -61,12 +62,19 @@ impl Plugin for GamePlugin {
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-        app.add_systems(Update, handle_inputs);
-
 
         app.add_state::<AppState>();
 
-        app.add_systems(Update, crate::ui::ui_main_menu.run_if(in_state(AppState::MainMenu)));
+        use crate::ui::*;
+        app.add_systems(Update, handle_inputs);  // toggle: PauseGameControl, Fullscreen
+        app.add_systems(Update, ui_menu_panel);  // Debug Menubar
+        app.add_systems(Update, 
+            (
+                ui_pause_menu
+            ).run_if(in_state(AppState::InGame))
+        );
+
+        app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
 
     }
 }
@@ -85,7 +93,6 @@ pub enum AppState {
 
 
 fn startup(
-    assets: Res<AssetServer>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -106,6 +113,7 @@ fn startup(
             Collider::capsule(1., 0.4),
             CharacterController {
                 is_flying: true,
+                enable_input: true,
                 ..default()
             },
         ),
@@ -182,6 +190,17 @@ fn startup(
     // ));
 }
 
+fn cleanup(
+    mut commands: Commands,
+    cam_query: Query<Entity, With<CharacterControllerCamera>>,
+    player_query: Query<Entity, With<CharacterController>>,
+    sun_query: Query<Entity, With<Sun>>,
+) {
+    commands.entity(cam_query.single()).despawn_recursive();
+    commands.entity(player_query.single()).despawn_recursive();
+    commands.entity(sun_query.single()).despawn_recursive();
+}   
+
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
@@ -192,14 +211,12 @@ fn handle_inputs(
     let mut window = window_query.single_mut();
     
     if key.just_pressed(KeyCode::Escape) {
-        let to_playing = window.cursor.grab_mode == CursorGrabMode::None;
-
-        window.cursor.grab_mode = if to_playing {
-            CursorGrabMode::Locked
-        } else {
-            CursorGrabMode::None
-        };
+        let to_playing = !worldinfo.is_ingame;
+        
+        worldinfo.is_ingame = to_playing;
+        window.cursor.grab_mode = if to_playing { CursorGrabMode::Locked } else { CursorGrabMode::None };
         window.cursor.visible = !to_playing;
+
         for mut controller in &mut controller_query {
             controller.enable_input = to_playing;
         }
@@ -349,7 +366,7 @@ impl WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
-            is_ingame: false,
+            is_ingame: true,
         }
     }
 }

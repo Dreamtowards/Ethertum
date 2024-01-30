@@ -6,12 +6,11 @@ use bevy_egui::{EguiContexts, egui::{self, Widget, Ui}};
 use crate::game::{AppState, WorldInfo};
 
 
-pub fn ui_main_menu(
+pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: ResMut<WorldInfo>,
-    mut next_state: ResMut<NextState<AppState>>,
 ) {
-    egui::TopBottomPanel::top("top_panel2").show(ctx.ctx_mut(), |ui| {
+    egui::TopBottomPanel::top("menu_panel").show(ctx.ctx_mut(), |ui| {
 
         ui.horizontal(|ui| {
             egui::menu::bar(ui, |ui| {
@@ -58,8 +57,14 @@ pub fn ui_main_menu(
         });
 
     });
+}
 
-    egui::Window::new("Main Menu").show(ctx.ctx_mut(), |ui| {
+pub fn ui_main_menu(
+    mut ctx: EguiContexts,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+    egui::Window::new("Main Menu").title_bar(false).show(ctx.ctx_mut(), |ui| {
+        
 
         ui.vertical_centered(|ui| {
 
@@ -73,6 +78,34 @@ pub fn ui_main_menu(
             }
             if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
 
+            }
+        });
+
+        ui.set_max_size([600., 600.].into());
+        ui.cursor().set_top(580.);
+        ui.label("Copyright Ethertia. Do not distribute!");
+
+    });
+}
+
+pub fn ui_pause_menu(
+    mut ctx: EguiContexts,
+    mut next_state: ResMut<NextState<AppState>>,
+    mut worldinfo: ResMut<WorldInfo>,
+) {
+    if worldinfo.is_ingame {
+        return;
+    }
+    egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
+
+        ui.vertical_centered(|ui| {
+
+
+            if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
+                worldinfo.is_ingame = true;
+            }
+            if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
+                next_state.set(AppState::MainMenu);
             }
         });
 
