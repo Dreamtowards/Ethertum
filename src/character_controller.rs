@@ -137,115 +137,110 @@ fn input_move(
     let dt_sec = time.delta_seconds();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
-        if !ctl.enable_input {
-            continue;
-        }
-
-        // View Rotation
-        let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
-
-        ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
-        ctl.yaw -= mouse_delta.x;
-        if ctl.yaw.abs() > PI {
-            ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
-        }
-
-        // Disp Move
+        
         let mut movement = Vec3::ZERO;
-        if key_input.pressed(KeyCode::A) {
-            movement.x -= 1.;
-        }
-        if key_input.pressed(KeyCode::D) {
-            movement.x += 1.;
-        }
-        if key_input.pressed(KeyCode::W) {
-            movement.z -= 1.;
-        }
-        if key_input.pressed(KeyCode::S) {
-            movement.z += 1.;
-        }
 
-        // Input Sprint
-        if key_input.pressed(KeyCode::W) {
-            if key_input.pressed(KeyCode::ControlLeft) {
-                ctl.is_sprinting = true;
+        if ctl.enable_input {
+            // View Rotation
+            let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
+
+            ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
+            ctl.yaw -= mouse_delta.x;
+            if ctl.yaw.abs() > PI {
+                ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
             }
-        } else {
-            ctl.is_sprinting = false;
-        }
 
-        ctl.is_sneaking = key_input.pressed(KeyCode::ShiftLeft);
-
-        if key_input.just_pressed(KeyCode::L) {
-            ctl.is_flying = !ctl.is_flying;
-        }
-
-        // Flying
-        gravity_scale.0 = if ctl.is_flying { 0. } else { 2. };
-
-        if ctl.is_flying {
-            if key_input.pressed(KeyCode::ShiftLeft) {
-                movement.y -= 1.;
+            // Disp Move
+            if key_input.pressed(KeyCode::A) {
+                movement.x -= 1.;
             }
-            if key_input.pressed(KeyCode::Space) {
-                movement.y += 1.;
+            if key_input.pressed(KeyCode::D) {
+                movement.x += 1.;
             }
-        }
+            if key_input.pressed(KeyCode::W) {
+                movement.z -= 1.;
+            }
+            if key_input.pressed(KeyCode::S) {
+                movement.z += 1.;
+            }
 
-        // Apply Yaw
-        let movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
-        trans.rotation = Quat::from_rotation_y(ctl.yaw);
+            // Input Sprint
+            if key_input.pressed(KeyCode::W) {
+                if key_input.pressed(KeyCode::ControlLeft) {
+                    ctl.is_sprinting = true;
+                }
+            } else {
+                ctl.is_sprinting = false;
+            }
 
-        // Is Grouned
-        // The character is grounded if the shape caster has a hit with a normal
-        // that isn't too steep.
-        ctl.is_grounded = hits.iter().any(|hit| {
-            // if ctl.max_slope_angle == 0. {
-            //     true
-            // } else {
-            rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
-            // }
-        });
+            ctl.is_sneaking = key_input.pressed(KeyCode::ShiftLeft);
 
-        let time_now = time.elapsed_seconds();
-
-        // Jump
-        let jump = key_input.pressed(KeyCode::Space);
-
-        // Input: Fly: DoubleJump
-        if key_input.just_pressed(KeyCode::Space) {
-            static mut LAST_FLY_JUMP: f32 = 0.;
-            if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
+            if key_input.just_pressed(KeyCode::L) {
                 ctl.is_flying = !ctl.is_flying;
             }
-            unsafe {
-                LAST_FLY_JUMP = time_now;
+
+            // Flying
+            gravity_scale.0 = if ctl.is_flying { 0. } else { 2. };
+
+            if ctl.is_flying {
+                if key_input.pressed(KeyCode::ShiftLeft) {
+                    movement.y -= 1.;
+                }
+                if key_input.pressed(KeyCode::Space) {
+                    movement.y += 1.;
+                }
             }
-        }
-        if ctl.is_grounded && ctl.is_flying {
-            ctl.is_flying = false;
+
+            // Apply Yaw
+            movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
+            trans.rotation = Quat::from_rotation_y(ctl.yaw);
+
+            // Is Grouned
+            // The character is grounded if the shape caster has a hit with a normal
+            // that isn't too steep.
+            ctl.is_grounded = hits.iter().any(|hit| {
+                // if ctl.max_slope_angle == 0. {
+                //     true
+                // } else {
+                rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
+                // }
+            });
+
+            // Jump
+            let jump = key_input.pressed(KeyCode::Space);
+
+            // Input: Fly: DoubleJump
+            let time_now = time.elapsed_seconds();
+            if key_input.just_pressed(KeyCode::Space) {
+                static mut LAST_FLY_JUMP: f32 = 0.;
+                if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
+                    ctl.is_flying = !ctl.is_flying;
+                }
+                unsafe { LAST_FLY_JUMP = time_now; }
+            }
+            if ctl.is_grounded && ctl.is_flying {
+                ctl.is_flying = false;
+            }
+
+            // Sprint DoubleW
+            if key_input.just_pressed(KeyCode::W) {
+                static mut LAST_W: f32 = 0.;
+                if time_now - unsafe { LAST_W } < 0.3 {
+                    ctl.is_sprinting = true;
+                }
+                unsafe { LAST_W = time_now; }
+            }
+
+            static mut LAST_JUMP: f32 = 0.;
+            if jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe { LAST_JUMP } > 0.3 {
+                linvel.0.y = ctl.jump_impulse;
+
+                // info!("JMP {:?}", linvel.0);
+                unsafe { LAST_JUMP = time_now; }
+            }
         }
 
-        // Sprint DoubleW
-        if key_input.just_pressed(KeyCode::W) {
-            static mut LAST_W: f32 = 0.;
-            if time_now - unsafe { LAST_W } < 0.3 {
-                ctl.is_sprinting = true;
-            }
-            unsafe {
-                LAST_W = time_now;
-            }
-        }
-
-        static mut LAST_JUMP: f32 = 0.;
-        if jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe { LAST_JUMP } > 0.3 {
-            linvel.0.y = ctl.jump_impulse;
-
-            // info!("JMP {:?}", linvel.0);
-            unsafe {
-                LAST_JUMP = time_now;
-            }
-        }
+        
 
         // Movement
         let mut acceleration = ctl.acceleration;

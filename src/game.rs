@@ -61,6 +61,7 @@ impl Plugin for GamePlugin {
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
+        app.add_systems(Update, handle_inputs);
 
 
         app.add_state::<AppState>();
@@ -76,11 +77,8 @@ impl Plugin for GamePlugin {
 pub enum AppState {
     #[default]
     MainMenu,
-    InGame,
+    InGame,  // InGameWorld
 }
-
-
-
 
 
 
@@ -91,11 +89,7 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    // mut editor_events: EventWriter<bevy_editor_pls::editor::EditorEvent>,
 ) {
-    // // Grab mouse at startup.
-    // editor_events.send(bevy_editor_pls::editor::EditorEvent::Toggle { now_active: false });
-
     // Logical Player
     commands.spawn((
         PbrBundle {
@@ -187,6 +181,42 @@ fn startup(
     //     },
     // ));
 }
+
+fn handle_inputs(
+    key: Res<Input<KeyCode>>,
+    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
+    mut worldinfo: ResMut<WorldInfo>,
+) {
+
+    let mut window = window_query.single_mut();
+    
+    if key.just_pressed(KeyCode::Escape) {
+        let to_playing = window.cursor.grab_mode == CursorGrabMode::None;
+
+        window.cursor.grab_mode = if to_playing {
+            CursorGrabMode::Locked
+        } else {
+            CursorGrabMode::None
+        };
+        window.cursor.visible = !to_playing;
+        for mut controller in &mut controller_query {
+            controller.enable_input = to_playing;
+        }
+    }
+
+    // Toggle Fullscreen
+    if key.just_pressed(KeyCode::F11)
+        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
+    {
+        window.mode = if window.mode != WindowMode::Fullscreen {
+            WindowMode::Fullscreen
+        } else {
+            WindowMode::Windowed
+        };
+    }
+}
+
 
 fn tick_world(
     mut atmosphere: AtmosphereMut<Nishita>,
@@ -295,6 +325,9 @@ pub struct WorldInfo {
 
     pub is_paused: bool,
     pub paused_steps: i32,
+
+    // Is Manipulating/Controlling game e.g. WSAD
+    pub is_ingame: bool,
 }
 
 impl WorldInfo {
@@ -316,6 +349,7 @@ impl WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
+            is_ingame: false,
         }
     }
 }
