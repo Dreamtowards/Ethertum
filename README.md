@@ -1,19 +1,21 @@
 
 # Ethertia <sub><sup>· 以太效應</sup></sub>
 
-[![CI](https://github.com/Dreamtowards/Ethertum/workflows/Build%20for%20Windows/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_windows_release.yml)
-[![CI](https://github.com/Dreamtowards/Ethertum/workflows/Build%20for%20Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
+[![CI](https://github.com/Dreamtowards/Ethertum/workflows/Windows/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_windows_release.yml)
+[![CI](https://github.com/Dreamtowards/Ethertum/workflows/Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
 [![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
 ![repo size](https://img.shields.io/github/repo-size/Dreamtowards/Ethertum)
-[![code contributor count](https://badgen.net/github/contributors/Dreamtowards/Ethertum?label=code%20contributors)](https://github.com/Dreamtowards/Ethertum/graphs/contributors)
-[![dependency status](https://deps.rs/repo/github/Dreamtowards/Ethertum/status.svg)](https://deps.rs/repo/github/Dreamtowards/Ethertum)
-![Lines of Code](https://tokei.rs/b1/github/Dreamtowards/Ethertum?category=code)
+
 
 [![Official Site](https://img.shields.io/badge/website-ethertia.com-blue.svg)](//ethertia.com)
 [![Docs](https://img.shields.io/badge/documentations-blue.svg)](//docs.ethertia.com) ' 
 [![bilibili](https://img.shields.io/badge/bilibili-gray.svg)](https://space.bilibili.com/19483166)
 [![qq](https://img.shields.io/badge/QQ-gray.svg)](https://jq.qq.com/?_wv=1027&k=tgM29oDM)
 
+
+<!-- ![Lines of Code](https://tokei.rs/b1/github/Dreamtowards/Ethertum?category=code) -->
+<!-- [![code contributor count](https://badgen.net/github/contributors/Dreamtowards/Ethertum?label=code%20contributors)](https://github.com/Dreamtowards/Ethertum/graphs/contributors) -->
+<!-- [![dependency status](https://deps.rs/repo/github/Dreamtowards/Ethertum/status.svg)](https://deps.rs/repo/github/Dreamtowards/Ethertum) -->
 <!-- [![financial contributor count](https://badgen.net/opencollective/backers/ethertia?label=financial%20contributors)](https://opencollective.com/ethertia) -->
 <!-- ![License](https://img.shields.io/badge/license-Access-blue.svg) -->
 <!-- ![GitHub all releases](https://img.shields.io/github/downloads/Dreamtowards/Ethertum/total) -->
@@ -25,7 +27,8 @@
 <!-- ![MIT](https://img.shields.io/badge/license-MIT-blue.svg) -->
 <!-- ![Apache](https://img.shields.io/badge/license-Apache-blue.svg) -->
 
-A Sandbox Survival Game, with Rust, Bevy. inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, GTA<sup>V,SA</sup>, VRChat, RisingWorld, Palworld,. 
+A Sandbox Survival Game, with Rust, Bevy.   
+inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, GTA<sup>V,SA</sup>, VRChat, RisingWorld, Palworld,. 
 
 <!-- [Documentations](https://docs.ethertia.com) - 
 [Official Site](https://ethertia.com) - 
@@ -41,7 +44,7 @@ A Sandbox Survival Game, with Rust, Bevy. inspired by e.g. Minecraft<sup>Beta 1.
 
 ## Development
 
-Any advice / code-review / PR is welcome.
+Any advice / code-review / PR is quite welcome.
 
 ### Showcase
 
