@@ -1,4 +1,6 @@
 
+use std::default;
+
 use bevy::prelude::*;
 
 use bevy_egui::{EguiContexts, egui::{self, Widget, Ui}};
@@ -65,10 +67,39 @@ pub fn ui_main_menu(
 ) {
     egui::Window::new("Main Menu").title_bar(false).show(ctx.ctx_mut(), |ui| {
         
+        
+        ui.horizontal_centered(|ui| {
 
+            ui.vertical_centered(|ui| {
+
+                // ui.add_space(20.);
+                ui.heading("ethertia");
+                ui.add_space(20.);
+
+                if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
+                    next_state.set(AppState::InGame);
+                }
+                if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
+                    next_state.set(AppState::WtfSettings);
+                }
+                if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
+
+                }
+                
+                ui.label("Copyright M0jang AB. Do not distribute!");
+            });
+        });
+
+        ui.allocate_space(ui.available_size());
+    });
+
+    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+        
         ui.vertical_centered(|ui| {
 
+            // ui.add_space(20.);
             ui.heading("ethertia");
+            ui.add_space(20.);
 
             if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
                 next_state.set(AppState::InGame);
@@ -79,11 +110,67 @@ pub fn ui_main_menu(
             if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
 
             }
+            
+            ui.label("Copyright M0jang AB. Do not distribute!");
         });
 
-        ui.set_max_size([600., 600.].into());
-        ui.cursor().set_top(580.);
-        ui.label("Copyright Ethertia. Do not distribute!");
+        // ui.set_max_size([600., 600.].into());
+        // ui.cursor().set_top(580.);
+
+    });
+}
+
+#[derive(Default, PartialEq)]
+pub enum SettingsPanel {
+    #[default]
+    Profile,
+    Graphics,
+    Audio,
+    Controls,
+    Language,
+    Mods,
+    Assets,
+    Credits,
+}
+
+pub fn ui_settings(
+    mut ctx: EguiContexts,
+    mut settings_panel: Local<SettingsPanel>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+
+    
+    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+        
+        ui.horizontal(|ui| {
+            ui.group(|ui| {
+                if ui.small_button("<").clicked() {
+                    next_state.set(AppState::MainMenu);  // or set to InGame if it's openned from InGame state
+                }
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
+                ui.separator();
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Audio, "Music & Sounds");
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
+                ui.separator();
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+                ui.separator();
+                ui.radio_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
+            });
+            ui.group(|ui| {
+                match *settings_panel {
+                    SettingsPanel::Profile => {
+                        ui.label("Profile");
+                    },
+                    SettingsPanel::Graphics => {
+                        ui.label("Graphics");
+                    },
+                    _ => ()
+                }
+            });
+        });
 
     });
 }
@@ -110,8 +197,6 @@ pub fn ui_pause_menu(
                 next_state_game.set(AppState::MainMenu);
             }
         });
-
-        ui.label("Copyright Ethertia. Do not distribute!");
 
     });
 }

@@ -70,5 +70,10 @@ Any advice / code-review / PR is quite welcome.
 ## Credits
 
 
+#### Contributors
+
+<!-- - [Thaumstrial]() - Director
+- [Cuppar]()  -->
+
 #### Resources
 - [OpenGameArt.org](OpenGameArt.org): 3D Models

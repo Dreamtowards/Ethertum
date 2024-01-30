@@ -75,6 +75,8 @@ impl Plugin for GamePlugin {
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
         
+        app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
+        
         app.add_state::<GameInput>();
         app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
@@ -82,12 +84,13 @@ impl Plugin for GamePlugin {
 }
 
 
-
+// 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
     #[default]
     MainMenu,
     InGame,  // InGameWorld
+    WtfSettings,  // 这个是乱加的，因为Settings应该可以和InGame共存，也就是InGame的同时有Settings
 }
 
 
@@ -98,6 +101,13 @@ pub enum GameInput {
     // Is Manipulating/Controlling game e.g. WSAD
     Controlling,
 }
+
+// #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+// pub enum WtfSettingsUIs {
+//     #[default]
+//     Settings,  // for MainMenu, InGame
+//     Inventory,  // only for InGame
+// }
 
 fn ingame_toggle(
     next_state: Res<State<GameInput>>,
