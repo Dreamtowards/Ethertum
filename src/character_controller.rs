@@ -14,7 +14,7 @@ impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CharacterController>();
 
-        app.add_systems(Update, input_move);
+        app.add_systems(Update, input_move.run_if(in_state(crate::game::AppState::InGame)));
 
         app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
     }

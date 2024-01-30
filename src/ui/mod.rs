@@ -1,14 +1,15 @@
 
 use bevy::prelude::*;
 
-use bevy_egui::{EguiContexts, egui::{self, Widget}};
+use bevy_egui::{EguiContexts, egui::{self, Widget, Ui}};
 
-use crate::game::WorldInfo;
+use crate::game::{AppState, WorldInfo};
 
 
 pub fn ui_main_menu(
     mut ctx: EguiContexts,
     mut worldinfo: ResMut<WorldInfo>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     egui::TopBottomPanel::top("top_panel2").show(ctx.ctx_mut(), |ui| {
 
@@ -60,16 +61,22 @@ pub fn ui_main_menu(
 
     egui::Window::new("Main Menu").show(ctx.ctx_mut(), |ui| {
 
-        ui.label("Ethertia");
+        ui.vertical_centered(|ui| {
 
-        if ui.button("Play").clicked() {
-            
-        }
-        if ui.button("Settings").clicked() {
+            ui.heading("ethertia");
 
-        }
-        if ui.button("Terminate").clicked() {
+            if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
+                next_state.set(AppState::InGame);
+            }
+            if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
 
-        }
+            }
+            if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
+
+            }
+        });
+
+        ui.label("Copyright Ethertia. Do not distribute!");
+
     });
 }

@@ -18,6 +18,9 @@ use crate::{character_controller::{
 
 use crate::voxel::VoxelPlugin;
 
+
+
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
@@ -50,21 +53,36 @@ impl Plugin for GamePlugin {
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
 
-        app.add_systems(Startup, startup);
-        app.add_systems(Update, tick_world);
+        app.add_systems(OnEnter(AppState::InGame), startup);
+        app.add_systems(Update, tick_world.run_if(in_state(AppState::InGame)));
 
-        app.add_systems(Update, handle_inputs);
-
-        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync));
-
+        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(in_state(AppState::InGame)));
 
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-        app.add_systems(Update, crate::ui::ui_main_menu);
+
+
+        app.add_state::<AppState>();
+
+        app.add_systems(Update, crate::ui::ui_main_menu.run_if(in_state(AppState::MainMenu)));
 
     }
 }
+
+
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum AppState {
+    #[default]
+    MainMenu,
+    InGame,
+}
+
+
+
+
+
 
 
 
@@ -73,10 +91,10 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut editor_events: EventWriter<bevy_editor_pls::editor::EditorEvent>,
+    // mut editor_events: EventWriter<bevy_editor_pls::editor::EditorEvent>,
 ) {
-    // Grab mouse at startup.
-    editor_events.send(bevy_editor_pls::editor::EditorEvent::Toggle { now_active: false });
+    // // Grab mouse at startup.
+    // editor_events.send(bevy_editor_pls::editor::EditorEvent::Toggle { now_active: false });
 
     // Logical Player
     commands.spawn((
@@ -254,42 +272,6 @@ fn gizmo_sys(
 }
 
 
-fn handle_inputs(
-    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
-    key: Res<Input<KeyCode>>,
-    // mouse_input: Res<Input<MouseButton>>,
-) {
-    let mut window = window_query.single_mut();
-
-    // Toggle MouseGrab
-    for event in editor_events.read() {
-        if let EditorEvent::Toggle { now_active } = *event {
-            let playing = !now_active;
-            window.cursor.grab_mode = if playing {
-                CursorGrabMode::Locked
-            } else {
-                CursorGrabMode::None
-            };
-            window.cursor.visible = !playing;
-            for mut controller in &mut controller_query {
-                controller.enable_input = playing;
-            }
-        }
-    }
-
-    // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11)
-        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
-    {
-        window.mode = if window.mode != WindowMode::Fullscreen {
-            WindowMode::Fullscreen
-        } else {
-            WindowMode::Windowed
-        };
-    }
-}
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]

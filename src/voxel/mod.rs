@@ -1,20 +1,24 @@
 mod chunk;
 mod chunk_system;
 mod material;
-
 mod meshgen;
 mod worldgen;
 
-use crate::{character_controller::{CharacterControllerCamera, CharacterController}, util::iter};
 use chunk::*;
-use futures_lite::future;
+pub use chunk_system::*;
 use meshgen::*;
 use worldgen::*;
+use self::material::mtl;
+use crate::character_controller::{CharacterControllerCamera, CharacterController};
+use crate::game::AppState;
+use crate::util::iter;
 
-pub use chunk_system::*;
-
+use futures_lite::future;
+use once_cell::sync::Lazy;
+use std::{cell::RefCell, time::Instant};
+use std::sync::{Arc, RwLock};
+use thread_local::ThreadLocal;
 use bevy_xpbd_3d::{components::{AsyncCollider, Collider, ComputedCollider, RigidBody}, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
-
 use bevy::{
     asset::ReflectAsset,
     prelude::*,
@@ -27,12 +31,7 @@ use bevy::{
     math::{ivec2, ivec3},
 };
 
-use once_cell::sync::Lazy;
-use std::{cell::RefCell, time::Instant};
-use std::sync::{Arc, RwLock};
-use thread_local::ThreadLocal;
 
-use self::material::mtl;
 
 pub struct VoxelPlugin;
 
@@ -44,21 +43,21 @@ impl Plugin for VoxelPlugin {
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
         app.register_asset_reflect::<TerrainMaterial>();
 
-        app.add_systems(Startup, startup);
-
         app.insert_resource(HitResult::default());
-        app.add_systems(Update, raycast);
+
+        app.add_systems(OnEnter(AppState::InGame), startup);
 
         app.add_systems(
             Update,
             (
+                raycast,
                 chunks_remesh,
                 chunks_detect_load_and_unload,
                 gizmos,
                 // chunks_apply_loaded
                 // chunks_apply_remeshed
             )
-                .chain(),
+                .chain().run_if(in_state(AppState::InGame)),
         );
     }
 }

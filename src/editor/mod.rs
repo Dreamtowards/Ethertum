@@ -1,47 +1,51 @@
 use bevy::{
     diagnostic::{
         DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
-    },
-    prelude::*,
-    render::{renderer::RenderAdapterInfo, view::VisibleEntities},
+    }, prelude::*, render::{renderer::RenderAdapterInfo, view::VisibleEntities}, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
-
+use bevy_editor_pls::editor::EditorEvent;
 use bevy_egui::{
     egui::{style::HandleShape, FontData, FontDefinitions, FontFamily, Rounding},
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
-use crate::voxel::HitResult;
+use crate::{character_controller::CharacterController, voxel::HitResult};
+use crate::game::AppState;
+
+
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        //app.add_plugins(EguiPlugin);
-        //app.add_systems(Update, ui_example_system);
 
-        // Editor
-        use bevy_editor_pls::prelude::*;
-        app.add_plugins(
-            EditorPlugin::default(), // .in_new_window(Window {
-                                     //     title: "Editor".into(),
-                                     //     ..default()
-                                     // })
-        );
+        app.add_plugins(EguiPlugin);
 
-        app.add_plugins((
-            FrameTimeDiagnosticsPlugin,
-            EntityCountDiagnosticsPlugin,
-            //SystemInformationDiagnosticsPlugin
-        ));
+        // // Editor
+        // use bevy_editor_pls::prelude::*;
+        // app.add_plugins(
+        //     EditorPlugin::default(), // .in_new_window(Window {
+        //                              //     title: "Editor".into(),
+        //                              //     ..default()
+        //                              // })
+        // );
 
-        // Setup Controls
-        app.insert_resource(res_editor_controls());
-        app.add_systems(Startup, setup_editor_camera_controls);
+        // // Setup Controls
+        // app.insert_resource(res_editor_controls());
+        // app.add_systems(Startup, setup_editor_camera_controls);
+        // app.add_systems(Update, handle_inputs);
+
+        // app.add_plugins((
+        //     FrameTimeDiagnosticsPlugin,
+        //     EntityCountDiagnosticsPlugin,
+        //     //SystemInformationDiagnosticsPlugin
+        // ));
+
+
 
         // DebugText
-        app.add_systems(Startup, setup_debug_text);
-        app.add_systems(Update, update_debug_text);
+        app.add_systems(OnEnter(AppState::InGame), setup_debug_text);
+        app.add_systems(Update, update_debug_text.run_if(in_state(AppState::InGame)));
 
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
@@ -50,6 +54,42 @@ impl Plugin for EditorPlugin {
     }
 }
 
+fn handle_inputs(
+    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
+    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
+    key: Res<Input<KeyCode>>,
+    // mouse_input: Res<Input<MouseButton>>,
+) {
+    let mut window = window_query.single_mut();
+
+    // Toggle MouseGrab
+    for event in editor_events.read() {
+        if let EditorEvent::Toggle { now_active } = *event {
+            let playing = !now_active;
+            window.cursor.grab_mode = if playing {
+                CursorGrabMode::Locked
+            } else {
+                CursorGrabMode::None
+            };
+            window.cursor.visible = !playing;
+            for mut controller in &mut controller_query {
+                controller.enable_input = playing;
+            }
+        }
+    }
+
+    // Toggle Fullscreen
+    if key.just_pressed(KeyCode::F11)
+        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
+    {
+        window.mode = if window.mode != WindowMode::Fullscreen {
+            WindowMode::Fullscreen
+        } else {
+            WindowMode::Windowed
+        };
+    }
+}
 fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
     use bevy_editor_pls::controls::*;
     let mut editor_controls = EditorControls::default_bindings();
@@ -251,12 +291,15 @@ fn update_debug_text(
     let mut mem_usage_phys = 0.;
     let mut mem_usage_virtual = 0.;
 
-    if let Some(usage) = memory_stats::memory_stats() {
-        // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
-        // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
-
-        mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
-        mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
+    #[cfg(not(feature = "web"))]
+    {
+        if let Some(usage) = memory_stats::memory_stats() {
+            // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
+            // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
+    
+            mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
+            mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
+        }
     }
 
     let gpu_name = &render_adapter_info.0.name;
