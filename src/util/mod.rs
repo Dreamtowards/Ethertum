@@ -1,3 +1,6 @@
+#[macro_use]
+mod macros;
+
 // pub mod registry;
 
 use std::time::{SystemTime, Duration};

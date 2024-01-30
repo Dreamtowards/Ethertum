@@ -72,12 +72,15 @@ impl ChunkSystem {
     pub fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
         assert!(Chunk::is_chunkpos(chunkpos));
 
+        /*
         if let Some(chunk) = self.chunks.get(&chunkpos) {
             //.read().unwrap().get(&chunkpos) {
             Some(chunk)
         } else {
             None
         }
+        */
+        self.chunks.get(&chunkpos)
     }
 
     pub fn has_chunk(&self, chunkpos: IVec3) -> bool {
@@ -112,23 +115,23 @@ impl ChunkSystem {
                 // todo: delay remesh or only remesh full-neighbor complete chunks
 
                 // set neighbor_chunks cache
-                chunk.neighbor_chunks[neib_idx] = if let Some(neib_chunkptr) =
-                    self.get_chunk(neib_chunkpos)
-                {
-                    {
-                        let mut neib_chunk = neib_chunkptr.write().unwrap();
-                        
-                        // update neighbor's `neighbor_chunk`
-                        neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
+                chunk.neighbor_chunks[neib_idx] = {
+                    if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
+                        {
+                            let mut neib_chunk = neib_chunkptr.write().unwrap();
+                            
+                            // update neighbor's `neighbor_chunk`
+                            neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
-                        if neib_chunk.is_neighbors_complete() {
-                            load.push(neib_chunk.chunkpos);
+                            if neib_chunk.is_neighbors_complete() {
+                                load.push(neib_chunk.chunkpos);
+                            }
                         }
-                    }
 
-                    Some(Arc::downgrade(neib_chunkptr))
-                } else {
-                    None
+                        Some(Arc::downgrade(neib_chunkptr))
+                    } else {
+                        None
+                    }
                 }
             }
 
