@@ -84,6 +84,7 @@ impl Chunk {
         if Chunk::is_localpos(relpos) {
             Some(*self.get_cell(relpos))
         } else {
+            /*
             if let Some(neib_idx) = Chunk::neighbor_idx(relpos) {
                 if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
                     if let Some(neib_chunkptr) = neib_weak.upgrade() {
@@ -93,6 +94,28 @@ impl Chunk {
                         return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
                     }
                 }
+            }
+            None
+            */
+
+            /*
+            let neib_idx = Chunk::neighbor_idx(relpos)?;
+            self.neighbor_chunks[neib_idx].as_ref()
+                .and_then(|neib_weak| neib_weak.upgrade())
+                .and_then(|neib_chunkptr| neib_chunkptr.read().unwrap())
+                .and_then(|neib_chunk| {
+                    // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
+                    Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)))
+                })
+            */
+
+            let neib_idx = Chunk::neighbor_idx(relpos)?;
+            if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
+                let neib_chunkptr = neib_weak.upgrade()?;
+                let neib_chunk = neib_chunkptr.read().unwrap();
+                // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
+
+                return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)))
             }
             None
         }
@@ -112,12 +135,15 @@ impl Chunk {
     }
 
     pub fn is_neighbors_complete(&self) -> bool {
+        /*
         for e in self.neighbor_chunks.iter() {
             if e.is_none() {
                 return false;
             }
         }
         true
+        */
+        !self.neighbor_chunks.iter().any(|e| e.is_none())
     }
 
     // pub fn neighbor_chunk(&self, i: i32) -> Option<ChunkPtr> {

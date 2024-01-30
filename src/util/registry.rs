@@ -18,14 +18,18 @@ impl<T> Registry<T> {
     }
 
     pub fn at(&self, num_id: RegId) -> Option<&(String, T)> {
+        /*
         if let Some(e) = self.vec.get(num_id as usize) {
             Some(e)
         } else {
             None
         }
+        */
+        self.vec.get(num_id as usize)
     }
 
     pub fn get(&self, str_id: &String) -> Option<(RegId, &T)> {
+        /*
         if let Some(num_id) = self.map.get(str_id) {
             if let Some(e) = self.at(*num_id) {
                 Some((*num_id, &e.1))
@@ -35,6 +39,9 @@ impl<T> Registry<T> {
         } else {
             None
         }
+        */
+        let num_id = self.map.get(str_id)?;
+        Some((*num_id, &self.at(*num_id)?.1))
     }
 
     pub fn sort_id(&mut self) {
