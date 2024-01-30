@@ -10,7 +10,7 @@ use meshgen::*;
 use worldgen::*;
 use self::material::mtl;
 use crate::character_controller::{CharacterControllerCamera, CharacterController};
-use crate::game::{AppState, WorldInfo};
+use crate::game::{AppState, GameInput, WorldInfo};
 use crate::util::iter;
 
 use futures_lite::future;
@@ -372,7 +372,7 @@ fn raycast(
 
     mut chunk_sys: ResMut<ChunkSystem>,
 
-    mut worldinfo: ResMut<WorldInfo>,
+    state_ingame: Res<State<GameInput>>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -396,7 +396,7 @@ fn raycast(
     }
 
 
-    if !worldinfo.is_ingame {
+    if *state_ingame == GameInput::Paused {
         return;
     }
     let do_break = mouse_btn.just_pressed(MouseButton::Left);

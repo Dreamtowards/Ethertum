@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use bevy_egui::{EguiContexts, egui::{self, Widget, Ui}};
 
-use crate::game::{AppState, WorldInfo};
+use crate::game::{AppState, GameInput, WorldInfo};
 
 
 pub fn ui_menu_panel(
@@ -90,10 +90,12 @@ pub fn ui_main_menu(
 
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
-    mut next_state: ResMut<NextState<AppState>>,
-    mut worldinfo: ResMut<WorldInfo>,
+    mut next_state_game: ResMut<NextState<AppState>>,
+
+    state_ingame: ResMut<State<GameInput>>,
+    mut next_state_ingame: ResMut<NextState<GameInput>>,
 ) {
-    if worldinfo.is_ingame {
+    if *state_ingame == GameInput::Controlling {
         return;
     }
     egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
@@ -102,10 +104,10 @@ pub fn ui_pause_menu(
 
 
             if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
-                worldinfo.is_ingame = true;
+                next_state_ingame.set(GameInput::Controlling);
             }
             if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
-                next_state.set(AppState::MainMenu);
+                next_state_game.set(AppState::MainMenu);
             }
         });
 

@@ -62,7 +62,6 @@ impl Plugin for GamePlugin {
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-
         app.add_state::<AppState>();
 
         use crate::ui::*;
@@ -75,7 +74,10 @@ impl Plugin for GamePlugin {
         );
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
-
+        
+        app.add_state::<GameInput>();
+        app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
+        app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
     }
 }
 
@@ -89,6 +91,30 @@ pub enum AppState {
 }
 
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GameInput {
+    #[default]
+    Paused,
+    // Is Manipulating/Controlling game e.g. WSAD
+    Controlling,
+}
+
+fn ingame_toggle(
+    next_state: Res<State<GameInput>>,
+    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
+) {
+    let mut window = window_query.single_mut();
+    
+    let to_play = *next_state == GameInput::Controlling;
+    
+    window.cursor.grab_mode = if to_play { CursorGrabMode::Locked } else { CursorGrabMode::None };
+    window.cursor.visible = !to_play;
+
+    for mut controller in &mut controller_query {
+        controller.enable_input = to_play;
+    }
+}
 
 
 
@@ -204,22 +230,15 @@ fn cleanup(
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
-    mut worldinfo: ResMut<WorldInfo>,
+    
+    mut state: ResMut<State<GameInput>>,
+    mut next_state: ResMut<NextState<GameInput>>,
 ) {
 
     let mut window = window_query.single_mut();
     
     if key.just_pressed(KeyCode::Escape) {
-        let to_playing = !worldinfo.is_ingame;
-        
-        worldinfo.is_ingame = to_playing;
-        window.cursor.grab_mode = if to_playing { CursorGrabMode::Locked } else { CursorGrabMode::None };
-        window.cursor.visible = !to_playing;
-
-        for mut controller in &mut controller_query {
-            controller.enable_input = to_playing;
-        }
+        next_state.set(if *state == GameInput::Paused {GameInput::Controlling} else {GameInput::Paused});
     }
 
     // Toggle Fullscreen
@@ -342,9 +361,6 @@ pub struct WorldInfo {
 
     pub is_paused: bool,
     pub paused_steps: i32,
-
-    // Is Manipulating/Controlling game e.g. WSAD
-    pub is_ingame: bool,
 }
 
 impl WorldInfo {
@@ -366,7 +382,6 @@ impl WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
-            is_ingame: true,
         }
     }
 }
