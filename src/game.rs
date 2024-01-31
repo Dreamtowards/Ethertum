@@ -128,7 +128,10 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut next_state: ResMut<NextState<GameInput>>,
 ) {
+    next_state.set(GameInput::Controlling);
+
     // Logical Player
     commands.spawn((
         PbrBundle {
@@ -367,6 +370,8 @@ pub struct WorldInfo {
 
     pub is_paused: bool,
     pub paused_steps: i32,
+
+    pub dbg_text: bool,
 }
 
 impl WorldInfo {
@@ -388,6 +393,8 @@ impl WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
+
+            dbg_text: true,
         }
     }
 }

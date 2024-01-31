@@ -4,7 +4,7 @@ use std::{default, sync::Arc};
 use bevy::{app::AppExit, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
 use bevy_egui::{
     egui::{
-        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, Layout, Rangef, Rounding, Stroke, Ui, Widget 
+        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect, Rounding, Stroke, Ui, Widget 
     }, EguiContexts, EguiPlugin, EguiSettings
 };
 
@@ -26,12 +26,14 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         app.add_systems(Update, ui_menu_panel);  // Debug MenuBar. before CentralPanel
-        app.add_systems(Update, ui_pause_menu.run_if(in_state(AppState::InGame)));
+        app.add_systems(Update, ui_pause_menu.run_if(in_state(AppState::InGame)).before(ui_menu_panel));
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
         app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
 
         app.add_systems(Update, update_debug_text.run_if(in_state(AppState::InGame)));
+        
+        app.add_systems(Update, hud_hotbar.run_if(in_state(AppState::InGame)));
     }
 }
 
@@ -67,6 +69,10 @@ fn setup_egui_style(
         visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
         visuals.slider_trailing_fill = true;
 
+        visuals.widgets.hovered.bg_stroke = Stroke::new(2.0, Color32::from_white_alpha(200));
+        visuals.widgets.active.bg_stroke = Stroke::new(3.0, Color32::WHITE);
+        
+        visuals.widgets.inactive.weak_bg_fill = Color32::from_white_alpha(10);
         visuals.widgets.hovered.weak_bg_fill = Color32::from_white_alpha(20);  // button hovered
         visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60);  // button hovered
     });
@@ -106,7 +112,7 @@ fn ui_menu_panel(
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
-    const DARK: Color = Color::rgba(0.176, 0.176, 0.176, 0.800);
+    const DARK: Color = Color::rgba(0.,0.,0., 0.800); // 0.176, 0.176, 0.176
     let bg = if worldinfo.is_paused {to_color32(DARK_RED)} else {to_color32(DARK)};
     // if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
 
@@ -124,13 +130,27 @@ fn ui_menu_panel(
             ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(180);
             ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210);  // MenuButton lighter
 
-            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.add_space(12.);
-                ui.small("108M\n30K");
-                ui.small("10M/s\n8K/s");
-                ui.label("·");
-                ui.small("9ms\n12ms");
-                ui.label("127.0.0.1:4000 · 21ms");
+            ui.with_layout(Layout::right_to_left(egui::Align::BOTTOM), |ui| {
+                ui.add_space(16.);
+                // ui.small("108M\n30K");
+                // ui.small("10M/s\n8K/s");
+                // ui.label("·");
+                // ui.small("9ms\n12ms");
+                // ui.label("127.0.0.1:4000 · 21ms");
+                ui.menu_button("21ms 14K/s", |ui| {
+                    ui.label("127.0.0.1:4000");
+                    ui.add_space(12.);
+                    ui.horizontal(|ui| {
+                        ui.label("21ms").on_hover_text("Latency");
+                        ui.small("9ms\n12ms").on_hover_text("Latency (Client to Server / Server to Client)");
+                        ui.separator();
+                        ui.label("1M/s").on_hover_text("Bandwidth");
+                        ui.small("1M/s\n8K/s").on_hover_text("Bandwidth (Upload/Download)");
+                        ui.separator();
+                        ui.label("109M").on_hover_text("Transit");
+                        ui.small("108M\n30K").on_hover_text("Transit (Upload/Download)");
+                    });
+                });
     
                 ui.separator();
     
@@ -148,7 +168,7 @@ fn ui_menu_panel(
                 }
                 
                 // put inside a Layout::right_to_left(egui::Align::Center) or the Vertical Align will offset to upper.
-                ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+                ui.with_layout(Layout::left_to_right(egui::Align::BOTTOM), |ui| {
 
                     ui.add_space(12.);
                     ui.menu_button("System", |ui| {
@@ -192,7 +212,7 @@ fn ui_menu_panel(
                         ui.toggle_value(&mut false, "Fullscreen");
                         ui.button("Save Screenshot");
                         ui.separator();
-                        ui.toggle_value(&mut true, "Debug Info");
+                        ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
                     });
                 });
             });
@@ -209,33 +229,47 @@ fn ui_menu_panel(
 
 
 pub fn ui_main_menu(
+    mut rendered_texture_id: Local<egui::TextureId>,
+    asset_server: Res<AssetServer>,
+
     mut ctx: EguiContexts,
     mut next_state: ResMut<NextState<AppState>>,
     mut app_exit_events: EventWriter<AppExit>,
+
 ) {
+    // if *rendered_texture_id == egui::TextureId::default() {
+    //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
+    // }
+
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
-        let w = ui.available_width();
         
+        // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
+
         ui.vertical_centered(|ui| {
 
             ui.add_space(h * 0.12);
             ui.heading("ethertia");
             ui.add_space(h * 0.2);
 
-            if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
+            let siz = [240., 24.];
+            if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
                 next_state.set(AppState::InGame);
             }
-            if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
+            if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {
                 next_state.set(AppState::WtfSettings);
             }
-            if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
+            if ui.add_sized(siz, egui::Button::new("Terminate")).clicked() {
                 app_exit_events.send(AppExit);
             }
         });
 
-        ui.with_layout(Layout::bottom_up(egui::Align::Max), |ui| {
+        ui.with_layout(Layout::bottom_up(egui::Align::RIGHT), |ui| {
             ui.label("Copyrights nullptr. Do not distribute!");
+        });
+
+        ui.with_layout(Layout::bottom_up(egui::Align::LEFT), |ui| {
+            ui.label("0 mods loaded.");
         });
     });
 }
@@ -314,21 +348,44 @@ pub fn ui_pause_menu(
     }
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
     egui::CentralPanel::default()
-    .frame(Frame::default().fill(Color32::from_black_alpha(140)))
-    .show(ctx.ctx_mut(), |ui| {
+        .frame(Frame::default().fill(Color32::from_black_alpha(190)))
+        .show(ctx.ctx_mut(), |ui|
+    {
+        let w = ui.available_width();
+
+        let head_y = 75.;
+        ui.painter().rect_filled(ui.max_rect().with_max_y(head_y), Rounding::ZERO, Color32::from_rgba_premultiplied(35,35,35,210));
+        ui.painter().rect_filled(ui.max_rect().with_max_y(head_y).with_min_y(head_y-2.), Rounding::ZERO, Color32::from_white_alpha(80));
+
+        ui.add_space(head_y - 27.);
+
+        ui.horizontal(|ui| {
             
-        let h = ui.available_height();
-        ui.add_space(h * 0.2);
+            ui.add_space((w - 420.) / 2.);
 
-        ui.vertical_centered(|ui| {
+            ui.style_mut().spacing.button_padding.x = 10.;
 
-            if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
-                next_state_ingame.set(GameInput::Controlling);
-            }
-            if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
+            ui.toggle_value(&mut false, "Map");
+            ui.toggle_value(&mut false, "Inventory");
+            ui.toggle_value(&mut false, "Team");
+            ui.toggle_value(&mut false, "Abilities");
+            ui.toggle_value(&mut false, "Quests");
+            if ui.toggle_value(&mut false, "Quit").clicked() {
                 next_state_game.set(AppState::MainMenu);
             }
         });
+            
+        // let h = ui.available_height();
+        // ui.add_space(h * 0.2);
+
+        // ui.vertical_centered(|ui| {
+
+        //     if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
+        //         next_state_ingame.set(GameInput::Controlling);
+        //     }
+        //     if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
+        //     }
+        // });
 
     });
 }
@@ -337,6 +394,26 @@ pub fn ui_pause_menu(
 
 
 
+
+fn hud_hotbar(
+    mut ctx: EguiContexts,
+
+) {
+    egui::Window::new("HUD Hotbar")
+    .title_bar(false)
+    .anchor(Align2::CENTER_BOTTOM, [0., -16.])
+    .show(ctx.ctx_mut(), |ui| {
+        let s = 50.;
+
+        ui.horizontal(|ui| {
+
+            for i in 0..9 {
+                ui.add_sized([s, s], egui::Button::new(""));
+            }
+        });
+
+    });
+}
 
 
 
@@ -373,6 +450,10 @@ fn update_debug_text(
 
     hit_result: Res<HitResult>,
 ) {
+    if worldinfo.dbg_text {
+        return;
+    }
+
     use crate::util::TimeIntervals;
     if time.at_interval(2.0) {
         sys.refresh_cpu();
