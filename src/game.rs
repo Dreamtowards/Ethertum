@@ -1,10 +1,7 @@
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    math::vec3,
-    pbr::DirectionalLightShadowMap,
-    prelude::*,
-    window::{CursorGrabMode, PrimaryWindow, WindowMode},
+    math::vec3, pbr::DirectionalLightShadowMap, prelude::*, ui::UiPlugin, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_atmosphere::prelude::*;
 use bevy_editor_pls::editor::EditorEvent;
@@ -64,29 +61,14 @@ impl Plugin for GamePlugin {
 
         app.add_state::<AppState>();
 
-        use crate::ui::*;
         app.add_systems(Update, handle_inputs);  // toggle: PauseGameControl, Fullscreen
-        app.add_systems(Update, ui_menu_panel);  // Debug MenuBar. before CentralPanel
-        app.add_systems(Update, 
-            (
-                ui_pause_menu
-            ).run_if(in_state(AppState::InGame))
-        );
 
-        let sth = crate::hashmap!("hello" => 123, "rust" => 456);
-        dbg!(sth);
-
-        app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
-        
-        app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
+        app.add_plugins(crate::ui::UiPlugin);
         
         app.add_state::<GameInput>();
         app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
 
-        
-        // Setup Egui Style
-        app.add_systems(Startup, setup_egui_style);
     }
 }
 

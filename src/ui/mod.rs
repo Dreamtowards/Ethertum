@@ -13,18 +13,41 @@ use bevy_egui::{
 
 use crate::game::{AppState, GameInput, WorldInfo};
 
+
+
+
+pub struct UiPlugin;
+
+impl Plugin for UiPlugin {
+    fn build(&self, app: &mut App) {
+
+        // Setup Egui Style
+        app.add_systems(Startup, setup_egui_style);
+
+        app.add_systems(Update, ui_menu_panel);  // Debug MenuBar. before CentralPanel
+        app.add_systems(Update, ui_pause_menu.run_if(in_state(AppState::InGame)));
+
+        app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
+        app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
+    }
+}
+
+
+
+
+
+
 fn to_color32(c: Color) -> Color32 {
     let c = c.as_rgba_u8();
     Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3])
 }
 
 
-pub fn setup_egui_style(
+fn setup_egui_style(
     mut egui_settings: ResMut<EguiSettings>, 
-    mut _ctx: EguiContexts
+    mut ctx: EguiContexts
 ) {
-    let mut ctx = _ctx.ctx_mut();
-    ctx.style_mut(|style| {
+    ctx.ctx_mut().style_mut(|style| {
         let mut visuals = &mut style.visuals;
         let round = Rounding::from(0.);
 
@@ -34,6 +57,8 @@ pub fn setup_egui_style(
         visuals.widgets.hovered.rounding = round;
         visuals.widgets.active.rounding = round;
         visuals.widgets.open.rounding = round;
+        visuals.window_rounding = round;
+        visuals.menu_rounding = round;
 
         visuals.collapsing_header_frame = true;
         visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
@@ -60,12 +85,13 @@ pub fn setup_egui_style(
         .unwrap()
         .push("my_font".to_owned());
 
-    ctx.set_fonts(fonts);
+    ctx.ctx_mut().set_fonts(fonts);
 
-    //egui_settings.scale_factor = 3.;
+    egui_settings.scale_factor = 2.;
 }
 
-pub fn ui_menu_panel(
+
+fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: ResMut<WorldInfo>,
     state_ingame: ResMut<State<GameInput>>,
@@ -78,12 +104,12 @@ pub fn ui_menu_panel(
     let bg = if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
 
     egui::TopBottomPanel::top("menu_panel")
-        .frame(Frame {
-            fill: bg,
-            stroke: Stroke::NONE,
-            ..default()
-        })
-        .show(ctx.ctx_mut(), |ui| {
+    .frame(Frame {
+        fill: bg,
+        stroke: Stroke::NONE,
+        ..default()
+    })
+    .show(ctx.ctx_mut(), |ui| {
 
         ui.painter().text([0., 500.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
 
@@ -142,36 +168,35 @@ pub fn ui_menu_panel(
                 });
                 
                 // ui.label("·");
-                ui.add_space(10.);
-                ui.separator();
-                ui.add_space(10.);
+                // ui.add_space(10.);
+                // ui.separator();
+                // ui.add_space(10.);
 
 
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
 
-                        if worldinfo.is_paused {
-                            if egui::Button::new("⏸").ui(ui).clicked() {
-                                worldinfo.is_paused = false;
-                            }
-                        } else {
-                            if egui::Button::new("▶").ui(ui).clicked() {
-                                worldinfo.is_paused = true;
-                            }
-                            if egui::Button::new("Step").ui(ui).clicked() {  //⏩  
-                                worldinfo.paused_steps += 1;
-                            }
+
+                    ui.add_space(12.);
+                    ui.small("108M\n30K");
+                    ui.small("10M/s\n8K/s");
+                    ui.label("·");
+                    ui.small("9ms\n12ms");
+                    ui.label("127.0.0.1:4000 · 21ms");
+
+                    ui.separator();
+
+                    if worldinfo.is_paused {
+                        if egui::Button::new("⏸").ui(ui).clicked() {
+                            worldinfo.is_paused = false;
                         }
-                        ui.separator();
-
-                        ui.label("127.0.0.1:4000 · 21ms");
-                        ui.small("9ms\n12ms");
-                        ui.label("·");
-                        ui.small("10M/s\n8K/s");
-                        ui.small("108M\n30K");
-
-                        ui.add_space(12.);
-                    });
+                    } else {
+                        if egui::Button::new("▶").ui(ui).clicked() {
+                            worldinfo.is_paused = true;
+                        }
+                        if egui::Button::new("⏩").ui(ui).clicked() {  //⏩  
+                            worldinfo.paused_steps += 1;
+                        }
+                    }
                 });
 
             });
@@ -183,17 +208,17 @@ pub fn ui_menu_panel(
 
 
 
+
+
 pub fn ui_main_menu(
     mut ctx: EguiContexts,
     mut next_state: ResMut<NextState<AppState>>,
     mut app_exit_events: EventWriter<AppExit>,
 ) {
-
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
         let w = ui.available_width();
         
-
         ui.vertical_centered(|ui| {
 
             ui.add_space(h * 0.12);
@@ -209,18 +234,11 @@ pub fn ui_main_menu(
             if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
                 app_exit_events.send(AppExit);
             }
-            
-            // ui.painter().text([w, h].into(), Align2::RIGHT_BOTTOM, 
-            // "Copyright M0jang AB. Do not distribute!", FontId::default(), Color32::WHITE);
         });
-
-        // ui.set_max_size([600., 600.].into());
-        // ui.cursor().set_top(580.);
 
         ui.with_layout(Layout::bottom_up(egui::Align::Max), |ui| {
             ui.label("Copyrights nullptr. Do not distribute!");
         });
-
     });
 }
 
@@ -242,7 +260,6 @@ pub fn ui_settings(
     mut settings_panel: Local<SettingsPanel>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
-
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         
         ui.add_space(48.);
@@ -299,9 +316,9 @@ pub fn ui_pause_menu(
     }
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
     egui::CentralPanel::default()
-        .frame(Frame::default().fill(Color32::from_black_alpha(140)))
-        .show(ctx.ctx_mut(), |ui| 
-    {
+    .frame(Frame::default().fill(Color32::from_black_alpha(140)))
+    .show(ctx.ctx_mut(), |ui| {
+            
         let h = ui.available_height();
         ui.add_space(h * 0.2);
 
