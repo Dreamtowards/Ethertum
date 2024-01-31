@@ -64,14 +64,20 @@ impl Plugin for GamePlugin {
 
         app.add_state::<AppState>();
 
+        app.insert_resource(UiDrawList::default());
+
         use crate::ui::*;
         app.add_systems(Update, handle_inputs);  // toggle: PauseGameControl, Fullscreen
-        app.add_systems(Update, ui_menu_panel);  // Debug Menubar
+        app.add_systems(Update, ui_central_draw); 
+        app.add_systems(Update, ui_menu_panel.before(ui_central_draw));  // Debug MenuBar. before CentralPanel
         app.add_systems(Update, 
             (
                 ui_pause_menu
             ).run_if(in_state(AppState::InGame))
         );
+
+        let sth = crate::hashmap!("hello" => 123, "rust" => 456);
+        dbg!(sth);
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
         
@@ -82,6 +88,13 @@ impl Plugin for GamePlugin {
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
     }
 }
+
+
+
+// #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+// pub enum SystemSet {
+//     UI,
+// }
 
 
 // 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能

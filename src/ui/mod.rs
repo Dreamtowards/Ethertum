@@ -1,9 +1,9 @@
 
-use std::default;
+use std::{default, sync::Arc};
 
-use bevy::prelude::*;
+use bevy::{app::AppExit, prelude::*};
 
-use bevy_egui::{EguiContexts, egui::{self, Widget, Ui}};
+use bevy_egui::{EguiContexts, egui::{self, Align2, Color32, FontId, Ui, Widget}};
 
 use crate::game::{AppState, GameInput, WorldInfo};
 
@@ -61,57 +61,94 @@ pub fn ui_menu_panel(
     });
 }
 
+
+// #[derive(Resource, Default)]
+// pub struct UiDrawList {
+//     drawcalls: Vec<Box<dyn FnOnce(&mut Ui)>>
+// }
+
+
+#[derive(Event)]
+pub struct UiDrawEvent {
+    call: &dyn FnOnce(&mut Ui),
+}
+
+
+pub fn ui_central_draw(
+    mut ctx: EguiContexts,
+    // mut drawlist: ResMut<UiDrawList>,
+    events: EventWriter<UiDrawEvent>
+) {
+    // drawlist.drawcalls.push(|ui| {
+
+    // });
+
+    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+
+        for drawcall in &drawlist.drawcalls {
+            drawcall(ui);
+        }
+
+    });
+    drawlist.drawcalls.clear();
+}
+
+
+
 pub fn ui_main_menu(
     mut ctx: EguiContexts,
     mut next_state: ResMut<NextState<AppState>>,
+    mut app_exit_events: EventWriter<AppExit>,
+    mut drawlist: ResMut<UiDrawList>,
 ) {
-    egui::Window::new("Main Menu").title_bar(false).show(ctx.ctx_mut(), |ui| {
-        
-        
-        ui.horizontal_centered(|ui| {
 
-            ui.vertical_centered(|ui| {
-
-                // ui.add_space(20.);
-                ui.heading("ethertia");
-                ui.add_space(20.);
-
-                if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
-                    next_state.set(AppState::InGame);
-                }
-                if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
-                    next_state.set(AppState::WtfSettings);
-                }
-                if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
-
-                }
-                
-                ui.label("Copyright M0jang AB. Do not distribute!");
-            });
-        });
-
-        ui.allocate_space(ui.available_size());
-    });
-
-    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+    drawlist.drawcalls.push(|ui| {
+        let h = ui.available_height();
+        let w = ui.available_width();
         
         ui.vertical_centered(|ui| {
 
-            // ui.add_space(20.);
             ui.heading("ethertia");
-            ui.add_space(20.);
+            ui.add_space(h * 0.12);
+            ui.heading("ethertia");
+            ui.add_space(h * 0.2);
 
             if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
                 next_state.set(AppState::InGame);
             }
             if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
+        //         next_state.set(AppState::WtfSettings);
+            }
+        //     if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
+        //         app_exit_events.send(AppExit);
+        //     }
+            
+        //     ui.painter().text([w, h].into(), Align2::RIGHT_BOTTOM, 
+        //     "Copyright M0jang AB. Do not distribute!", FontId::default(), Color32::WHITE);
+        });
+    });
+    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+        let h = ui.available_height();
+        let w = ui.available_width();
+        
+        ui.vertical_centered(|ui| {
 
+            ui.add_space(h * 0.12);
+            ui.heading("ethertia");
+            ui.add_space(h * 0.2);
+
+            if ui.add_sized([200., 20.], egui::Button::new("Play")).clicked() {
+                next_state.set(AppState::InGame);
+            }
+            if ui.add_sized([200., 20.], egui::Button::new("Settings")).clicked() {
+                next_state.set(AppState::WtfSettings);
             }
             if ui.add_sized([200., 20.], egui::Button::new("Terminate")).clicked() {
-
+                app_exit_events.send(AppExit);
             }
             
-            ui.label("Copyright M0jang AB. Do not distribute!");
+            ui.painter().text([w, h].into(), Align2::RIGHT_BOTTOM, 
+            "Copyright M0jang AB. Do not distribute!", FontId::default(), Color32::WHITE);
         });
 
         // ui.set_max_size([600., 600.].into());
@@ -137,27 +174,44 @@ pub fn ui_settings(
     mut ctx: EguiContexts,
     mut settings_panel: Local<SettingsPanel>,
     mut next_state: ResMut<NextState<AppState>>,
+    mut drawlist: ResMut<UiDrawList>,
 ) {
 
+    drawlist.drawcalls.push(|ui| {
+
+        ui.label("Settings");
+        ui.add_space(48.);
+        ui.heading("Settings");
+        ui.add_space(24.);
+    });
     
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+
+        ui.add_space(48.);
+        ui.heading("Settings");
+        ui.add_space(24.);
         
         ui.horizontal(|ui| {
             ui.group(|ui| {
-                if ui.small_button("<").clicked() {
-                    next_state.set(AppState::MainMenu);  // or set to InGame if it's openned from InGame state
-                }
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
-                ui.separator();
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Audio, "Music & Sounds");
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
-                ui.separator();
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
-                ui.separator();
-                ui.radio_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
+                ui.vertical(|ui| {
+                    if ui.small_button("<").clicked() {
+                        next_state.set(AppState::MainMenu);  // or set to InGame if it's openned from InGame state
+                    }
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
+                    // ui.separator();
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Audio, "Music & Sounds");
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
+                    // ui.separator();
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+                    // ui.separator();
+                    ui.radio_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
+                    
+                    // ui.set_max_width(180.);
+                });
+                // ui.set_max_width(180.);
             });
             ui.group(|ui| {
                 match *settings_panel {

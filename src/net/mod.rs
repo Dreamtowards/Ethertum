@@ -64,7 +64,7 @@ impl Plugin for NetworkServerPlugin {
 
         app.add_systems(Update, server_sys);
         
-        app.add_systems(Update, ui_server_net);
+        // app.add_systems(Update, ui_server_net);
     }
 }
 
@@ -80,7 +80,7 @@ impl Plugin for NetworkClientPlugin {
         
         app.add_systems(Update, client_sys);
 
-        app.add_systems(Update, ui_client_net);
+        // app.add_systems(Update, ui_client_net);
 
     }
 }
