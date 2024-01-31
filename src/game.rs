@@ -64,12 +64,9 @@ impl Plugin for GamePlugin {
 
         app.add_state::<AppState>();
 
-        app.insert_resource(UiDrawList::default());
-
         use crate::ui::*;
         app.add_systems(Update, handle_inputs);  // toggle: PauseGameControl, Fullscreen
-        app.add_systems(Update, ui_central_draw); 
-        app.add_systems(Update, ui_menu_panel.before(ui_central_draw));  // Debug MenuBar. before CentralPanel
+        app.add_systems(Update, ui_menu_panel);  // Debug MenuBar. before CentralPanel
         app.add_systems(Update, 
             (
                 ui_pause_menu
@@ -86,6 +83,10 @@ impl Plugin for GamePlugin {
         app.add_state::<GameInput>();
         app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
+
+        
+        // Setup Egui Style
+        app.add_systems(Startup, setup_egui_style);
     }
 }
 

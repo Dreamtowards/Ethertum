@@ -47,8 +47,6 @@ impl Plugin for EditorPlugin {
         app.add_systems(OnEnter(AppState::InGame), setup_debug_text);
         app.add_systems(Update, update_debug_text.run_if(in_state(AppState::InGame)));
 
-        // Setup Egui Style
-        app.add_systems(Startup, setup_egui_style);
 
         // app.add_systems(Update, ui_example_system);
     }
@@ -116,51 +114,6 @@ fn setup_editor_camera_controls(
     controls.key_down = KeyCode::Q;
 }
 
-fn setup_egui_style(
-    mut egui_settings: ResMut<EguiSettings>, 
-    mut _ctx: EguiContexts
-) {
-    let mut ctx = _ctx.ctx_mut();
-    ctx.style_mut(|style| {
-        let mut visuals = &mut style.visuals;
-        let round = Rounding::from(2.5);
-
-        visuals.window_rounding = round;
-        visuals.widgets.noninteractive.rounding = round;
-        visuals.widgets.inactive.rounding = round;
-        visuals.widgets.hovered.rounding = round;
-        visuals.widgets.active.rounding = round;
-        visuals.widgets.open.rounding = round;
-
-        visuals.collapsing_header_frame = true;
-        visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
-        visuals.slider_trailing_fill = true;
-    });
-
-    let mut fonts = FontDefinitions::default();
-    fonts.font_data.insert(
-        "my_font".to_owned(),
-        FontData::from_static(include_bytes!("../../assets/fonts/menlo.ttf")),
-    );
-
-    // Put my font first (highest priority):
-    fonts
-        .families
-        .get_mut(&FontFamily::Proportional)
-        .unwrap()
-        .insert(0, "my_font".to_owned());
-
-    // Put my font as last fallback for monospace:
-    fonts
-        .families
-        .get_mut(&FontFamily::Monospace)
-        .unwrap()
-        .push("my_font".to_owned());
-
-    ctx.set_fonts(fonts);
-
-    //egui_settings.scale_factor = 3.;
-}
 
 // fn ui_example_system(mut ctx: EguiContexts) {
 //     egui::Window::new("Hello").show(ctx.ctx_mut(), |ui| {
