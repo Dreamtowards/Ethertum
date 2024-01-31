@@ -22,7 +22,7 @@ fn main() {
                 ..default()
             })
         )
-        .add_plugins(EditorPlugin)
+        // .add_plugins(EditorPlugin)
         .add_plugins(GamePlugin)
         .add_plugins(NetworkServerPlugin)
         .run();

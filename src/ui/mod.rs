@@ -1,16 +1,14 @@
 
 use std::{default, sync::Arc};
 
-use bevy::{app::AppExit, prelude::*};
+use bevy::{app::AppExit, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
 use bevy_egui::{
     egui::{
         self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, Layout, Rangef, Rounding, Stroke, Ui, Widget 
-    },
-    EguiContexts,
-    EguiSettings,
+    }, EguiContexts, EguiPlugin, EguiSettings
 };
 
-use crate::game::{AppState, GameInput, WorldInfo};
+use crate::{game::{AppState, GameInput, WorldInfo}, voxel::HitResult};
 
 
 
@@ -20,6 +18,10 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
 
+        if !app.is_plugin_added::<EguiPlugin>() {
+            app.add_plugins(EguiPlugin);
+        }
+
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
 
@@ -28,6 +30,8 @@ impl Plugin for UiPlugin {
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
         app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
+
+        app.add_systems(Update, update_debug_text.run_if(in_state(AppState::InGame)));
     }
 }
 
@@ -327,4 +331,161 @@ pub fn ui_pause_menu(
         });
 
     });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fn update_debug_text(
+    // world: &World,
+    // cmds: Commands,
+    
+    mut ctx: EguiContexts,
+
+    time: Res<Time>,
+    diagnostics: Res<DiagnosticsStore>,
+
+    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
+    mut last_cam_pos: Local<Vec3>,
+
+    mut sys: Local<sysinfo::System>,
+    render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
+
+    chunk_sys: Res<crate::voxel::ChunkSystem>,
+    worldinfo: Res<crate::game::WorldInfo>,
+
+    hit_result: Res<HitResult>,
+) {
+    use crate::util::TimeIntervals;
+    if time.at_interval(2.0) {
+        sys.refresh_cpu();
+        sys.refresh_memory();
+    }
+    let dt = time.delta_seconds();
+
+    let mut frame_time = time.delta_seconds_f64();
+    if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME) {
+        if let Some(frame_time_smoothed) = frame_time_diagnostic.smoothed() {
+            frame_time = frame_time_smoothed;
+        }
+    }
+
+    let mut fps = frame_time / 1.0;
+    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
+            fps = fps_smoothed;
+        }
+    }
+
+    // "HOMEPATH", "\\Users\\Dreamtowards",
+    // "LANG", "en_US.UTF-8",
+    // "USERNAME", "Dreamtowards",
+
+    let num_concurrency = std::thread::available_parallelism().unwrap().get();
+
+    use sysinfo::{CpuExt, SystemExt};
+
+    let cpu_arch = std::env::consts::ARCH;
+    let dist_id = std::env::consts::OS;
+    let os_ver = sys.long_os_version().unwrap();
+    let os_ver_sm = sys.os_version().unwrap();
+
+    let cpu_cores = sys.physical_core_count().unwrap();
+    let cpu_name = sys.global_cpu_info().brand().trim().to_string();
+    let cpu_usage = sys.global_cpu_info().cpu_usage();
+
+    let mem_used = sys.used_memory() as f64 * BYTES_TO_GIB;
+    let mem_total = sys.total_memory() as f64 * BYTES_TO_GIB;
+
+    const BYTES_TO_MIB: f64 = 1.0 / 1024.0 / 1024.0;
+    const BYTES_TO_GIB: f64 = 1.0 / 1024.0 / 1024.0 / 1024.0;
+
+    let mut mem_usage_phys = 0.;
+    let mut mem_usage_virtual = 0.;
+
+    #[cfg(not(feature = "web"))]
+    {
+        if let Some(usage) = memory_stats::memory_stats() {
+            // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
+            // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
+    
+            mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
+            mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
+        }
+    }
+
+    let gpu_name = &render_adapter_info.0.name;
+    let gpu_backend = &render_adapter_info.0.backend.to_str();
+    let gpu_driver_name = &render_adapter_info.0.driver;
+    let gpu_driver_info = &render_adapter_info.0.driver_info;
+
+    let (cam_trans, cam_visible_entities) = query_cam.single();
+    let cam_pos = cam_trans.translation;
+    let cam_pos_diff = cam_pos - *last_cam_pos;
+    let cam_pos_spd = cam_pos_diff.length() / dt;
+    let cam_pos_kph = cam_pos_spd * 3.6;
+    let cam_pos_x = cam_pos.x;
+    let cam_pos_y = cam_pos.y;
+    let cam_pos_z = cam_pos.z;
+
+    let cam_visible_entities_num = cam_visible_entities.entities.len();
+    let num_all_entities = 0;//world.entities().len();
+
+    // let curr_path = std::env::current_exe().unwrap().display().to_string();
+    let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
+                                                                   //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
+
+    let daytime = worldinfo.daytime;
+    let world_inhabited = worldinfo.time_inhabited;
+    let world_seed = worldinfo.seed;
+
+    let num_chunks_loaded = chunk_sys.num_chunks();
+    let num_chunks_loading = chunk_sys.chunks_loading.len();
+    let num_chunks_remesh = chunk_sys.chunks_remesh.len();
+    let num_chunks_meshing = chunk_sys.chunks_meshing.len();
+
+    let mut hit_str = "none".into();
+    if hit_result.is_hit {
+        hit_str = format!("p: {}, n: {}, d: {}, vox: {}", 
+                          hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel);
+    }
+
+    let str = format!(
+"fps: {fps:.1}, dt: {frame_time:.4}ms
+cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
+visible entities: {cam_visible_entities_num} / all {num_all_entities}.
+
+OS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
+CPU: {cpu_name}, usage {cpu_usage:.1}%
+GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
+RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB
+
+Hit: {hit_str},
+
+World: '', daytime: {daytime}. inhabited: {world_inhabited}, seed: {world_seed}
+Entity: N; components: N, T: n
+Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.
+"
+    );
+
+    ctx.ctx_mut().debug_painter().text([0., 48.].into(), Align2::LEFT_TOP, str, FontId::proportional(12.), Color32::from_gray(230));
+
+    *last_cam_pos = cam_pos;
 }

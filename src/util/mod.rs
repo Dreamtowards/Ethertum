@@ -31,3 +31,21 @@ pub fn current_timestamp() -> Duration {
 pub fn current_timestamp_millis() -> u64 {
     current_timestamp().as_millis() as u64
 }
+
+
+pub trait TimeIntervals {
+    fn intervals(&self, interval: f32) -> usize;
+
+    fn at_interval(&self, interval: f32) -> bool {
+        self.intervals(interval) != 0
+    }
+
+    fn _intervals(t: f32, dt: f32, u: f32) -> usize {
+        ((t / u).floor() - ((t-dt) / u).floor()) as usize
+    }
+}
+impl TimeIntervals for bevy::time::Time {
+    fn intervals(&self, u: f32) -> usize {
+        Self::_intervals(self.elapsed_seconds(), self.delta_seconds(), u)
+    }
+}
