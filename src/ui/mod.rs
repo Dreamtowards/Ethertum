@@ -4,8 +4,7 @@ use std::{default, sync::Arc};
 use bevy::{app::AppExit, prelude::*};
 use bevy_egui::{
     egui::{
-        self, Align2, Color32, FontId, Frame, Layout, Stroke, Ui, Widget, Rounding, 
-        style::HandleShape, FontData, FontDefinitions, FontFamily, 
+        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, Layout, Rangef, Rounding, Stroke, Ui, Widget 
     },
     EguiContexts,
     EguiSettings,
@@ -63,6 +62,9 @@ fn setup_egui_style(
         visuals.collapsing_header_frame = true;
         visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
         visuals.slider_trailing_fill = true;
+
+        visuals.widgets.hovered.weak_bg_fill = Color32::from_white_alpha(20);  // button hovered
+        visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60);  // button hovered
     });
 
     let mut fonts = FontDefinitions::default();
@@ -87,7 +89,7 @@ fn setup_egui_style(
 
     ctx.ctx_mut().set_fonts(fonts);
 
-    egui_settings.scale_factor = 2.;
+    // egui_settings.scale_factor = 1.;
 }
 
 
@@ -100,109 +102,101 @@ fn ui_menu_panel(
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
-    const DARK: Color = Color::rgba(0.176, 0.176, 0.176, 0.700);
-    let bg = if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
+    const DARK: Color = Color::rgba(0.176, 0.176, 0.176, 0.800);
+    let bg = if worldinfo.is_paused {to_color32(DARK_RED)} else {to_color32(DARK)};
+    // if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
 
     egui::TopBottomPanel::top("menu_panel")
-    .frame(Frame {
-        fill: bg,
-        stroke: Stroke::NONE,
-        ..default()
-    })
-    .show(ctx.ctx_mut(), |ui| {
+        .frame(Frame::default().fill(bg))
+        .show_separator_line(false)
+        // .height_range(Rangef::new(16., 16.))  // 24
+        .show(ctx.ctx_mut(), |ui| {
 
-        ui.painter().text([0., 500.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
+        // ui.painter().text([0., 48.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
 
-        // ui.style_mut().visuals.panel_fill = to_color32(BLUE);
-        // ui.visuals_mut().widgets.inactive.bg_stroke = Stroke::NONE;
-        // ui.visuals_mut().widgets.inactive.bg_fill = to_color32(PURPLE);
-        // ui.visuals_mut().widgets.inactive.weak_bg_fill = to_color32(BLUE);
+        egui::menu::bar(ui, |ui| {
 
-        ui.horizontal(|ui| {
-            egui::menu::bar(ui, |ui| {
+            ui.style_mut().spacing.button_padding.x = 6.;
+            ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(180);
+            ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210);  // MenuButton lighter
 
+            ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(12.);
-
-                ui.menu_button("System", |ui| {
-                    ui.menu_button("Connect Server", |ui| {
-                        ui.button("+").on_hover_text("Add Server");
-                        ui.separator();
-                    });
-                    ui.menu_button("Open World", |ui| {
-                        ui.button("New World");
-                        ui.button("Open World..");
-                        ui.separator();
-                    });
-                    ui.button("Edit World..");
-                    ui.button("Close World");
-                    ui.separator();
-                    ui.button("Server Start");
-                    ui.button("Server Stop");
-                    ui.separator();
-                    ui.button("Settings");
-                    ui.button("Mods");
-                    ui.button("Assets");
-                    ui.button("Controls");
-                    ui.button("About");
-                    ui.separator();
-                    ui.button("Terminate");
-                });
-                ui.menu_button("World", |ui| {
-                    ui.button("Resume");
-                    ui.button("Step");
-
-                });
-                ui.menu_button("Render", |ui| {
-
-                });
-                ui.menu_button("Audio", |ui| {
-
-                });
-                ui.menu_button("View", |ui| {
-
-                    ui.toggle_value(&mut true, "HUD");
-                    ui.toggle_value(&mut false, "Fullscreen");
-                    ui.button("Save Screenshot");
-                    ui.separator();
-                    ui.toggle_value(&mut true, "Debug Info");
-                });
+                ui.small("108M\n30K");
+                ui.small("10M/s\n8K/s");
+                ui.label("·");
+                ui.small("9ms\n12ms");
+                ui.label("127.0.0.1:4000 · 21ms");
+    
+                ui.separator();
+    
+                if worldinfo.is_paused {
+                    if egui::Button::new("▶").ui(ui).clicked() {
+                        worldinfo.is_paused = false;
+                    }
+                    if egui::Button::new("⏩").ui(ui).clicked() {  //⏩  
+                        worldinfo.paused_steps += 1;
+                    }
+                } else {
+                    if egui::Button::new("⏸").ui(ui).clicked() {
+                        worldinfo.is_paused = true;
+                    }
+                }
                 
-                // ui.label("·");
-                // ui.add_space(10.);
-                // ui.separator();
-                // ui.add_space(10.);
-
-
-                ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-
+                // put inside a Layout::right_to_left(egui::Align::Center) or the Vertical Align will offset to upper.
+                ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
 
                     ui.add_space(12.);
-                    ui.small("108M\n30K");
-                    ui.small("10M/s\n8K/s");
-                    ui.label("·");
-                    ui.small("9ms\n12ms");
-                    ui.label("127.0.0.1:4000 · 21ms");
+                    ui.menu_button("System", |ui| {
+                        ui.menu_button("Connect Server", |ui| {
+                            ui.button("Add Server");
+                            ui.separator();
+                        });
+                        ui.menu_button("Open World", |ui| {
+                            ui.button("New World");
+                            ui.button("Open World..");
+                            ui.separator();
+                        });
+                        ui.button("Edit World..");
+                        ui.button("Close World");
+                        ui.separator();
+                        ui.button("Server Start");
+                        ui.button("Server Stop");
+                        ui.separator();
+                        ui.button("Settings");
+                        ui.button("Mods");
+                        ui.button("Assets");
+                        ui.button("Controls");
+                        ui.button("About");
+                        ui.separator();
+                        ui.button("Terminate");
+                    });
+                    ui.menu_button("World", |ui| {
+                        ui.button("Resume");
+                        ui.button("Step");
 
-                    ui.separator();
+                    });
+                    ui.menu_button("Render", |ui| {
 
-                    if worldinfo.is_paused {
-                        if egui::Button::new("⏸").ui(ui).clicked() {
-                            worldinfo.is_paused = false;
-                        }
-                    } else {
-                        if egui::Button::new("▶").ui(ui).clicked() {
-                            worldinfo.is_paused = true;
-                        }
-                        if egui::Button::new("⏩").ui(ui).clicked() {  //⏩  
-                            worldinfo.paused_steps += 1;
-                        }
-                    }
+                    });
+                    ui.menu_button("Audio", |ui| {
+
+                    });
+                    ui.menu_button("View", |ui| {
+
+                        ui.toggle_value(&mut true, "HUD");
+                        ui.toggle_value(&mut false, "Fullscreen");
+                        ui.button("Save Screenshot");
+                        ui.separator();
+                        ui.toggle_value(&mut true, "Debug Info");
+                    });
                 });
-
             });
+
         });
 
     });
+
 }
 
 
