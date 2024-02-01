@@ -145,17 +145,14 @@ fn chunks_detect_load_and_unload(
                     }
 
                     let task = AsyncComputeTaskPool::get().spawn(async move {
-                        let chunkptr = Arc::new(RwLock::new(Chunk::new(chunkpos)));
 
-                        {
-                            let mut chunk = chunkptr.write().unwrap();
+                        let mut chunk = Chunk::new(chunkpos);
 
-                            WorldGen::generate_chunk(&mut chunk);
-                        }
+                        WorldGen::generate_chunk(&mut chunk);
 
                         // info!("Load Chunk: {:?}", chunkpos);
 
-                        chunkptr
+                        Arc::new(RwLock::new(chunk))
                     });
 
                     chunk_sys.chunks_loading.insert(chunkpos, task);
