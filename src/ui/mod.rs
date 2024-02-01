@@ -12,7 +12,7 @@ use bevy_egui::{
 };
 
 use crate::{
-    game::{condition, CurrentUI, GameInput, InWorldState, WorldInfo},
+    game::{condition, CurrentUI, GameInput, WorldInfo},
     voxel::{ChunkSystem, HitResult},
 };
 
@@ -215,7 +215,6 @@ pub fn ui_main_menu(
     mut commands: Commands,
 
     mut next_state: ResMut<NextState<CurrentUI>>,
-    mut next_state_inw: ResMut<NextState<InWorldState>>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -235,7 +234,6 @@ pub fn ui_main_menu(
             if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
                 commands.insert_resource(WorldInfo::default());  
                 next_state.set(CurrentUI::None);
-                next_state_inw.set(InWorldState::InWorld);
                 // todo!("Use SystemParama")
             }
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
@@ -320,7 +318,6 @@ pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut commands: Commands,
     mut next_state_ui: ResMut<NextState<CurrentUI>>,
-    mut next_state_inworld: ResMut<NextState<InWorldState>>,
 
     state_ingame: ResMut<State<GameInput>>,
     mut next_state_ingame: ResMut<NextState<GameInput>>,
@@ -360,7 +357,7 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Quests");
                 if ui.toggle_value(&mut false, "Quit").clicked() {
                     next_state_ui.set(CurrentUI::MainMenu);
-                    next_state_inworld.set(InWorldState::_NotInWorld);
+                    commands.remove_resource::<WorldInfo>();
                     // unload_world
                 }
             });

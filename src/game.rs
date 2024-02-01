@@ -1,7 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{
-    ecs::schedule::{ScheduleLabel, SystemConfigs}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_atmosphere::prelude::*;
 use bevy_xpbd_3d::prelude::*;
@@ -14,8 +13,8 @@ use crate::{
 use crate::voxel::VoxelPlugin;
 
 pub mod condition {
-    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
-    use super::{InWorldState, WorldInfo};
+    use bevy::ecs::{schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
+    use super::WorldInfo;
     
     // fn is_manipulating() -> impl Condition<()> {
     //     IntoSystem::into_system(|mut flag: Local<bool>| {
@@ -24,32 +23,15 @@ pub mod condition {
     //     })
     // }
 
-    static mut _WORLD_LOADED: bool = false;
-
-    pub fn in_world() -> impl FnMut(Res<State<InWorldState>>) -> bool + Clone { //impl FnMut() -> bool + Clone {
-        // move || unsafe{_WORLD_LOADED}
-        in_state(InWorldState::InWorld)
+    pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_exists::<WorldInfo>()
     }
-    // pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-    //     move |res: Option<Res<WorldInfo>>| {
-    //         if !unsafe{_WORLD_LOADED} && res.is_some() {
-    //             unsafe{_WORLD_LOADED = true};
-    //             true
-    //         } else {
-    //             false
-    //         }
-    //     }
-    // }
-    // pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-    //     move |res: Option<Res<WorldInfo>>| {
-    //         if unsafe{_WORLD_LOADED} && res.is_none() {
-    //             unsafe{_WORLD_LOADED = false};
-    //             true
-    //         } else {
-    //             false
-    //         }
-    //     }
-    // }
+    pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_added::<WorldInfo>()
+    }
+    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_removed::<WorldInfo>()
+    }
 }
 
 pub struct GamePlugin;
@@ -90,18 +72,13 @@ impl Plugin for GamePlugin {
         // app.add_systems(Update, apply_world_load_state);
         // app.add_systems(OnWorldLoad, startup);  // Camera, Player, Sun
         // app.add_systems(OnWorldUnload, cleanup); 
-        // app.add_systems(Update, cleanup.run_if(condition::unload_world()));
 
-        // app.add_systems(PreUpdate, startup.run_if(condition::load_world()));  // Camera, Player, Sun
-        // app.add_systems(Last, cleanup.run_if(condition::unload_world()));
-        
-        app.add_state::<InWorldState>();
-        app.add_systems(OnEnter(InWorldState::InWorld), startup);  // Camera, Player, Sun
-        app.add_systems(OnExit(InWorldState::InWorld), cleanup); 
+        app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
+        app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
 
         // Debug Draw Gizmos
-        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+        // app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
 
         // Network Client
         app.add_plugins(NetworkClientPlugin);
@@ -118,6 +95,7 @@ impl Plugin for GamePlugin {
 }
 
 
+// use bevy::ecs::schedule::ScheduleLabel;
 // #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 // pub struct OnWorldLoad;
 
@@ -145,12 +123,6 @@ impl Plugin for GamePlugin {
 
 // !!!!!!!!这里要大重构，去掉AppState 多余了 思路有问题，直接一个bool放在Res ClientInfo即可的。就是不能in_state()这么方便condition
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum InWorldState {
-    #[default]
-    _NotInWorld,
-    InWorld
-}
 
 // 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]

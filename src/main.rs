@@ -2,8 +2,8 @@
 
 use bevy::{prelude::*, window::WindowResolution};
 
-use ethertia::editor::EditorPlugin;
 use ethertia::game::GamePlugin;
+use ethertia::editor::EditorPlugin;
 use ethertia::net::NetworkServerPlugin;
 
 fn main() {
