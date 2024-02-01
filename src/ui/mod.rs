@@ -1,23 +1,27 @@
-
 use std::{default, sync::Arc};
 
-use bevy::{app::AppExit, diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
+use bevy::{
+    app::AppExit,
+    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_egui::{
     egui::{
-        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect, Rounding, Stroke, Ui, Widget 
-    }, EguiContexts, EguiPlugin, EguiSettings
+        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect,
+        Rounding, Stroke, Ui, Widget,
+    },
+    EguiContexts, EguiPlugin, EguiSettings,
 };
 
-use crate::{game::{AppState, GameInput, WorldInfo}, voxel::HitResult};
-
-
-
+use crate::{
+    game::{AppState, GameInput, WorldInfo},
+    voxel::HitResult,
+};
 
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-
         if !app.is_plugin_added::<EguiPlugin>() {
             app.add_plugins(EguiPlugin);
         }
@@ -25,33 +29,29 @@ impl Plugin for UiPlugin {
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
 
-        app.add_systems(Update, ui_menu_panel);  // Debug MenuBar. before CentralPanel
+        app.add_systems(Update, ui_menu_panel); // Debug MenuBar. before CentralPanel
         app.add_systems(Update, ui_pause_menu.run_if(in_state(AppState::InGame)).before(ui_menu_panel));
 
         app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
         app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
 
-        app.add_systems(Update, update_debug_text.run_if(in_state(AppState::InGame)));
-        
+        app.add_plugins((
+            FrameTimeDiagnosticsPlugin,
+            EntityCountDiagnosticsPlugin,
+            //SystemInformationDiagnosticsPlugin
+        ));
+        app.add_systems(Update, hud_debug_text.run_if(in_state(AppState::InGame)));
+
         app.add_systems(Update, hud_hotbar.run_if(in_state(AppState::InGame)));
     }
 }
-
-
-
-
-
 
 fn to_color32(c: Color) -> Color32 {
     let c = c.as_rgba_u8();
     Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3])
 }
 
-
-fn setup_egui_style(
-    mut egui_settings: ResMut<EguiSettings>, 
-    mut ctx: EguiContexts
-) {
+fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContexts) {
     ctx.ctx_mut().style_mut(|style| {
         let mut visuals = &mut style.visuals;
         let round = Rounding::from(0.);
@@ -71,10 +71,10 @@ fn setup_egui_style(
 
         visuals.widgets.hovered.bg_stroke = Stroke::new(2.0, Color32::from_white_alpha(200));
         visuals.widgets.active.bg_stroke = Stroke::new(3.0, Color32::WHITE);
-        
+
         visuals.widgets.inactive.weak_bg_fill = Color32::from_white_alpha(10);
-        visuals.widgets.hovered.weak_bg_fill = Color32::from_white_alpha(20);  // button hovered
-        visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60);  // button hovered
+        visuals.widgets.hovered.weak_bg_fill = Color32::from_white_alpha(20); // button hovered
+        visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60); // button hovered
     });
 
     let mut fonts = FontDefinitions::default();
@@ -84,36 +84,23 @@ fn setup_egui_style(
     );
 
     // Put my font first (highest priority):
-    fonts
-        .families
-        .get_mut(&FontFamily::Proportional)
-        .unwrap()
-        .insert(0, "my_font".to_owned());
+    fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "my_font".to_owned());
 
     // Put my font as last fallback for monospace:
-    fonts
-        .families
-        .get_mut(&FontFamily::Monospace)
-        .unwrap()
-        .push("my_font".to_owned());
+    fonts.families.get_mut(&FontFamily::Monospace).unwrap().push("my_font".to_owned());
 
     ctx.ctx_mut().set_fonts(fonts);
 
     // egui_settings.scale_factor = 1.;
 }
 
-
-fn ui_menu_panel(
-    mut ctx: EguiContexts,
-    mut worldinfo: ResMut<WorldInfo>,
-    state_ingame: ResMut<State<GameInput>>,
-) {
+fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_ingame: ResMut<State<GameInput>>) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
-    const DARK: Color = Color::rgba(0.,0.,0., 0.800); // 0.176, 0.176, 0.176
-    let bg = if worldinfo.is_paused {to_color32(DARK_RED)} else {to_color32(DARK)};
+    const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
+    let bg = if worldinfo.is_paused { to_color32(DARK_RED) } else { to_color32(DARK) };
     // if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
 
     egui::TopBottomPanel::top("menu_panel")
@@ -121,112 +108,96 @@ fn ui_menu_panel(
         .show_separator_line(false)
         // .height_range(Rangef::new(16., 16.))  // 24
         .show(ctx.ctx_mut(), |ui| {
+            // ui.painter().text([0., 48.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
 
-        // ui.painter().text([0., 48.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
+            egui::menu::bar(ui, |ui| {
+                ui.style_mut().spacing.button_padding.x = 6.;
+                ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(180);
+                ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210); // MenuButton lighter
 
-        egui::menu::bar(ui, |ui| {
-
-            ui.style_mut().spacing.button_padding.x = 6.;
-            ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(180);
-            ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210);  // MenuButton lighter
-
-            ui.with_layout(Layout::right_to_left(egui::Align::BOTTOM), |ui| {
-                ui.add_space(16.);
-                // ui.small("108M\n30K");
-                // ui.small("10M/s\n8K/s");
-                // ui.label("·");
-                // ui.small("9ms\n12ms");
-                // ui.label("127.0.0.1:4000 · 21ms");
-                ui.menu_button("21ms 14K/s", |ui| {
-                    ui.label("127.0.0.1:4000");
-                    ui.add_space(12.);
-                    ui.horizontal(|ui| {
-                        ui.label("21ms").on_hover_text("Latency");
-                        ui.small("9ms\n12ms").on_hover_text("Latency (Client to Server / Server to Client)");
-                        ui.separator();
-                        ui.label("1M/s").on_hover_text("Bandwidth");
-                        ui.small("1M/s\n8K/s").on_hover_text("Bandwidth (Upload/Download)");
-                        ui.separator();
-                        ui.label("109M").on_hover_text("Transit");
-                        ui.small("108M\n30K").on_hover_text("Transit (Upload/Download)");
-                    });
-                });
-    
-                ui.separator();
-    
-                if worldinfo.is_paused {
-                    if egui::Button::new("▶").ui(ui).clicked() {
-                        worldinfo.is_paused = false;
-                    }
-                    if egui::Button::new("⏩").ui(ui).clicked() {  //⏩  
-                        worldinfo.paused_steps += 1;
-                    }
-                } else {
-                    if egui::Button::new("⏸").ui(ui).clicked() {
-                        worldinfo.is_paused = true;
-                    }
-                }
-                
-                // put inside a Layout::right_to_left(egui::Align::Center) or the Vertical Align will offset to upper.
-                ui.with_layout(Layout::left_to_right(egui::Align::BOTTOM), |ui| {
-
-                    ui.add_space(12.);
-                    ui.menu_button("System", |ui| {
-                        ui.menu_button("Connect Server", |ui| {
-                            ui.button("Add Server");
+                ui.with_layout(Layout::right_to_left(egui::Align::BOTTOM), |ui| {
+                    ui.add_space(16.);
+                    // ui.small("108M\n30K");
+                    // ui.small("10M/s\n8K/s");
+                    // ui.label("·");
+                    // ui.small("9ms\n12ms");
+                    // ui.label("127.0.0.1:4000 · 21ms");
+                    ui.menu_button("21ms 14K/s", |ui| {
+                        ui.label("127.0.0.1:4000");
+                        ui.add_space(12.);
+                        ui.horizontal(|ui| {
+                            ui.label("21ms").on_hover_text("Latency");
+                            ui.small("9ms\n12ms").on_hover_text("Latency (Client to Server / Server to Client)");
                             ui.separator();
-                        });
-                        ui.menu_button("Open World", |ui| {
-                            ui.button("New World");
-                            ui.button("Open World..");
+                            ui.label("1M/s").on_hover_text("Bandwidth");
+                            ui.small("1M/s\n8K/s").on_hover_text("Bandwidth (Upload/Download)");
                             ui.separator();
+                            ui.label("109M").on_hover_text("Transit");
+                            ui.small("108M\n30K").on_hover_text("Transit (Upload/Download)");
                         });
-                        ui.button("Edit World..");
-                        ui.button("Close World");
-                        ui.separator();
-                        ui.button("Server Start");
-                        ui.button("Server Stop");
-                        ui.separator();
-                        ui.button("Settings");
-                        ui.button("Mods");
-                        ui.button("Assets");
-                        ui.button("Controls");
-                        ui.button("About");
-                        ui.separator();
-                        ui.button("Terminate");
                     });
-                    ui.menu_button("World", |ui| {
-                        ui.button("Resume");
-                        ui.button("Step");
 
-                    });
-                    ui.menu_button("Render", |ui| {
+                    ui.separator();
 
-                    });
-                    ui.menu_button("Audio", |ui| {
+                    if worldinfo.is_paused {
+                        if egui::Button::new("▶").ui(ui).clicked() {
+                            worldinfo.is_paused = false;
+                        }
+                        if egui::Button::new("⏩").ui(ui).clicked() {
+                            //⏩
+                            worldinfo.paused_steps += 1;
+                        }
+                    } else {
+                        if egui::Button::new("⏸").ui(ui).clicked() {
+                            worldinfo.is_paused = true;
+                        }
+                    }
 
-                    });
-                    ui.menu_button("View", |ui| {
-
-                        ui.toggle_value(&mut true, "HUD");
-                        ui.toggle_value(&mut false, "Fullscreen");
-                        ui.button("Save Screenshot");
-                        ui.separator();
-                        ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
+                    // put inside a Layout::right_to_left(egui::Align::Center) or the Vertical Align will offset to upper.
+                    ui.with_layout(Layout::left_to_right(egui::Align::BOTTOM), |ui| {
+                        ui.add_space(12.);
+                        ui.menu_button("System", |ui| {
+                            ui.menu_button("Connect Server", |ui| {
+                                ui.button("Add Server");
+                                ui.separator();
+                            });
+                            ui.menu_button("Open World", |ui| {
+                                ui.button("New World");
+                                ui.button("Open World..");
+                                ui.separator();
+                            });
+                            ui.button("Edit World..");
+                            ui.button("Close World");
+                            ui.separator();
+                            ui.button("Server Start");
+                            ui.button("Server Stop");
+                            ui.separator();
+                            ui.button("Settings");
+                            ui.button("Mods");
+                            ui.button("Assets");
+                            ui.button("Controls");
+                            ui.button("About");
+                            ui.separator();
+                            ui.button("Terminate");
+                        });
+                        ui.menu_button("World", |ui| {
+                            ui.button("Resume");
+                            ui.button("Step");
+                        });
+                        ui.menu_button("Render", |ui| {});
+                        ui.menu_button("Audio", |ui| {});
+                        ui.menu_button("View", |ui| {
+                            ui.toggle_value(&mut true, "HUD");
+                            ui.toggle_value(&mut false, "Fullscreen");
+                            ui.button("Save Screenshot");
+                            ui.separator();
+                            ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
+                        });
                     });
                 });
             });
-
         });
-
-    });
-
 }
-
-
-
-
-
 
 pub fn ui_main_menu(
     mut rendered_texture_id: Local<egui::TextureId>,
@@ -235,7 +206,6 @@ pub fn ui_main_menu(
     mut ctx: EguiContexts,
     mut next_state: ResMut<NextState<AppState>>,
     mut app_exit_events: EventWriter<AppExit>,
-
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -243,11 +213,10 @@ pub fn ui_main_menu(
 
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
-        
+
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
 
         ui.vertical_centered(|ui| {
-
             ui.add_space(h * 0.12);
             ui.heading("ethertia");
             ui.add_space(h * 0.2);
@@ -287,22 +256,17 @@ pub enum SettingsPanel {
     Credits,
 }
 
-pub fn ui_settings(
-    mut ctx: EguiContexts,
-    mut settings_panel: Local<SettingsPanel>,
-    mut next_state: ResMut<NextState<AppState>>,
-) {
+pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPanel>, mut next_state: ResMut<NextState<AppState>>) {
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
-        
         ui.add_space(48.);
         ui.heading("Settings");
         ui.add_space(24.);
-        
+
         ui.horizontal(|ui| {
             ui.group(|ui| {
                 ui.vertical(|ui| {
                     if ui.small_button("<").clicked() {
-                        next_state.set(AppState::MainMenu);  // or set to InGame if it's openned from InGame state
+                        next_state.set(AppState::MainMenu); // or set to InGame if it's openned from InGame state
                     }
                     ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
                     // ui.separator();
@@ -315,24 +279,21 @@ pub fn ui_settings(
                     ui.radio_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
                     // ui.separator();
                     ui.radio_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
-                    
+
                     // ui.set_max_width(180.);
                 });
                 // ui.set_max_width(180.);
             });
-            ui.group(|ui| {
-                match *settings_panel {
-                    SettingsPanel::Profile => {
-                        ui.label("Profile");
-                    },
-                    SettingsPanel::Graphics => {
-                        ui.label("Graphics");
-                    },
-                    _ => ()
+            ui.group(|ui| match *settings_panel {
+                SettingsPanel::Profile => {
+                    ui.label("Profile");
                 }
+                SettingsPanel::Graphics => {
+                    ui.label("Graphics");
+                }
+                _ => (),
             });
         });
-
     });
 }
 
@@ -349,91 +310,70 @@ pub fn ui_pause_menu(
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
     egui::CentralPanel::default()
         .frame(Frame::default().fill(Color32::from_black_alpha(190)))
-        .show(ctx.ctx_mut(), |ui|
-    {
-        let w = ui.available_width();
+        .show(ctx.ctx_mut(), |ui| {
+            let w = ui.available_width();
 
-        let head_y = 75.;
-        ui.painter().rect_filled(ui.max_rect().with_max_y(head_y), Rounding::ZERO, Color32::from_rgba_premultiplied(35,35,35,210));
-        ui.painter().rect_filled(ui.max_rect().with_max_y(head_y).with_min_y(head_y-2.), Rounding::ZERO, Color32::from_white_alpha(80));
+            let head_y = 75.;
+            ui.painter().rect_filled(
+                ui.max_rect().with_max_y(head_y),
+                Rounding::ZERO,
+                Color32::from_rgba_premultiplied(35, 35, 35, 210),
+            );
+            ui.painter().rect_filled(
+                ui.max_rect().with_max_y(head_y).with_min_y(head_y - 2.),
+                Rounding::ZERO,
+                Color32::from_white_alpha(80),
+            );
 
-        ui.add_space(head_y - 27.);
+            ui.add_space(head_y - 27.);
 
-        ui.horizontal(|ui| {
-            
-            ui.add_space((w - 420.) / 2.);
+            ui.horizontal(|ui| {
+                ui.add_space((w - 420.) / 2.);
 
-            ui.style_mut().spacing.button_padding.x = 10.;
+                ui.style_mut().spacing.button_padding.x = 10.;
 
-            ui.toggle_value(&mut false, "Map");
-            ui.toggle_value(&mut false, "Inventory");
-            ui.toggle_value(&mut false, "Team");
-            ui.toggle_value(&mut false, "Abilities");
-            ui.toggle_value(&mut false, "Quests");
-            if ui.toggle_value(&mut false, "Quit").clicked() {
-                next_state_game.set(AppState::MainMenu);
-            }
+                ui.toggle_value(&mut false, "Map");
+                ui.toggle_value(&mut false, "Inventory");
+                ui.toggle_value(&mut false, "Team");
+                ui.toggle_value(&mut false, "Abilities");
+                ui.toggle_value(&mut false, "Quests");
+                if ui.toggle_value(&mut false, "Quit").clicked() {
+                    next_state_game.set(AppState::MainMenu);
+                }
+            });
+
+            // let h = ui.available_height();
+            // ui.add_space(h * 0.2);
+
+            // ui.vertical_centered(|ui| {
+
+            //     if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
+            //         next_state_ingame.set(GameInput::Controlling);
+            //     }
+            //     if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
+            //     }
+            // });
         });
-            
-        // let h = ui.available_height();
-        // ui.add_space(h * 0.2);
-
-        // ui.vertical_centered(|ui| {
-
-        //     if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
-        //         next_state_ingame.set(GameInput::Controlling);
-        //     }
-        //     if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
-        //     }
-        // });
-
-    });
 }
 
-
-
-
-
-
-fn hud_hotbar(
-    mut ctx: EguiContexts,
-
-) {
+fn hud_hotbar(mut ctx: EguiContexts) {
     egui::Window::new("HUD Hotbar")
-    .title_bar(false)
-    .anchor(Align2::CENTER_BOTTOM, [0., -16.])
-    .show(ctx.ctx_mut(), |ui| {
-        let s = 50.;
+        .title_bar(false)
+        .anchor(Align2::CENTER_BOTTOM, [0., -16.])
+        .show(ctx.ctx_mut(), |ui| {
+            let s = 50.;
 
-        ui.horizontal(|ui| {
-
-            for i in 0..9 {
-                ui.add_sized([s, s], egui::Button::new(""));
-            }
+            ui.horizontal(|ui| {
+                for i in 0..9 {
+                    ui.add_sized([s, s], egui::Button::new(""));
+                }
+            });
         });
-
-    });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fn update_debug_text(
+fn hud_debug_text(
     // world: &World,
     // cmds: Commands,
-    
     mut ctx: EguiContexts,
 
     time: Res<Time>,
@@ -506,7 +446,7 @@ fn update_debug_text(
         if let Some(usage) = memory_stats::memory_stats() {
             // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
             // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
-    
+
             mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
             mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
         }
@@ -527,7 +467,7 @@ fn update_debug_text(
     let cam_pos_z = cam_pos.z;
 
     let cam_visible_entities_num = cam_visible_entities.entities.len();
-    let num_all_entities = 0;//world.entities().len();
+    let num_all_entities = 0; //world.entities().len();
 
     // let curr_path = std::env::current_exe().unwrap().display().to_string();
     let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
@@ -544,12 +484,14 @@ fn update_debug_text(
 
     let mut hit_str = "none".into();
     if hit_result.is_hit {
-        hit_str = format!("p: {}, n: {}, d: {}, vox: {}", 
-                          hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel);
+        hit_str = format!(
+            "p: {}, n: {}, d: {}, vox: {}",
+            hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel
+        );
     }
 
     let str = format!(
-"fps: {fps:.1}, dt: {frame_time:.4}ms
+        "fps: {fps:.1}, dt: {frame_time:.4}ms
 cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
 visible entities: {cam_visible_entities_num} / all {num_all_entities}.
 
@@ -566,7 +508,13 @@ Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_rem
 "
     );
 
-    ctx.ctx_mut().debug_painter().text([0., 48.].into(), Align2::LEFT_TOP, str, FontId::proportional(12.), Color32::from_gray(230));
+    ctx.ctx_mut().debug_painter().text(
+        [0., 48.].into(),
+        Align2::LEFT_TOP,
+        str,
+        FontId::proportional(12.),
+        Color32::from_gray(230),
+    );
 
     *last_cam_pos = cam_pos;
 }

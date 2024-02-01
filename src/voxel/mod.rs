@@ -4,34 +4,35 @@ mod material;
 mod meshgen;
 mod worldgen;
 
+use self::material::mtl;
+use crate::character_controller::{CharacterController, CharacterControllerCamera};
+use crate::game::{AppState, GameInput, WorldInfo};
+use crate::util::iter;
 use chunk::*;
 pub use chunk_system::*;
 use meshgen::*;
 use worldgen::*;
-use self::material::mtl;
-use crate::character_controller::{CharacterControllerCamera, CharacterController};
-use crate::game::{AppState, GameInput, WorldInfo};
-use crate::util::iter;
 
-use futures_lite::future;
-use once_cell::sync::Lazy;
-use std::{cell::RefCell, time::Instant};
-use std::sync::{Arc, RwLock};
-use thread_local::ThreadLocal;
-use bevy_xpbd_3d::{components::{AsyncCollider, Collider, ComputedCollider, RigidBody}, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 use bevy::{
     asset::ReflectAsset,
+    math::{ivec2, ivec3},
     prelude::*,
     render::{
         primitives::Aabb,
         render_resource::{AsBindGroup, PrimitiveTopology},
     },
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{FloatOrd, HashMap}, 
-    math::{ivec2, ivec3},
+    utils::{FloatOrd, HashMap},
 };
-
-
+use bevy_xpbd_3d::{
+    components::{AsyncCollider, Collider, ComputedCollider, RigidBody},
+    plugins::spatial_query::{SpatialQuery, SpatialQueryFilter},
+};
+use futures_lite::future;
+use once_cell::sync::Lazy;
+use std::sync::{Arc, RwLock};
+use std::{cell::RefCell, time::Instant};
+use thread_local::ThreadLocal;
 
 pub struct VoxelPlugin;
 
@@ -57,7 +58,8 @@ impl Plugin for VoxelPlugin {
                 // chunks_apply_loaded
                 // chunks_apply_remeshed
             )
-                .chain().run_if(in_state(AppState::InGame)),
+                .chain()
+                .run_if(in_state(AppState::InGame)),
         );
     }
 }
@@ -125,7 +127,6 @@ fn chunks_detect_load_and_unload(
         for y in -n..=n {
             for z in -n..=n {
                 for x in -n..=n {
-                    
                     if chunk_sys.chunks_loading.len() > MAX_CONCURRENT_LOADING {
                         break 'outer;
                     }
@@ -139,8 +140,7 @@ fn chunks_detect_load_and_unload(
                     let chunkpos = IVec3::new(x, y, z) * Chunk::SIZE + vp;
 
                     // the chunk already exists, skip.
-                    if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos)
-                    {
+                    if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos) {
                         continue;
                     }
 
@@ -197,7 +197,7 @@ fn chunks_detect_load_and_unload(
 
             goingtospawn.push(chunkptr);
 
-            return false;  // remove task.
+            return false; // remove task.
         }
         true
     });
@@ -223,8 +223,7 @@ fn chunks_detect_load_and_unload(
     chunk_sys.dbg_remesh_all_chunks = false;
 }
 
-static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> =
-    Lazy::new(ThreadLocal::default);
+static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> = Lazy::new(ThreadLocal::default);
 
 fn chunks_remesh(
     mut commands: Commands,
@@ -250,9 +249,7 @@ fn chunks_remesh(
             let chunkptr = chunkptr.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
-                let mut vbuf = THREAD_LOCAL_VERTEX_BUFFERS
-                    .get_or(|| RefCell::new(VertexBuffer::default()))
-                    .borrow_mut();
+                let mut vbuf = THREAD_LOCAL_VERTEX_BUFFERS.get_or(|| RefCell::new(VertexBuffer::default())).borrow_mut();
 
                 let dbg_time = Instant::now();
                 let entity;
@@ -262,7 +259,6 @@ fn chunks_remesh(
 
                     // Generate Mesh
                     MeshGen::generate_chunk_mesh(&mut vbuf, &chunk);
-
 
                     entity = chunk.entity;
                     mesh_handle = chunk.mesh_handle.clone();
@@ -278,11 +274,11 @@ fn chunks_remesh(
                 // vulkan also have this issue, but extension
                 //   #extension GL_EXT_fragment_shader_barycentric : enable
                 //   layout(location = 2) pervertexEXT in int in_MtlIds[];  gl_BaryCoordEXT
-                // would fix the problem in vulkan. 
+                // would fix the problem in vulkan.
                 vbuf.compute_indexed_naive();
 
                 // if nv != 0 {
-                //     info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%", 
+                //     info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%",
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
@@ -305,47 +301,48 @@ fn chunks_remesh(
     chunk_sys.chunks_meshing.retain(|_chunkpos, task| {
         if task.is_finished() {
             let (mesh, collider, entity, mesh_handle) = future::block_on(future::poll_once(task)).unwrap();
-                
+
             // Update Mesh Asset
             *meshes.get_mut(mesh_handle).unwrap() = mesh;
 
             // Update Phys Collider TriMesh
             if let Some(collider) = collider {
-                if let Some(mut cmds) = commands.get_entity(entity) {  // the entity may be already unloaded ?
-                    cmds.remove::<Collider>()
-                        .insert(collider)
-                        .insert(Visibility::Visible);
+                if let Some(mut cmds) = commands.get_entity(entity) {
+                    // the entity may be already unloaded ?
+                    cmds.remove::<Collider>().insert(collider).insert(Visibility::Visible);
                 }
             }
 
-            return false;  // remove task.
+            return false; // remove task.
         }
         true
     });
 }
 
-
-fn gizmos(
-    mut gizmos: Gizmos,
-    chunk_sys: Res<ChunkSystem>,
-) {
-
-
+fn gizmos(mut gizmos: Gizmos, chunk_sys: Res<ChunkSystem>) {
     // chunks loading
     for cp in chunk_sys.chunks_loading.keys() {
-        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::GREEN);
+        gizmos.cuboid(
+            Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+            Color::GREEN,
+        );
     }
 
     // chunks remesh
     for cp in chunk_sys.chunks_remesh.iter() {
-        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::ORANGE);
+        gizmos.cuboid(
+            Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+            Color::ORANGE,
+        );
     }
 
     // chunks meshing
     for cp in chunk_sys.chunks_meshing.keys() {
-        gizmos.cuboid(Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)), Color::RED);
+        gizmos.cuboid(
+            Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+            Color::RED,
+        );
     }
-
 }
 
 #[derive(Resource, Reflect, Default, Debug)]
@@ -356,7 +353,6 @@ pub struct HitResult {
     pub normal: Vec3,
     pub distance: f32,
     // entity: Entity,
-
     pub is_voxel: bool,
 }
 
@@ -365,10 +361,10 @@ fn raycast(
 
     query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>,
     query_player: Query<Entity, With<CharacterController>>,
-    
+
     mut hit_result: ResMut<HitResult>,
 
-    mouse_btn: Res<Input<MouseButton>>, 
+    mouse_btn: Res<Input<MouseButton>>,
 
     mut chunk_sys: ResMut<ChunkSystem>,
 
@@ -380,8 +376,12 @@ fn raycast(
 
     let player_entity = query_player.single();
 
-    if let Some(hit) = spatial_query.cast_ray(ray_pos, ray_dir, 
-        100., true, SpatialQueryFilter::default().without_entities(vec![player_entity])
+    if let Some(hit) = spatial_query.cast_ray(
+        ray_pos,
+        ray_dir,
+        100.,
+        true,
+        SpatialQueryFilter::default().without_entities(vec![player_entity]),
     ) {
         hit_result.is_hit = true;
         hit_result.normal = hit.normal;
@@ -395,14 +395,12 @@ fn raycast(
         hit_result.is_hit = false;
     }
 
-
     if *state_ingame == GameInput::Paused {
         return;
     }
     let do_break = mouse_btn.just_pressed(MouseButton::Left);
     let do_place = mouse_btn.just_pressed(MouseButton::Right);
     if hit_result.is_hit && (do_break || do_place) {
-
         let n = 5;
 
         iter::iter_aabb(n, n, |lp| {
@@ -411,12 +409,12 @@ fn raycast(
             chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
 
             let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
-            
+
             let c = chunk.get_cell_mut(Chunk::as_localpos(p));
 
             let dif = (n as f32 - lp.as_vec3().length()).max(0.);
 
-            c.value += if do_break {-dif} else {dif};
+            c.value += if do_break { -dif } else { dif };
 
             if do_place && c.mtl == 0 {
                 c.mtl = mtl::STONE;
@@ -424,7 +422,6 @@ fn raycast(
         });
     }
 }
-
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Asset)]

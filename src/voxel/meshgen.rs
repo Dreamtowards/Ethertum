@@ -6,21 +6,17 @@ use bevy::{
     render::{
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
-    }, utils::{HashMap, hashbrown::hash_map::{OccupiedEntry, VacantEntry}, Entry},
+    },
+    utils::{
+        hashbrown::hash_map::{OccupiedEntry, VacantEntry},
+        Entry, HashMap,
+    },
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
 use super::{chunk::*, chunk_system::ChunkPtr};
 
-
-
-
-
-
-
-
-
-// Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq, 
+// Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
 
 #[derive(PartialEq)]
 struct HashVec3(Vec3);
@@ -31,10 +27,7 @@ impl Hash for HashVec3 {
         self.0.z.to_bits().hash(state);
     }
 }
-impl Eq for HashVec3 {
-}
-
-
+impl Eq for HashVec3 {}
 
 #[derive(Clone, Copy)]
 pub struct Vertex {
@@ -60,15 +53,13 @@ impl Hash for Vertex {
 }
 impl PartialEq for Vertex {
     fn eq(&self, other: &Self) -> bool {
-        self.pos.mul(100.).as_ivec3() == other.pos.mul(100.).as_ivec3() &&
-        self.norm.mul(100.).as_ivec3() == other.norm.mul(100.).as_ivec3() &&
-        self.uv.mul(100.).as_ivec2() == other.uv.mul(100.).as_ivec2()
+        self.pos.mul(100.).as_ivec3() == other.pos.mul(100.).as_ivec3()
+            && self.norm.mul(100.).as_ivec3() == other.norm.mul(100.).as_ivec3()
+            && self.uv.mul(100.).as_ivec2() == other.uv.mul(100.).as_ivec2()
     }
 }
 
-impl Eq for Vertex {
-}
-
+impl Eq for Vertex {}
 
 #[derive(Default)]
 pub struct VertexBuffer {
@@ -85,11 +76,7 @@ impl VertexBuffer {
     }
 
     pub fn push_vertex(&mut self, pos: Vec3, uv: Vec2, norm: Vec3) {
-        self.vertices.push(Vertex {
-            pos,
-            uv,
-            norm,
-        });
+        self.vertices.push(Vertex { pos, uv, norm });
     }
 
     pub fn is_indexed(&self) -> bool {
@@ -125,7 +112,7 @@ impl VertexBuffer {
         assert!(!self.is_indexed());
 
         for tri_i in 0..self.triangle_count() {
-            let v = &mut self.vertices[tri_i as usize * 3 ..];
+            let v = &mut self.vertices[tri_i as usize * 3..];
             let p0 = v[0].pos;
             let p1 = v[1].pos;
             let p2 = v[2].pos;
@@ -140,13 +127,13 @@ impl VertexBuffer {
 
     pub fn compute_smooth_normals(&mut self) {
         const SCALE: f32 = 100.;
-        
+
         let mut pos2norm = HashMap::<IVec3, Vec3>::new();
 
         for tri_i in 0..self.triangle_count() {
-            let p0 = self.vert(tri_i*3).pos;
-            let p1 = self.vert(tri_i*3+1).pos;
-            let p2 = self.vert(tri_i*3+2).pos;
+            let p0 = self.vert(tri_i * 3).pos;
+            let p1 = self.vert(tri_i * 3 + 1).pos;
+            let p2 = self.vert(tri_i * 3 + 2).pos;
 
             let n = (p1 - p0).cross(p2 - p0);
 
@@ -182,13 +169,12 @@ impl VertexBuffer {
         assert!(!self.is_indexed());
         self.indices.clear();
         self.indices.reserve(self.vertex_count());
-        
+
         let mut vert2idx = HashMap::<Vertex, u32>::new();
 
         let mut vertices = Vec::new();
 
         for vert in self.vertices.iter() {
-
             // if let Some(idx) = vert2idx.get(vert) {
             //     self.indices.push(*idx);
             // } else {
@@ -202,7 +188,7 @@ impl VertexBuffer {
                 Entry::Occupied(e) => {
                     let idx = *e.get();
                     self.indices.push(idx);
-                },
+                }
                 Entry::Vacant(e) => {
                     let idx = vertices.len() as u32;
                     e.insert(idx);
@@ -218,10 +204,10 @@ impl VertexBuffer {
     pub fn to_mesh(&self, mesh: &mut Mesh) {
         let pos: Vec<Vec3> = self.vertices.iter().map(|v| v.pos).collect();
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
-        
+
         let uv: Vec<Vec2> = self.vertices.iter().map(|v| v.uv).collect();
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv);
-        
+
         let norm: Vec<Vec3> = self.vertices.iter().map(|v| v.norm).collect();
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, norm);
 
@@ -232,7 +218,6 @@ impl VertexBuffer {
         })
     }
 }
-
 
 pub struct MeshGen {}
 
@@ -406,11 +391,7 @@ impl MeshGen {
                         let winding_flip = c0.is_empty();
 
                         for quadvert_i in 0..6 {
-                            let winded_vi = if winding_flip {
-                                5 - quadvert_i
-                            } else {
-                                quadvert_i
-                            };
+                            let winded_vi = if winding_flip { 5 - quadvert_i } else { quadvert_i };
 
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
                             let c = chunk.get_cell_rel(p);

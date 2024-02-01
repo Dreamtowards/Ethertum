@@ -2,7 +2,6 @@ use std::sync::{Arc, RwLock, Weak};
 
 use bevy::{math::ivec3, prelude::*};
 
-
 // Voxel System
 
 #[derive(Clone, Copy)]
@@ -32,11 +31,7 @@ impl Default for Cell {
 
 impl Cell {
     pub fn new(value: f32, mtl: u16) -> Self {
-        Self {
-            value,
-            mtl,
-            ..default()
-        }
+        Self { value, mtl, ..default() }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -115,15 +110,14 @@ impl Chunk {
                 let neib_chunk = neib_chunkptr.read().unwrap();
                 // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
-                return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)))
+                return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
             }
             None
         }
     }
 
     pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
-        self.get_cell_neighbor(relpos)
-            .unwrap_or(Cell::new(f32::INFINITY, 0))
+        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(f32::INFINITY, 0))
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {
@@ -162,11 +156,7 @@ impl Chunk {
     }
 
     pub fn as_chunkpos(p: IVec3) -> IVec3 {
-        IVec3::new(
-            Self::_floor16(p.x),
-            Self::_floor16(p.y),
-            Self::_floor16(p.z),
-        )
+        IVec3::new(Self::_floor16(p.x), Self::_floor16(p.y), Self::_floor16(p.z))
     }
 
     pub fn as_localpos(p: IVec3) -> IVec3 {

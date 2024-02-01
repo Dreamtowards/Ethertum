@@ -42,8 +42,7 @@ impl CharacterControllerBundle {
             character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
-            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Vec3::NEG_Y)
-                .with_max_time_of_impact(0.2),
+            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Vec3::NEG_Y).with_max_time_of_impact(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
             gravity_scale: GravityScale(2.),
@@ -137,7 +136,6 @@ fn input_move(
     let dt_sec = time.delta_seconds();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
-        
         let mut movement = Vec3::ZERO;
 
         if ctl.enable_input {
@@ -216,7 +214,9 @@ fn input_move(
                 if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
                     ctl.is_flying = !ctl.is_flying;
                 }
-                unsafe { LAST_FLY_JUMP = time_now; }
+                unsafe {
+                    LAST_FLY_JUMP = time_now;
+                }
             }
             if ctl.is_grounded && ctl.is_flying {
                 ctl.is_flying = false;
@@ -228,7 +228,9 @@ fn input_move(
                 if time_now - unsafe { LAST_W } < 0.3 {
                     ctl.is_sprinting = true;
                 }
-                unsafe { LAST_W = time_now; }
+                unsafe {
+                    LAST_W = time_now;
+                }
             }
 
             static mut LAST_JUMP: f32 = 0.;
@@ -236,11 +238,11 @@ fn input_move(
                 linvel.0.y = ctl.jump_impulse;
 
                 // info!("JMP {:?}", linvel.0);
-                unsafe { LAST_JUMP = time_now; }
+                unsafe {
+                    LAST_JUMP = time_now;
+                }
             }
         }
-
-        
 
         // Movement
         let mut acceleration = ctl.acceleration;

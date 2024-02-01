@@ -64,10 +64,7 @@ impl WorldGen {
 
                     if c.mtl == mtl::STONE {
                         let mut replace = c.mtl;
-                        if p.y < 2
-                            && air_dist <= 2
-                            && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1
-                        {
+                        if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
                             replace = mtl::SAND;
                         } else if air_dist <= 1 {
                             replace = mtl::GRASS;

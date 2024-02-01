@@ -1,16 +1,12 @@
-use std::sync::{Arc, RwLock};
 use bevy::{
     prelude::*,
     tasks::Task,
     utils::{HashMap, HashSet},
 };
 use bevy_xpbd_3d::components::Collider;
+use std::sync::{Arc, RwLock};
 
 use super::{chunk::*, TerrainMaterial};
-
-
-
-
 
 // Box<Chunk>;         not supported for SharedPtr
 // Arc<RwLock<Chunk>>; non convinent for readonly ops
@@ -93,12 +89,10 @@ impl ChunkSystem {
         self.chunks.len() //.read().unwrap().len()
     }
 
-
     pub fn get_cell(&self, p: IVec3) -> Option<Cell> {
         let chunk = self.get_chunk(Chunk::as_chunkpos(p))?.read().unwrap();
         Some(*chunk.get_cell(Chunk::as_localpos(p)))
     }
-
 
     pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let chunkpos;
@@ -119,7 +113,7 @@ impl ChunkSystem {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
                         {
                             let mut neib_chunk = neib_chunkptr.write().unwrap();
-                            
+
                             // update neighbor's `neighbor_chunk`
                             neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
@@ -156,7 +150,7 @@ impl ChunkSystem {
     pub fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
         let chunk = self.chunks.remove(&chunkpos)?;
 
-            //cmds.entity(chunk.entity).despawn_recursive();
+        //cmds.entity(chunk.entity).despawn_recursive();
 
         Some(chunk)
     }

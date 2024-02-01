@@ -1,7 +1,8 @@
 use bevy::{
-    diagnostic::{
-        DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin,
-    }, prelude::*, render::{renderer::RenderAdapterInfo, view::VisibleEntities}, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+    render::{renderer::RenderAdapterInfo, view::VisibleEntities},
+    window::{CursorGrabMode, PrimaryWindow, WindowMode},
 };
 use bevy_editor_pls::editor::EditorEvent;
 use bevy_egui::{
@@ -9,16 +10,13 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
-use crate::{character_controller::CharacterController, voxel::HitResult};
 use crate::game::AppState;
-
-
+use crate::{character_controller::CharacterController, voxel::HitResult};
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-
         app.add_plugins(EguiPlugin);
 
         // Editor
@@ -40,8 +38,6 @@ impl Plugin for EditorPlugin {
             EntityCountDiagnosticsPlugin,
             //SystemInformationDiagnosticsPlugin
         ));
-
-
     }
 }
 
@@ -58,11 +54,7 @@ fn handle_inputs(
     for event in editor_events.read() {
         if let EditorEvent::Toggle { now_active } = *event {
             let playing = !now_active;
-            window.cursor.grab_mode = if playing {
-                CursorGrabMode::Locked
-            } else {
-                CursorGrabMode::None
-            };
+            window.cursor.grab_mode = if playing { CursorGrabMode::Locked } else { CursorGrabMode::None };
             window.cursor.visible = !playing;
             for mut controller in &mut controller_query {
                 controller.enable_input = playing;
@@ -71,9 +63,7 @@ fn handle_inputs(
     }
 
     // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11)
-        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
-    {
+    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) {
         window.mode = if window.mode != WindowMode::Fullscreen {
             WindowMode::Fullscreen
         } else {
@@ -97,11 +87,7 @@ fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
     editor_controls
 }
 
-fn setup_editor_camera_controls(
-    mut query: Query<
-        &mut bevy_editor_pls::default_windows::cameras::camera_3d_free::FlycamControls,
-    >,
-) {
+fn setup_editor_camera_controls(mut query: Query<&mut bevy_editor_pls::default_windows::cameras::camera_3d_free::FlycamControls>) {
     let mut controls = query.single_mut();
     controls.key_up = KeyCode::E;
     controls.key_down = KeyCode::Q;

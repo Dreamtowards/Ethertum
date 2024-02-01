@@ -1,28 +1,25 @@
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    math::vec3, pbr::DirectionalLightShadowMap, prelude::*, ui::UiPlugin, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+    math::vec3,
+    pbr::DirectionalLightShadowMap,
+    prelude::*,
+    window::{CursorGrabMode, PrimaryWindow, WindowMode},
 };
 use bevy_atmosphere::prelude::*;
-use bevy_editor_pls::editor::EditorEvent;
-use bevy_egui::EguiContext;
 use bevy_xpbd_3d::prelude::*;
 
-use crate::{character_controller::{
-    CharacterController, CharacterControllerBundle, CharacterControllerCamera,
-    CharacterControllerPlugin,
-}, net::NetworkClientPlugin};
+use crate::{
+    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin},
+    net::NetworkClientPlugin,
+};
 
 use crate::voxel::VoxelPlugin;
-
-
-
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-
         // Atmosphere
         app.insert_resource(AtmosphereModel::default());
         app.add_plugins(AtmospherePlugin);
@@ -61,34 +58,29 @@ impl Plugin for GamePlugin {
 
         app.add_state::<AppState>();
 
-        app.add_systems(Update, handle_inputs);  // toggle: PauseGameControl, Fullscreen
+        app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
         app.add_plugins(crate::ui::UiPlugin);
-        
+
         app.add_state::<GameInput>();
         app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
-
     }
 }
-
-
 
 // #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 // pub enum SystemSet {
 //     UI,
 // }
 
-
 // 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
     #[default]
     MainMenu,
-    InGame,  // InGameWorld
-    WtfSettings,  // 这个是乱加的，因为Settings应该可以和InGame共存，也就是InGame的同时有Settings
+    InGame,      // InGameWorld
+    WtfSettings, // 这个是乱加的，因为Settings应该可以和InGame共存，也就是InGame的同时有Settings
 }
-
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum GameInput {
@@ -111,9 +103,9 @@ fn ingame_toggle(
     mut controller_query: Query<&mut CharacterController>,
 ) {
     let mut window = window_query.single_mut();
-    
+
     let to_play = *next_state == GameInput::Controlling;
-    
+
     window.cursor.grab_mode = if to_play { CursorGrabMode::Locked } else { CursorGrabMode::None };
     window.cursor.visible = !to_play;
 
@@ -121,8 +113,6 @@ fn ingame_toggle(
         controller.enable_input = to_play;
     }
 }
-
-
 
 fn startup(
     mut commands: Commands,
@@ -158,14 +148,8 @@ fn startup(
     // Camera
     commands.spawn((
         Camera3dBundle {
-            projection: Projection::Perspective(PerspectiveProjection {
-                fov: TAU / 4.6,
-                ..default()
-            }),
-            camera: Camera {
-                hdr: true,
-                ..default()
-            },
+            projection: Projection::Perspective(PerspectiveProjection { fov: TAU / 4.6, ..default() }),
+            camera: Camera { hdr: true, ..default() },
             ..default()
         },
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
@@ -187,8 +171,6 @@ fn startup(
         Sun, // Marks the light as Sun
         Name::new("Sun"),
     ));
-
-    
 
     // commands.spawn((
     //     SceneBundle {
@@ -234,26 +216,27 @@ fn cleanup(
     commands.entity(cam_query.single()).despawn_recursive();
     commands.entity(player_query.single()).despawn_recursive();
     commands.entity(sun_query.single()).despawn_recursive();
-}   
+}
 
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    
+
     mut state: ResMut<State<GameInput>>,
     mut next_state: ResMut<NextState<GameInput>>,
 ) {
-
     let mut window = window_query.single_mut();
-    
+
     if key.just_pressed(KeyCode::Escape) {
-        next_state.set(if *state == GameInput::Paused {GameInput::Controlling} else {GameInput::Paused});
+        next_state.set(if *state == GameInput::Paused {
+            GameInput::Controlling
+        } else {
+            GameInput::Paused
+        });
     }
 
     // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11)
-        || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return))
-    {
+    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) {
         window.mode = if window.mode != WindowMode::Fullscreen {
             WindowMode::Fullscreen
         } else {
@@ -261,7 +244,6 @@ fn handle_inputs(
         };
     }
 }
-
 
 fn tick_world(
     mut atmosphere: AtmosphereMut<Nishita>,
@@ -305,34 +287,21 @@ fn tick_world(
     }
 }
 
-fn gizmo_sys(
-    mut gizmo: Gizmos,
-    mut gizmo_config: ResMut<GizmoConfig>,
-    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
-) {
+fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
     gizmo_config.depth_bias = -1.; // always in front
 
     // World Basis Axes
     let n = 5;
-    gizmo.line(Vec3::ZERO, Vec3::X * 2.*n as f32, Color::RED);
-    gizmo.line(Vec3::ZERO, Vec3::Y * 2.*n as f32, Color::GREEN);
-    gizmo.line(Vec3::ZERO, Vec3::Z * 2.*n as f32, Color::BLUE);
+    gizmo.line(Vec3::ZERO, Vec3::X * 2. * n as f32, Color::RED);
+    gizmo.line(Vec3::ZERO, Vec3::Y * 2. * n as f32, Color::GREEN);
+    gizmo.line(Vec3::ZERO, Vec3::Z * 2. * n as f32, Color::BLUE);
 
-    
     let color = Color::GRAY;
     for x in -n..=n {
-        gizmo.ray(
-            vec3(x as f32, 0., -n as f32),
-            Vec3::Z * n as f32 * 2.,
-            color,
-        );
+        gizmo.ray(vec3(x as f32, 0., -n as f32), Vec3::Z * n as f32 * 2., color);
     }
     for z in -n..=n {
-        gizmo.ray(
-            vec3(-n as f32, 0., z as f32),
-            Vec3::X * n as f32 * 2.,
-            color,
-        );
+        gizmo.ray(vec3(-n as f32, 0., z as f32), Vec3::X * n as f32 * 2., color);
     }
 
     // View Basis
@@ -345,8 +314,6 @@ fn gizmo_sys(
     gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
     gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
 }
-
-
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
@@ -386,10 +353,7 @@ impl WorldInfo {
             time_created: 0,
             time_modified: 0,
 
-            tick_timer: Timer::new(
-                bevy::utils::Duration::from_secs_f32(1. / 20.),
-                TimerMode::Repeating,
-            ),
+            tick_timer: Timer::new(bevy::utils::Duration::from_secs_f32(1. / 20.), TimerMode::Repeating),
 
             is_paused: false,
             paused_steps: 0,

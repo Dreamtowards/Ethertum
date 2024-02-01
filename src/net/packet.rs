@@ -1,41 +1,21 @@
-
-
 use serde::{Deserialize, Serialize};
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CPacket {
-    
     // Handshake & Server Query & Login
+    Handshake { protocol_version: u64 },
+    ServerQuery {},
+    Ping { client_time: u64 },
 
-    Handshake {
-        protocol_version: u64,
-    },
-    ServerQuery {
-
-    },
-    Ping {
-        client_time: u64,
-    },
-
-    Login {
-        uuid: u64,
-        access_token: u64,
-    },
+    Login { uuid: u64, access_token: u64 },
 
     // Play
-
-    ChatMessage {
-        message: String,
-    }
+    ChatMessage { message: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum SPacket {
-
     // Handshake & Server Query & Login
-
     Disconnect {
         reason: String,
     },
@@ -56,10 +36,7 @@ pub enum SPacket {
     },
 
     // Play
-
     Chat {
         message: String,
     },
 }
-
-

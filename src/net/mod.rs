@@ -1,24 +1,22 @@
+use std::net::{SocketAddr, UdpSocket};
 
-use std::net::{UdpSocket, SocketAddr};
-
+use crate::util::{current_timestamp, current_timestamp_millis};
 use bevy::prelude::*;
-use bevy_egui::{EguiContexts, egui};
+use bevy_egui::{egui, EguiContexts};
 use bevy_renet::{
-    RenetServerPlugin, 
     renet::{
-        transport::{ServerConfig, ServerAuthentication, NetcodeServerTransport, ClientAuthentication, NetcodeClientTransport}, 
-        ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent
-    }, 
-    transport::{NetcodeServerPlugin, NetcodeClientPlugin}, RenetClientPlugin
+        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig},
+        ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent,
+    },
+    transport::{NetcodeClientPlugin, NetcodeServerPlugin},
+    RenetClientPlugin, RenetServerPlugin,
 };
 use serde::{Deserialize, Serialize};
-use crate::util::{current_timestamp, current_timestamp_millis};
 
 mod packet;
 use packet::{CPacket, SPacket};
 
 const PROTOCOL_ID: u64 = 1;
-
 
 fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
     // let public_addr = "127.0.0.1:4000".parse().unwrap();  // SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)
@@ -38,16 +36,14 @@ fn new_netcode_client_transport(server_addr: SocketAddr) -> NetcodeClientTranspo
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     let current_time = current_timestamp();
     let client_id = current_time.as_millis() as u64;
-    let authentication = ClientAuthentication::Unsecure { 
+    let authentication = ClientAuthentication::Unsecure {
         protocol_id: PROTOCOL_ID,
-        client_id, 
-        server_addr: server_addr, 
-        user_data: None
+        client_id,
+        server_addr: server_addr,
+        user_data: None,
     };
     NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
 }
-
-
 
 pub struct NetworkServerPlugin;
 
@@ -57,13 +53,13 @@ impl Plugin for NetworkServerPlugin {
 
         app.add_plugins(RenetServerPlugin);
         app.add_plugins(NetcodeServerPlugin);
-        
+
         app.insert_resource(RenetServer::new(ConnectionConfig::default()));
         app.insert_resource(new_netcode_server_transport(addr, 64));
         info!("Server bind endpoint at {}", addr);
 
         app.add_systems(Update, server_sys);
-        
+
         // app.add_systems(Update, ui_server_net);
     }
 }
@@ -72,25 +68,19 @@ pub struct NetworkClientPlugin;
 
 impl Plugin for NetworkClientPlugin {
     fn build(&self, app: &mut App) {
-        
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 
         app.insert_resource(RenetClient::new(ConnectionConfig::default()));
-        
+
         app.add_systems(Update, client_sys);
 
         // app.add_systems(Update, ui_client_net);
-
     }
 }
 
-
-
-
-
 fn ui_client_net(
-    mut ctx: EguiContexts, 
+    mut ctx: EguiContexts,
     mut client: ResMut<RenetClient>,
     mut server_addr: Local<String>,
     mut chat_msg: Local<String>,
@@ -98,8 +88,6 @@ fn ui_client_net(
     mut commands: Commands,
 ) {
     egui::Window::new("Client Network").show(ctx.ctx_mut(), |ui| {
-       
-        
         ui.text_edit_singleline(&mut *server_addr);
 
         if client.is_connected() {
@@ -108,7 +96,9 @@ fn ui_client_net(
             }
 
             if ui.button("Handshake").clicked() {
-                client.send_packet(&CPacket::Handshake { protocol_version: chat_msg.parse().unwrap_or(0) });
+                client.send_packet(&CPacket::Handshake {
+                    protocol_version: chat_msg.parse().unwrap_or(0),
+                });
             }
 
             ui.text_edit_singleline(&mut *chat_msg);
@@ -117,15 +107,16 @@ fn ui_client_net(
             }
 
             if ui.button("Server Query").clicked() {
-                client.send_packet(&CPacket::ServerQuery { });
+                client.send_packet(&CPacket::ServerQuery {});
             }
             if ui.button("Ping").clicked() {
-                client.send_packet(&CPacket::Ping { client_time: current_timestamp_millis() });
+                client.send_packet(&CPacket::Ping {
+                    client_time: current_timestamp_millis(),
+                });
             }
             if ui.button("Login").clicked() {
                 client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
             }
-
         } else {
             if ui.button("Connect Server").clicked() {
                 let addr = (server_addr).parse().unwrap();
@@ -133,19 +124,11 @@ fn ui_client_net(
                 commands.insert_resource(RenetClient::new(ConnectionConfig::default()));
             }
         }
-
     });
 }
 
-fn ui_server_net(
-    mut ctx: EguiContexts, 
-    mut server: ResMut<RenetServer>,
-    mut server_addr: Local<String>,
-
-    mut commands: Commands,
-) {
+fn ui_server_net(mut ctx: EguiContexts, mut server: ResMut<RenetServer>, mut server_addr: Local<String>, mut commands: Commands) {
     egui::Window::new("Server Network").show(ctx.ctx_mut(), |ui| {
-
         ui.text_edit_singleline(&mut *server_addr);
 
         if ui.button("Bind Endpoint").clicked() {
@@ -159,25 +142,18 @@ fn ui_server_net(
     });
 }
 
-
-
-
-fn server_sys(
-    mut server_events: EventReader<ServerEvent>,
-    mut server: ResMut<RenetServer>,
-) {
+fn server_sys(mut server_events: EventReader<ServerEvent>, mut server: ResMut<RenetServer>) {
     for event in server_events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
                 println!("Client {client_id} connected {}", server.connected_clients());
-
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 println!("Client {client_id} disconnected: {reason}");
             }
         }
     }
-    
+
     // Receive message from all clients
     for client_id in server.clients_id() {
         while let Some(bytes) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
@@ -186,30 +162,51 @@ fn server_sys(
             match packet {
                 CPacket::Handshake { protocol_version } => {
                     if protocol_version < PROTOCOL_ID {
-                        server.send_packet(client_id, &SPacket::Disconnect { reason: "Client outdated.".into() })
+                        server.send_packet(
+                            client_id,
+                            &SPacket::Disconnect {
+                                reason: "Client outdated.".into(),
+                            },
+                        )
                     } else if protocol_version > PROTOCOL_ID {
-                        server.send_packet(client_id, &SPacket::Disconnect { reason: "Server outdated.".into() })
+                        server.send_packet(
+                            client_id,
+                            &SPacket::Disconnect {
+                                reason: "Server outdated.".into(),
+                            },
+                        )
                     }
-                },
-                CPacket::ServerQuery { } => {
-                    server.send_packet(client_id, &SPacket::ServerInfo { 
-                        motd: "Motd".into(), 
-                        num_players_limit: 64, 
-                        num_players_online: 0, 
-                        protocol_version: PROTOCOL_ID, 
-                        favicon: "None".into(),
-                    });
-                },
+                }
+                CPacket::ServerQuery {} => {
+                    server.send_packet(
+                        client_id,
+                        &SPacket::ServerInfo {
+                            motd: "Motd".into(),
+                            num_players_limit: 64,
+                            num_players_online: 0,
+                            protocol_version: PROTOCOL_ID,
+                            favicon: "None".into(),
+                        },
+                    );
+                }
                 CPacket::Ping { client_time } => {
-                    server.send_packet(client_id, &SPacket::Pong { client_time: client_time, server_time: current_timestamp_millis() });
-                },
+                    server.send_packet(
+                        client_id,
+                        &SPacket::Pong {
+                            client_time: client_time,
+                            server_time: current_timestamp_millis(),
+                        },
+                    );
+                }
                 CPacket::Login { uuid, access_token } => {
                     info!("Login Requested: {} {}", uuid, access_token);
-                    server.send_packet(client_id, &SPacket::LoginSuccess { });
-                },
+                    server.send_packet(client_id, &SPacket::LoginSuccess {});
+                }
                 CPacket::ChatMessage { message } => {
-                    server.broadcast_packet(&SPacket::Chat { message: format!("<ClientX>: {}", message.clone()) });
-                },
+                    server.broadcast_packet(&SPacket::Chat {
+                        message: format!("<ClientX>: {}", message.clone()),
+                    });
+                }
             }
 
             info!("Server Received: {}", String::from_utf8_lossy(&bytes));
@@ -221,7 +218,6 @@ fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
     mut client: ResMut<RenetClient>,
 ) {
-
     while let Some(bytes) = client.receive_message(DefaultChannel::ReliableOrdered) {
         info!("Client Received: {}", String::from_utf8_lossy(&bytes));
         let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
@@ -229,32 +225,36 @@ fn client_sys(
             SPacket::Disconnect { reason } => {
                 info!("Disconnected: {}", reason);
                 client.disconnect();
-            },
-            SPacket::ServerInfo { motd, num_players_limit, num_players_online, protocol_version, favicon } => {
+            }
+            SPacket::ServerInfo {
+                motd,
+                num_players_limit,
+                num_players_online,
+                protocol_version,
+                favicon,
+            } => {
                 info!("ServerInfo: {:?}", &packet);
             }
             SPacket::Pong { client_time, server_time } => {
                 let curr = current_timestamp_millis();
-                info!("Ping: {}ms = cs {} + sc {}", curr-client_time, server_time-client_time, curr-server_time);
-            },
-            SPacket::LoginSuccess { } => {
+                info!(
+                    "Ping: {}ms = cs {} + sc {}",
+                    curr - client_time,
+                    server_time - client_time,
+                    curr - server_time
+                );
+            }
+            SPacket::LoginSuccess {} => {
                 info!("Login Success!");
-            },
+            }
             SPacket::Chat { message } => {
                 info!("[Chat]: {}", message);
             }
         }
-
-        
     }
-
 }
 
-
-
-
-trait RenetServerHelper  {
-
+trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);
@@ -276,4 +276,3 @@ impl RenetClientHelper for RenetClient {
         self.send_message(DefaultChannel::ReliableOrdered, bincode::serialize(packet).unwrap());
     }
 }
-
