@@ -1,4 +1,4 @@
-use std::f32::consts::{PI, TAU};
+use std::{f32::consts::{PI, TAU}, time::Duration};
 
 use anyhow::Ok;
 use bevy::{math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
@@ -85,21 +85,11 @@ impl Plugin for GamePlugin {
 
         app.add_plugins(crate::ui::UiPlugin);
 
-        app.add_state::<GameInput>();
-        app.add_systems(OnEnter(GameInput::Controlling), ingame_toggle);
-        app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
     }
 }
 
-// #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-// pub enum SystemSet {
-//     UI,
-// }
-
-// !!!!!!!!这里要大重构，去掉AppState 多余了 思路有问题，直接一个bool放在Res ClientInfo即可的。就是不能in_state()这么方便condition
 
 
-// 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CurrentUI {
     None,
@@ -109,41 +99,14 @@ pub enum CurrentUI {
     WtfServerList,
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum GameInput {
-    #[default]
-    Paused,
-    // Is Manipulating/Controlling game e.g. WSAD
-    Controlling,
-}
-
-
-
-
-fn ingame_toggle(
-    next_state: Res<State<GameInput>>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
-) {
-    let mut window = window_query.single_mut();
-
-    let to_play = *next_state == GameInput::Controlling;
-
-    window.cursor.grab_mode = if to_play { CursorGrabMode::Locked } else { CursorGrabMode::None };
-    window.cursor.visible = !to_play;
-
-    for mut controller in &mut controller_query {
-        controller.enable_input = to_play;
-    }
-}
 
 fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut next_state: ResMut<NextState<GameInput>>,
+    mut worldinfo: ResMut<WorldInfo>,
 ) {
-    next_state.set(GameInput::Controlling);
+    worldinfo.is_manipulating = true;  // everytime enter a world. set manipulating.
 
     info!("Load World. setup Player, Camera, Sun.");
 
@@ -247,18 +210,29 @@ fn cleanup(
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+    mut controller_query: Query<&mut CharacterController>,
 
-    mut state: ResMut<State<GameInput>>,
-    mut next_state: ResMut<NextState<GameInput>>,
+    mut worldinfo: Option<ResMut<WorldInfo>>,
+    mut last_is_manipulating: Local<bool>,
 ) {
     let mut window = window_query.single_mut();
 
-    if key.just_pressed(KeyCode::Escape) {
-        next_state.set(if *state == GameInput::Paused {
-            GameInput::Controlling
-        } else {
-            GameInput::Paused
-        });
+    if let Some(worldinfo) = &mut worldinfo {
+        if key.just_pressed(KeyCode::Escape) {
+            worldinfo.is_manipulating = !worldinfo.is_manipulating;
+        }
+
+        if *last_is_manipulating != worldinfo.is_manipulating {
+            let to_play = worldinfo.is_manipulating;
+
+            window.cursor.grab_mode = if to_play { CursorGrabMode::Locked } else { CursorGrabMode::None };
+            window.cursor.visible = !to_play;
+
+            for mut controller in &mut controller_query {
+                controller.enable_input = to_play;
+            }
+            *last_is_manipulating = worldinfo.is_manipulating;
+        }
     }
 
     // Toggle Fullscreen
@@ -365,6 +339,8 @@ pub struct WorldInfo {
     pub is_paused: bool,
     pub paused_steps: i32,
 
+    pub is_manipulating: bool,
+
     pub dbg_text: bool,
 }
 
@@ -384,6 +360,8 @@ impl Default for WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
+
+            is_manipulating: true,
 
             dbg_text: true,
         }

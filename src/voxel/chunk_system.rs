@@ -9,7 +9,6 @@ use std::sync::{Arc, RwLock};
 use super::{chunk::*, TerrainMaterial};
 
 // Box<Chunk>;         not supported for SharedPtr
-// Arc<RwLock<Chunk>>; non convinent for readonly ops
 pub type ChunkPtr = Arc<RwLock<Chunk>>;
 
 #[derive(Resource, Reflect)]
@@ -17,7 +16,6 @@ pub type ChunkPtr = Arc<RwLock<Chunk>>;
 pub struct ChunkSystem {
     /// all loaded chunks.
     // linear-list of loaded chunks.
-    // chunks: Arc<RwLock<HashMap<IVec3, Arc<RwLock<Chunk>>>>>,
     #[reflect(ignore)]
     pub chunks: HashMap<IVec3, ChunkPtr>,
 

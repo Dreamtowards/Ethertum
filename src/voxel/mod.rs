@@ -6,7 +6,7 @@ mod worldgen;
 
 use self::material::mtl;
 use crate::character_controller::{CharacterController, CharacterControllerCamera};
-use crate::game::{condition, GameInput, WorldInfo};
+use crate::game::{condition, WorldInfo};
 use crate::util::iter;
 use chunk::*;
 pub use chunk_system::*;
@@ -368,7 +368,7 @@ fn raycast(
 
     mut chunk_sys: ResMut<ChunkSystem>,
 
-    state_ingame: Res<State<GameInput>>,
+    worldinfo: Res<WorldInfo>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -395,7 +395,7 @@ fn raycast(
         hit_result.is_hit = false;
     }
 
-    if *state_ingame == GameInput::Paused {
+    if !worldinfo.is_manipulating {
         return;
     }
     let do_break = mouse_btn.just_pressed(MouseButton::Left);

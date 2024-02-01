@@ -12,7 +12,7 @@ use bevy_egui::{
 };
 
 use crate::{
-    game::{condition, CurrentUI, GameInput, WorldInfo},
+    game::{condition, CurrentUI, WorldInfo},
     voxel::{ChunkSystem, HitResult},
 };
 
@@ -100,7 +100,7 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
 
 
-fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>, state_ingame: ResMut<State<GameInput>>) {
+fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
@@ -319,10 +319,9 @@ pub fn ui_pause_menu(
     mut commands: Commands,
     mut next_state_ui: ResMut<NextState<CurrentUI>>,
 
-    state_ingame: ResMut<State<GameInput>>,
-    mut next_state_ingame: ResMut<NextState<GameInput>>,
+    mut worldinfo: ResMut<WorldInfo>,
 ) {
-    if *state_ingame == GameInput::Controlling {
+    if worldinfo.is_manipulating {
         return;
     }
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
