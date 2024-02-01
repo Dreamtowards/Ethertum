@@ -1,5 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
+use anyhow::Ok;
 use bevy::{math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_atmosphere::prelude::*;
@@ -69,10 +70,6 @@ impl Plugin for GamePlugin {
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
 
-        // app.add_systems(Update, apply_world_load_state);
-        // app.add_systems(OnWorldLoad, startup);  // Camera, Player, Sun
-        // app.add_systems(OnWorldUnload, cleanup); 
-
         app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
@@ -93,28 +90,6 @@ impl Plugin for GamePlugin {
         app.add_systems(OnExit(GameInput::Controlling), ingame_toggle);
     }
 }
-
-
-// use bevy::ecs::schedule::ScheduleLabel;
-// #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-// pub struct OnWorldLoad;
-
-// #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-// pub struct OnWorldUnload;
-
-
-// fn apply_world_load_state(
-//     world: &mut World,
-//     mut prev: Local<bool>,
-// ) {
-//     if world.is_resource_added::<WorldInfo>() {
-//         world.try_run_schedule(OnWorldLoad).ok();
-//         *prev = true;
-//     } else if world.get_resource::<WorldInfo>().is_none() && *prev == true {
-//         world.try_run_schedule(OnWorldUnload).ok();
-//         *prev = false;
-//     }
-// }
 
 // #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 // pub enum SystemSet {
@@ -142,12 +117,8 @@ pub enum GameInput {
     Controlling,
 }
 
-// #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-// pub enum WtfSettingsUIs {
-//     #[default]
-//     Settings,  // for MainMenu, InGame
-//     Inventory,  // only for InGame
-// }
+
+
 
 fn ingame_toggle(
     next_state: Res<State<GameInput>>,
@@ -360,6 +331,7 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
     }
 
     // View Basis
+    // if Ok(cam_trans) = query_cam.get_single() {
     let cam_trans = query_cam.single();
     let p = cam_trans.translation;
     let rot = cam_trans.rotation;
