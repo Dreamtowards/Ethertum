@@ -21,6 +21,6 @@ fn main() {
         }))
         // .add_plugins(EditorPlugin)
         .add_plugins(GamePlugin)
-        .add_plugins(NetworkServerPlugin)
+        // .add_plugins(NetworkServerPlugin)
         .run();
 }

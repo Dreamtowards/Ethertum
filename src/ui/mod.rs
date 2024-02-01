@@ -18,6 +18,8 @@ use crate::{
     voxel::HitResult,
 };
 
+mod serverlist;
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -43,6 +45,8 @@ impl Plugin for UiPlugin {
         app.add_systems(Update, hud_debug_text.run_if(in_state(AppState::InGame)));
 
         app.add_systems(Update, hud_hotbar.run_if(in_state(AppState::InGame)));
+        
+        app.add_systems(Update, serverlist::ui_serverlist.run_if(in_state(AppState::WtfServerList)));
     }
 }
 
@@ -93,6 +97,8 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
     // egui_settings.scale_factor = 1.;
 }
+
+
 
 fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_ingame: ResMut<State<GameInput>>) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
@@ -224,6 +230,12 @@ pub fn ui_main_menu(
             let siz = [240., 24.];
             if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
                 next_state.set(AppState::InGame);
+            }
+            if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
+                next_state.set(AppState::WtfServerList);
+            }
+            if ui.add_sized(siz, egui::Button::new("Join Server")).clicked() {
+                next_state.set(AppState::WtfServerList);
             }
             if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {
                 next_state.set(AppState::WtfSettings);

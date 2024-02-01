@@ -20,22 +20,26 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        // Atmosphere
-        app.insert_resource(AtmosphereModel::default());
-        app.add_plugins(AtmospherePlugin);
 
-        // ShadowMap sizes
-        app.insert_resource(DirectionalLightShadowMap { size: 512 });
+        // Render
+        {
+            // Atmosphere
+            app.insert_resource(AtmosphereModel::default());
+            app.add_plugins(AtmospherePlugin);
+    
+            // ShadowMap sizes
+            app.insert_resource(DirectionalLightShadowMap { size: 512 });
+    
+            // SSAO
+            // app.add_plugins(TemporalAntiAliasPlugin);
+            // app.insert_resource(AmbientLight {
+            //         brightness: 0.05,
+            //         ..default()
+            //     });
+        }
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
-
-        // SSAO
-        // app.add_plugins(TemporalAntiAliasPlugin);
-        // app.insert_resource(AmbientLight {
-        //         brightness: 0.05,
-        //         ..default()
-        //     });
 
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
@@ -47,10 +51,11 @@ impl Plugin for GamePlugin {
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
 
-        app.add_systems(OnEnter(AppState::InGame), startup);
+        app.add_systems(OnEnter(AppState::InGame), startup);  // Camera, Player, Sun
         app.add_systems(OnExit(AppState::InGame), cleanup);
-        app.add_systems(Update, tick_world.run_if(in_state(AppState::InGame)));
+        app.add_systems(Update, tick_world.run_if(in_state(AppState::InGame)));  // Sun, World Timing.
 
+        // Debug Draw Gizmos
         app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(in_state(AppState::InGame)));
 
         // Network Client
@@ -73,6 +78,8 @@ impl Plugin for GamePlugin {
 //     UI,
 // }
 
+// !!!!!!!!这里要大重构，去掉AppState 多余了 思路有问题，直接一个bool放在Res ClientInfo即可的。就是不能in_state()这么方便condition
+
 // 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum AppState {
@@ -80,6 +87,7 @@ pub enum AppState {
     MainMenu,
     InGame,      // InGameWorld
     WtfSettings, // 这个是乱加的，因为Settings应该可以和InGame共存，也就是InGame的同时有Settings
+    WtfServerList,
 }
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
@@ -361,6 +369,15 @@ impl WorldInfo {
             dbg_text: true,
         }
     }
+}
+
+// struct ClientSettings {
+//     fov: f32,
+//     server_list: Vec<>,
+// }
+
+struct ClientInfo {
+
 }
 
 #[derive(Component)]
