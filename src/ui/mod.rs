@@ -1,9 +1,7 @@
 use std::{default, sync::Arc};
 
 use bevy::{
-    app::AppExit,
-    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
-    prelude::*,
+    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
@@ -14,9 +12,10 @@ use bevy_egui::{
 };
 
 use crate::{
-    game::{AppState, GameInput, WorldInfo},
-    voxel::HitResult,
+    game::{condition, CurrentUI, GameInput, InWorldState, WorldInfo},
+    voxel::{ChunkSystem, HitResult},
 };
+
 
 mod serverlist;
 
@@ -32,21 +31,22 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         app.add_systems(Update, ui_menu_panel); // Debug MenuBar. before CentralPanel
-        app.add_systems(Update, ui_pause_menu.run_if(in_state(AppState::InGame)).before(ui_menu_panel));
+        app.add_systems(Update, ui_pause_menu.run_if(condition::in_world()).before(ui_menu_panel));
 
-        app.add_systems(Update, ui_main_menu.run_if(in_state(AppState::MainMenu)));
-        app.add_systems(Update, ui_settings.run_if(in_state(AppState::WtfSettings)));
+        app.add_state::<CurrentUI>();
+        app.add_systems(Update, ui_main_menu.run_if(in_state(CurrentUI::MainMenu)));
+        app.add_systems(Update, ui_settings.run_if(in_state(CurrentUI::WtfSettings)));
 
         app.add_plugins((
             FrameTimeDiagnosticsPlugin,
             EntityCountDiagnosticsPlugin,
             //SystemInformationDiagnosticsPlugin
         ));
-        app.add_systems(Update, hud_debug_text.run_if(in_state(AppState::InGame)));
+        app.add_systems(Update, hud_debug_text.run_if(condition::in_world()));
 
-        app.add_systems(Update, hud_hotbar.run_if(in_state(AppState::InGame)));
+        app.add_systems(Update, hud_hotbar.run_if(condition::in_world()));
         
-        app.add_systems(Update, serverlist::ui_serverlist.run_if(in_state(AppState::WtfServerList)));
+        app.add_systems(Update, serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)));
     }
 }
 
@@ -100,13 +100,13 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
 
 
-fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_ingame: ResMut<State<GameInput>>) {
+fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>, state_ingame: ResMut<State<GameInput>>) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
     const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
-    let bg = if worldinfo.is_paused { to_color32(DARK_RED) } else { to_color32(DARK) };
+    let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused { to_color32(DARK_RED) } else { to_color32(DARK) };
     // if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
 
     egui::TopBottomPanel::top("menu_panel")
@@ -143,19 +143,21 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_
                         });
                     });
 
-                    ui.separator();
+                    if let Some(worldinfo) = &mut worldinfo {
+                        ui.separator();
 
-                    if worldinfo.is_paused {
-                        if egui::Button::new("▶").ui(ui).clicked() {
-                            worldinfo.is_paused = false;
-                        }
-                        if egui::Button::new("⏩").ui(ui).clicked() {
-                            //⏩
-                            worldinfo.paused_steps += 1;
-                        }
-                    } else {
-                        if egui::Button::new("⏸").ui(ui).clicked() {
-                            worldinfo.is_paused = true;
+                        if worldinfo.is_paused {
+                            if egui::Button::new("▶").ui(ui).clicked() {
+                                worldinfo.is_paused = false;
+                            }
+                            if egui::Button::new("⏩").ui(ui).clicked() {
+                                //⏩
+                                worldinfo.paused_steps += 1;
+                            }
+                        } else {
+                            if egui::Button::new("⏸").ui(ui).clicked() {
+                                worldinfo.is_paused = true;
+                            }
                         }
                     }
 
@@ -174,7 +176,7 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_
                             });
                             ui.button("Edit World..");
                             ui.button("Close World");
-                            ui.separator();
+                            ui.separator(); // hello world
                             ui.button("Server Start");
                             ui.button("Server Stop");
                             ui.separator();
@@ -196,8 +198,8 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_
                             ui.toggle_value(&mut true, "HUD");
                             ui.toggle_value(&mut false, "Fullscreen");
                             ui.button("Save Screenshot");
-                            ui.separator();
-                            ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
+                            // ui.separator();
+                            // ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
                         });
                     });
                 });
@@ -206,12 +208,14 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: ResMut<WorldInfo>, state_
 }
 
 pub fn ui_main_menu(
-    mut rendered_texture_id: Local<egui::TextureId>,
-    asset_server: Res<AssetServer>,
-
-    mut ctx: EguiContexts,
-    mut next_state: ResMut<NextState<AppState>>,
+    // mut rendered_texture_id: Local<egui::TextureId>,
+    // asset_server: Res<AssetServer>,
     mut app_exit_events: EventWriter<AppExit>,
+    mut ctx: EguiContexts,
+    mut commands: Commands,
+
+    mut next_state: ResMut<NextState<CurrentUI>>,
+    mut next_state_inw: ResMut<NextState<InWorldState>>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -229,16 +233,19 @@ pub fn ui_main_menu(
 
             let siz = [240., 24.];
             if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
-                next_state.set(AppState::InGame);
+                commands.insert_resource(WorldInfo::default());  
+                next_state.set(CurrentUI::None);
+                next_state_inw.set(InWorldState::InWorld);
+                // todo!("Use SystemParama")
             }
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
-                next_state.set(AppState::WtfServerList);
+                next_state.set(CurrentUI::WtfServerList);
             }
             if ui.add_sized(siz, egui::Button::new("Join Server")).clicked() {
-                next_state.set(AppState::WtfServerList);
+                next_state.set(CurrentUI::WtfServerList);
             }
             if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {
-                next_state.set(AppState::WtfSettings);
+                next_state.set(CurrentUI::WtfSettings);
             }
             if ui.add_sized(siz, egui::Button::new("Terminate")).clicked() {
                 app_exit_events.send(AppExit);
@@ -268,7 +275,7 @@ pub enum SettingsPanel {
     Credits,
 }
 
-pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPanel>, mut next_state: ResMut<NextState<AppState>>) {
+pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPanel>, mut next_state: ResMut<NextState<CurrentUI>>) {
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         ui.add_space(48.);
         ui.heading("Settings");
@@ -278,7 +285,7 @@ pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPane
             ui.group(|ui| {
                 ui.vertical(|ui| {
                     if ui.small_button("<").clicked() {
-                        next_state.set(AppState::MainMenu); // or set to InGame if it's openned from InGame state
+                        next_state.set(CurrentUI::MainMenu); // or set to InGame if it's openned from InGame state
                     }
                     ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
                     // ui.separator();
@@ -311,7 +318,9 @@ pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPane
 
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
-    mut next_state_game: ResMut<NextState<AppState>>,
+    mut commands: Commands,
+    mut next_state_ui: ResMut<NextState<CurrentUI>>,
+    mut next_state_inworld: ResMut<NextState<InWorldState>>,
 
     state_ingame: ResMut<State<GameInput>>,
     mut next_state_ingame: ResMut<NextState<GameInput>>,
@@ -350,7 +359,9 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Abilities");
                 ui.toggle_value(&mut false, "Quests");
                 if ui.toggle_value(&mut false, "Quit").clicked() {
-                    next_state_game.set(AppState::MainMenu);
+                    next_state_ui.set(CurrentUI::MainMenu);
+                    next_state_inworld.set(InWorldState::_NotInWorld);
+                    // unload_world
                 }
             });
 
@@ -397,8 +408,8 @@ fn hud_debug_text(
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
-    chunk_sys: Res<crate::voxel::ChunkSystem>,
-    worldinfo: Res<crate::game::WorldInfo>,
+    chunk_sys: Res<ChunkSystem>,
+    worldinfo: Res<WorldInfo>,
 
     hit_result: Res<HitResult>,
 ) {

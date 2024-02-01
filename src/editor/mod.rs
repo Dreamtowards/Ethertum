@@ -10,7 +10,6 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
-use crate::game::AppState;
 use crate::{character_controller::CharacterController, voxel::HitResult};
 
 pub struct EditorPlugin;

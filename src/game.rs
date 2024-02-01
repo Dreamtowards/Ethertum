@@ -1,10 +1,7 @@
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    math::vec3,
-    pbr::DirectionalLightShadowMap,
-    prelude::*,
-    window::{CursorGrabMode, PrimaryWindow, WindowMode},
+    ecs::schedule::{ScheduleLabel, SystemConfigs}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_atmosphere::prelude::*;
 use bevy_xpbd_3d::prelude::*;
@@ -15,6 +12,45 @@ use crate::{
 };
 
 use crate::voxel::VoxelPlugin;
+
+pub mod condition {
+    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
+    use super::{InWorldState, WorldInfo};
+    
+    // fn is_manipulating() -> impl Condition<()> {
+    //     IntoSystem::into_system(|mut flag: Local<bool>| {
+    //         *flag = !*flag;
+    //         *flag
+    //     })
+    // }
+
+    static mut _WORLD_LOADED: bool = false;
+
+    pub fn in_world() -> impl FnMut(Res<State<InWorldState>>) -> bool + Clone { //impl FnMut() -> bool + Clone {
+        // move || unsafe{_WORLD_LOADED}
+        in_state(InWorldState::InWorld)
+    }
+    // pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+    //     move |res: Option<Res<WorldInfo>>| {
+    //         if !unsafe{_WORLD_LOADED} && res.is_some() {
+    //             unsafe{_WORLD_LOADED = true};
+    //             true
+    //         } else {
+    //             false
+    //         }
+    //     }
+    // }
+    // pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+    //     move |res: Option<Res<WorldInfo>>| {
+    //         if unsafe{_WORLD_LOADED} && res.is_none() {
+    //             unsafe{_WORLD_LOADED = false};
+    //             true
+    //         } else {
+    //             false
+    //         }
+    //     }
+    // }
+}
 
 pub struct GamePlugin;
 
@@ -45,23 +81,31 @@ impl Plugin for GamePlugin {
         app.add_plugins(CharacterControllerPlugin);
 
         // WorldInfo
-        app.insert_resource(WorldInfo::new());
         app.register_type::<WorldInfo>();
+        // app.insert_resource(WorldInfo::new());
 
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
 
-        app.add_systems(OnEnter(AppState::InGame), startup);  // Camera, Player, Sun
-        app.add_systems(OnExit(AppState::InGame), cleanup);
-        app.add_systems(Update, tick_world.run_if(in_state(AppState::InGame)));  // Sun, World Timing.
+        // app.add_systems(Update, apply_world_load_state);
+        // app.add_systems(OnWorldLoad, startup);  // Camera, Player, Sun
+        // app.add_systems(OnWorldUnload, cleanup); 
+        // app.add_systems(Update, cleanup.run_if(condition::unload_world()));
+
+        // app.add_systems(PreUpdate, startup.run_if(condition::load_world()));  // Camera, Player, Sun
+        // app.add_systems(Last, cleanup.run_if(condition::unload_world()));
+        
+        app.add_state::<InWorldState>();
+        app.add_systems(OnEnter(InWorldState::InWorld), startup);  // Camera, Player, Sun
+        app.add_systems(OnExit(InWorldState::InWorld), cleanup); 
+        app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
 
         // Debug Draw Gizmos
-        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(in_state(AppState::InGame)));
+        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
 
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-        app.add_state::<AppState>();
 
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
@@ -73,6 +117,27 @@ impl Plugin for GamePlugin {
     }
 }
 
+
+// #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+// pub struct OnWorldLoad;
+
+// #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+// pub struct OnWorldUnload;
+
+
+// fn apply_world_load_state(
+//     world: &mut World,
+//     mut prev: Local<bool>,
+// ) {
+//     if world.is_resource_added::<WorldInfo>() {
+//         world.try_run_schedule(OnWorldLoad).ok();
+//         *prev = true;
+//     } else if world.get_resource::<WorldInfo>().is_none() && *prev == true {
+//         world.try_run_schedule(OnWorldUnload).ok();
+//         *prev = false;
+//     }
+// }
+
 // #[derive(SystemSet, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 // pub enum SystemSet {
 //     UI,
@@ -80,13 +145,20 @@ impl Plugin for GamePlugin {
 
 // !!!!!!!!这里要大重构，去掉AppState 多余了 思路有问题，直接一个bool放在Res ClientInfo即可的。就是不能in_state()这么方便condition
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum InWorldState {
+    #[default]
+    _NotInWorld,
+    InWorld
+}
+
 // 这个有点问题 他应该是一个bool的状态, 用于判断世界逻辑systems是否该被执行 清理/初始化, 而不应该有多种可能
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum AppState {
+pub enum CurrentUI {
+    None,
     #[default]
     MainMenu,
-    InGame,      // InGameWorld
-    WtfSettings, // 这个是乱加的，因为Settings应该可以和InGame共存，也就是InGame的同时有Settings
+    WtfSettings,
     WtfServerList,
 }
 
@@ -129,6 +201,8 @@ fn startup(
     mut next_state: ResMut<NextState<GameInput>>,
 ) {
     next_state.set(GameInput::Controlling);
+
+    info!("Load World. setup Player, Camera, Sun.");
 
     // Logical Player
     commands.spawn((
@@ -221,6 +295,7 @@ fn cleanup(
     player_query: Query<Entity, With<CharacterController>>,
     sun_query: Query<Entity, With<Sun>>,
 ) {
+    info!("Unload World");
     commands.entity(cam_query.single()).despawn_recursive();
     commands.entity(player_query.single()).despawn_recursive();
     commands.entity(sun_query.single()).despawn_recursive();
@@ -323,7 +398,7 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
     gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
 }
 
-#[derive(Resource, Default, Reflect)]
+#[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct WorldInfo {
     pub seed: u64,
@@ -349,8 +424,8 @@ pub struct WorldInfo {
     pub dbg_text: bool,
 }
 
-impl WorldInfo {
-    fn new() -> Self {
+impl Default for WorldInfo {
+    fn default() -> Self {
         WorldInfo {
             seed: 0,
             name: "None Name".into(),

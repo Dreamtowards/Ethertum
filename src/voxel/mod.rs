@@ -6,7 +6,7 @@ mod worldgen;
 
 use self::material::mtl;
 use crate::character_controller::{CharacterController, CharacterControllerCamera};
-use crate::game::{AppState, GameInput, WorldInfo};
+use crate::game::{condition, GameInput, InWorldState, WorldInfo};
 use crate::util::iter;
 use chunk::*;
 pub use chunk_system::*;
@@ -46,7 +46,7 @@ impl Plugin for VoxelPlugin {
 
         app.insert_resource(HitResult::default());
 
-        app.add_systems(OnEnter(AppState::InGame), startup);
+        app.add_systems(OnEnter(InWorldState::InWorld), startup);
 
         app.add_systems(
             Update,
@@ -59,7 +59,7 @@ impl Plugin for VoxelPlugin {
                 // chunks_apply_remeshed
             )
                 .chain()
-                .run_if(in_state(AppState::InGame)),
+                .run_if(condition::in_world()),
         );
     }
 }
