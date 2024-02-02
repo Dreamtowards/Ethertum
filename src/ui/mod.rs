@@ -16,9 +16,12 @@ use crate::{
     voxel::{ChunkSystem, HitResult},
 };
 
+use self::hud::ChatHistory;
+
 
 mod serverlist;
 mod main_menu;
+pub mod hud;
 
 pub struct UiPlugin;
 
@@ -45,8 +48,15 @@ impl Plugin for UiPlugin {
         ));
         app.add_systems(Update, hud_debug_text.run_if(condition::in_world()));
 
-        app.add_systems(Update, hud_hotbar.run_if(condition::in_world()));
+        // HUDs
+        {
+            app.add_systems(Update, hud_hotbar.run_if(condition::in_world()));
+            
+            app.insert_resource(ChatHistory::default());
+            app.add_systems(Update, hud::hud_chat.run_if(condition::in_world()));
+        }
         
+
         app.add_systems(Update, serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)));
         
         app.add_systems(Update, serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)));

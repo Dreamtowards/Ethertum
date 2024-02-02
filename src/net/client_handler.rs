@@ -1,6 +1,6 @@
 
 use bevy::prelude::*;
-use bevy_renet::renet::{DefaultChannel, RenetClient};
+use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 
 use crate::{game::{ClientInfo, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
 
@@ -14,6 +14,7 @@ pub fn client_sys(
     mut last_connected: Local<u32>,
     mut clientinfo: ResMut<ClientInfo>,
 
+    mut chats: ResMut<crate::ui::hud::ChatHistory>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
     mut cmds: Commands,
 ) {
@@ -27,7 +28,9 @@ pub fn client_sys(
         *last_connected = 0;
 
         cmds.remove_resource::<WorldInfo>();  // todo: cli.close_world();
-        next_ui.set(CurrentUI::DisconnectedReason);
+        if client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
+            next_ui.set(CurrentUI::DisconnectedReason);
+        }
     }
     
 
@@ -66,6 +69,7 @@ pub fn client_sys(
             }
             SPacket::Chat { message } => {
                 info!("[Chat]: {}", message);
+                chats.scrollback.push(message.clone());
             }
         }
     }

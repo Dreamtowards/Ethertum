@@ -95,7 +95,8 @@ pub fn server_sys(
                     serverinfo.online_players.insert(client_id, username);
                 }
                 CPacket::ChatMessage { message } => {
-                    server.broadcast_packet_chat(format!("<ClientX>: {}", message.clone()));
+                    let username = serverinfo.online_players.get(&client_id).unwrap();
+                    server.broadcast_packet_chat(format!("<{}>: {}", username, message.clone()));
                 }
             }
 
