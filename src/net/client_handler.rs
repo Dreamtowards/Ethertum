@@ -1,6 +1,6 @@
 
 use bevy::prelude::*;
-use bevy_renet::renet::{DefaultChannel, RenetClient, RenetConnectionStatus};
+use bevy_renet::renet::{DefaultChannel, RenetClient};
 
 use crate::{game::{ClientInfo, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
 

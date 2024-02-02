@@ -104,14 +104,15 @@ impl EthertiaClient {
     // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
 
 
-    pub fn connect_server(&mut self, cmds: &mut Commands, server_addr: String) {
+    pub fn connect_server(&mut self, cmds: &mut Commands, server_addr: String, username: String) {
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
-        net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
+        let uuid = crate::util::hashcode(&username);
+        net_client.send_packet(&CPacket::Login { uuid, access_token: 123, username });
 
         cmds.insert_resource(net_client);
-        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
+        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), uuid));
         
         // let mut cmd = CommandQueue::default();
         // cmd.push(move |world: &mut World| {
@@ -408,12 +409,15 @@ impl Default for WorldInfo {
 #[derive(Resource)]
 pub struct ClientInfo {
     pub disconnected_reason: String,
+
+    pub username: String,
 }
 
 impl Default for ClientInfo {
     fn default() -> Self {
         Self {
             disconnected_reason: "none".into(),
+            username: "User1".into(),
         }
     }
 }

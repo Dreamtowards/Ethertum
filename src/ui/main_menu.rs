@@ -5,7 +5,7 @@ use bevy_egui::{
 };
 use bevy_renet::renet::RenetClient;
 
-use crate::game::{EthertiaClient, WorldInfo};
+use crate::game::{ClientInfo, EthertiaClient, WorldInfo};
 use super::CurrentUI;
 
 
@@ -17,6 +17,7 @@ pub fn ui_main_menu(
     mut commands: Commands,
     mut cli: EthertiaClient,
 
+    mut clientinfo: ResMut<ClientInfo>,
     mut next_state: ResMut<NextState<CurrentUI>>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
@@ -39,9 +40,12 @@ pub fn ui_main_menu(
                 commands.insert_resource(WorldInfo::default());  
                 next_state.set(CurrentUI::None);
             }
+            
+            ui.text_edit_singleline(&mut clientinfo.username);
+
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
                 next_state.set(CurrentUI::ConnectingServer);
-                cli.connect_server(&mut commands, "127.0.0.1:4000".into());
+                cli.connect_server(&mut commands, "127.0.0.1:4000".into(), clientinfo.username.clone());
             }
             if ui.add_sized(siz, egui::Button::new("Join Server")).clicked() {
                 next_state.set(CurrentUI::WtfServerList);

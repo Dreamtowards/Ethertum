@@ -44,3 +44,13 @@ impl TimeIntervals for bevy::time::Time {
         Self::_intervals(self.elapsed_seconds(), self.delta_seconds(), u)
     }
 }
+
+
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
+
+pub fn hashcode<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}

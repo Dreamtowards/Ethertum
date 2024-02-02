@@ -9,7 +9,12 @@ use super::CurrentUI;
 
 
 fn new_egui_window(title: &str) -> egui::Window {
-    egui::Window::new(title).fixed_size([900., 500.]).title_bar(false).anchor(Align2::CENTER_CENTER, [0., 0.]).resizable(true).collapsible(false)
+    egui::Window::new(title)
+        .fixed_size([900., 600.])
+        .title_bar(true) 
+        .anchor(Align2::CENTER_CENTER, [0., 0.])
+        .resizable(false)
+        .collapsible(false)
 }
 
 pub fn ui_connecting_server(
@@ -76,7 +81,7 @@ pub fn ui_disconnected_reason(
 
 
 pub fn ui_serverlist(mut ctx: EguiContexts, mut next_ui: ResMut<NextState<CurrentUI>>,) {
-    egui::Window::new("ServerList").title_bar(false).anchor(Align2::CENTER_CENTER, [0., 0.]).resizable(true).collapsible(false).show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
 
         ui.horizontal(|ui| {
             ui.vertical(|ui| {

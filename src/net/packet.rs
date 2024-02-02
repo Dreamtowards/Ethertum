@@ -7,7 +7,7 @@ pub enum CPacket {
     ServerQuery {},
     Ping { client_time: u64 },
 
-    Login { uuid: u64, access_token: u64 },
+    Login { uuid: u64, access_token: u64, username: String },
 
     // Play
     ChatMessage { message: String },
