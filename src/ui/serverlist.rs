@@ -20,7 +20,7 @@ fn new_egui_window(title: &str) -> egui::Window {
 pub fn ui_connecting_server(
     mut ctx: EguiContexts,
     mut next_ui: ResMut<NextState<CurrentUI>>,
-    net_client: Res<RenetClient>,
+    mut net_client: ResMut<RenetClient>,
 ) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
@@ -39,6 +39,7 @@ pub fn ui_connecting_server(
             if ui.button("Cancel").clicked() {
                 // todo: Interrupt Connection without handle Result.
                 next_ui.set(CurrentUI::MainMenu);
+                net_client.disconnect();
             }
 
         });

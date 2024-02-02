@@ -108,12 +108,13 @@ impl EthertiaClient {
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
-        let uuid = crate::util::hashcode(&username);
-        net_client.send_packet(&CPacket::Login { uuid, access_token: 123, username });
+        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(&username), access_token: 123, username });
 
         cmds.insert_resource(net_client);
-        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), uuid));
+        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), Some("userData123".to_string().into_bytes())));
         
+        // todo: clientinfo.disconnected_reason = "none";
+
         // let mut cmd = CommandQueue::default();
         // cmd.push(move |world: &mut World| {
         //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));

@@ -1,27 +1,44 @@
 
 
-use std::time::Duration;
+use std::{str::FromStr, time::Duration};
 
 use bevy::{prelude::*, utils::HashMap};
-use bevy_renet::renet::{ClientId, DefaultChannel, RenetServer, ServerEvent};
+use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent}};
 
 use crate::{net::{CPacket, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis};
+
+type UserId = u64;
 
 #[derive(Default)]
 pub struct ServerInfo {
     online_players: HashMap<ClientId, String>,
 }
 
+impl ServerInfo {
+
+
+}
+
 pub fn server_sys(
     mut server_events: EventReader<ServerEvent>,
     mut server: ResMut<RenetServer>,
+    transport: Res<NetcodeServerTransport>,
     mut serverinfo: Local<ServerInfo>,
 ) {
     for event in server_events.read() {
         match event {
-            ServerEvent::ClientConnected { client_id: _ } => {
+            ServerEvent::ClientConnected { client_id } => {
+                let result_string: String = transport.user_data(*client_id)
+                    .unwrap_or([0; bevy_renet::renet::transport::NETCODE_USER_DATA_BYTES])
+                    .iter()
+                    .map(|&byte| byte as char)
+                    .collect();
+
+                info!("Cli Connected {} {}", client_id, result_string);
             }
-            ServerEvent::ClientDisconnected { client_id, reason: _ } => {
+            ServerEvent::ClientDisconnected { client_id, reason } => {
+                info!("Cli Disconnected {} {}", client_id, reason);
+
                 if let Some(player) = serverinfo.online_players.remove(client_id) {
                     server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player, serverinfo.online_players.len()));
                 }
@@ -64,17 +81,13 @@ pub fn server_sys(
                     );
                 }
                 CPacket::Login { uuid, access_token, username } => {
-                    if uuid != client_id.raw() {
-                        server.send_packet_disconnect(client_id, "Login UUID not equals ClientID".into());
-                        continue;
-                    }
                     info!("Login Requested: {} {} {}", uuid, access_token, username);
 
-                    if serverinfo.online_players.contains_key(&client_id) {
+                    if serverinfo.online_players.values().any(|v| v==&username) {
                         server.send_packet_disconnect(client_id, format!("Player {} already logged in", &username));
                         continue;
                     }
-                    std::thread::sleep(Duration::from_millis(2000));
+                    std::thread::sleep(Duration::from_millis(1000));
 
                     server.send_packet(client_id, &SPacket::LoginSuccess {});
 

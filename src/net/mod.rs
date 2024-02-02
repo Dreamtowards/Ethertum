@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use bevy_renet::{
     renet::{
-        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig},
+        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES},
         ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent,
     },
     transport::{NetcodeClientPlugin, NetcodeServerPlugin},
@@ -35,16 +35,26 @@ pub fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize)
     NetcodeServerTransport::new(server_config, socket).unwrap()
 }
 
-pub fn new_netcode_client_transport(server_addr: SocketAddr, client_id: u64) -> NetcodeClientTransport {
+pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<Vec<u8>>) -> NetcodeClientTransport {
     // let server_addr = "127.0.0.1:5000".parse().unwrap();
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let current_time = current_timestamp();
+    let client_id = current_time.as_millis() as u64;
+    
+    let user_data = user_data.map(|vec| {
+        let mut data = [0u8; NETCODE_USER_DATA_BYTES];
+        assert!(vec.len() <= NETCODE_USER_DATA_BYTES);
+        data[..vec.len()].copy_from_slice(&vec[..]);
+        data
+    });
+
     let authentication = ClientAuthentication::Unsecure {
         protocol_id: PROTOCOL_ID,
         client_id,
-        server_addr: server_addr,
-        user_data: None,
+        server_addr,
+        user_data,
     };
-    NetcodeClientTransport::new(current_timestamp(), authentication, socket).unwrap()
+    NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
 }
 
 pub struct NetworkServerPlugin;
@@ -77,6 +87,16 @@ impl Plugin for NetworkClientPlugin {
 
         app.add_systems(Update, client_handler::client_sys);
 
+        
+        // fn netcode_err(mut renet_error: EventReader<NetcodeTransportError>) {
+        //     if renet_error.len() != 0 {
+        //         info!("Err {}", renet_error.len());
+        //     }
+        //     for e in renet_error.read() {
+        //         error!("{}", e);
+        //     }
+        // }
+        // app.add_systems(Update, netcode_err);
         // app.add_systems(Update, ui_client_net);
     }
 }
@@ -164,7 +184,7 @@ impl RenetServerHelper for RenetServer {
         self.send_packet(client_id, &SPacket::Disconnect { reason });
     }
     fn broadcast_packet_chat(&mut self, message: String) {
-        info!("[BroadcastMessage]: {}", &message);
+        info!("[BroadcastChat] {}", &message);
         self.broadcast_packet(&SPacket::Chat { message });
     }
 }
