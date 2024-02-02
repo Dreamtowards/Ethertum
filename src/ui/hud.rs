@@ -5,22 +5,24 @@ use bevy::{prelude::*, reflect::List};
 use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, ScrollArea, TextEdit, TextFormat}, EguiContexts};
 use bevy_renet::renet::RenetClient;
 
-use crate::net::{CPacket, RenetClientHelper};
+use crate::{game::WorldInfo, net::{CPacket, RenetClientHelper}};
+
+use super::CurrentUI;
 
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Debug)]
 pub struct ChatHistory {
     pub buf: String,
     pub scrollback: Vec<String>,
     pub history: VecDeque<String>,
     pub history_index: usize,
 
-    ///Line prefix symbol
-    pub symbol: String,
-    /// Number of commands to store in history
-    pub history_size: usize,
+    // Line prefix symbol
+    // pub symbol: String,
+    // Number of commands to store in history
+    // pub history_size: usize,
 }
 
 fn set_cursor_pos(ctx: &egui::Context, id: egui::Id, pos: usize) {
@@ -35,15 +37,24 @@ pub fn hud_chat(
     mut state: ResMut<ChatHistory>,
     mut last_chat_count: Local<usize>,
 
+
     mut net_client: ResMut<RenetClient>,
+
+    input_key: Res<Input<KeyCode>>,
+    mut worldinfo: ResMut<WorldInfo>,
+    
+    mut curr_ui: ResMut<State<CurrentUI>>,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
     let has_new_chat = *last_chat_count > state.scrollback.len();
     *last_chat_count = state.scrollback.len();
 
-    egui::Window::new("Chat").default_size([600., 400.]).title_bar(false).resizable(true).collapsible(false).anchor(Align2::LEFT_BOTTOM, [0., -80.]).frame(Frame::default().fill(Color32::from_black_alpha(140))).show(ctx.ctx_mut(), |ui| {
+    egui::Window::new("Chat").default_size([600., 400.]).title_bar(false).resizable(true).collapsible(false).anchor(Align2::LEFT_BOTTOM, [0., -100.]).frame(Frame::default().fill(Color32::from_black_alpha(140))).show(ctx.ctx_mut(), |ui| {
         ui.vertical(|ui| {
             let scroll_height = ui.available_height() - 30.0;
 
+            ui.separator();
+            
             // Scroll area
             ScrollArea::vertical()
                 .auto_shrink([false, false])
@@ -52,15 +63,7 @@ pub fn hud_chat(
                 .show(ui, |ui| {
                     ui.vertical(|ui| {
                         for line in &state.scrollback {
-                            let mut text = LayoutJob::default();
-
-                            text.append(
-                                &line.to_string(), //TOOD: once clap supports custom styling use it here
-                                0f32,
-                                TextFormat::simple(FontId::monospace(14.), Color32::GRAY),
-                            );
-
-                            ui.label(text);
+                            ui.colored_label(Color32::WHITE, line);
                         }
                     });
 
@@ -70,58 +73,67 @@ pub fn hud_chat(
                     // }
                 });
 
-            // Separator
+            if input_key.just_pressed(KeyCode::Slash) && *curr_ui == CurrentUI::None {
+                next_ui.set(CurrentUI::ChatInput);
+            }
+            if *curr_ui != CurrentUI::ChatInput {
+                return;
+            }
+
             ui.separator();
 
             // Input
             let text_edit = TextEdit::singleline(&mut state.buf)
                 .desired_width(f32::INFINITY)
-                // .lock_focus(true)
+                .lock_focus(true)
                 .font(egui::TextStyle::Monospace);
 
             // Handle enter
             let text_edit_response = ui.add(text_edit);
+            
+            ui.separator();
+
             if text_edit_response.lost_focus()
                 && ui.input(|i| i.key_pressed(egui::Key::Enter))
             {
-                if !state.buf.trim().is_empty() {
-                    // let msg = format!("{}{}", state.symbol, state.buf);
-                    // state.scrollback.push(msg.into());
-                    let cmdstr = state.buf.clone();
+                let history_size = 20;
 
-                    if state.history.len() == 0 {
-                        state.history.push_front(String::default());  // editing line 
-                    }
-                    state.history.insert(1, cmdstr.clone());
-                    if state.history.len() > state.history_size + 1 {
-                        state.history.pop_back();
-                    }
+                // let msg = format!("{}{}", state.symbol, state.buf);
+                // state.scrollback.push(msg.into());
+                let cmdstr = state.buf.clone();
 
-                    net_client.send_packet(&CPacket::ChatMessage { message: cmdstr.clone() });
-
-                    // let mut args = Shlex::new(&state.buf).collect::<Vec<_>>();
-
-                    // if !args.is_empty() {
-                    //     let command_name = args.remove(0);
-                    //     debug!("Command entered: `{command_name}`, with args: `{args:?}`");
-
-                    //     let command = config.commands.get(command_name.as_str());
-
-                    //     if command.is_some() {
-                    //         command_entered
-                    //             .send(ConsoleCommandEntered { command_name, args });
-                    //     } else {
-                    //         debug!(
-                    //             "Command not recognized, recognized commands: `{:?}`",
-                    //             config.commands.keys().collect::<Vec<_>>()
-                    //         );
-
-                    //         state.scrollback.push("error: Invalid command".into());
-                    //     }
-                    // }
-
-                    state.buf.clear();
+                if state.history.len() == 0 {
+                    state.history.push_front(String::default());  // editing line 
                 }
+                state.history.insert(1, cmdstr.clone());
+                if state.history.len() > history_size + 1 {
+                    state.history.pop_back();
+                }
+
+                net_client.send_packet(&CPacket::ChatMessage { message: cmdstr.clone() });
+
+                // let mut args = Shlex::new(&state.buf).collect::<Vec<_>>();
+
+                // if !args.is_empty() {
+                //     let command_name = args.remove(0);
+                //     debug!("Command entered: `{command_name}`, with args: `{args:?}`");
+
+                //     let command = config.commands.get(command_name.as_str());
+
+                //     if command.is_some() {
+                //         command_entered
+                //             .send(ConsoleCommandEntered { command_name, args });
+                //     } else {
+                //         debug!(
+                //             "Command not recognized, recognized commands: `{:?}`",
+                //             config.commands.keys().collect::<Vec<_>>()
+                //         );
+
+                //         state.scrollback.push("error: Invalid command".into());
+                //     }
+                // }
+
+                state.buf.clear();
             }
 
             // Clear on ctrl+l
@@ -144,8 +156,7 @@ pub fn hud_chat(
                 }
 
                 state.history_index += 1;
-                let previous_item = state.history.get(state.history_index).unwrap().clone();
-                state.buf = previous_item;
+                state.buf = state.history.get(state.history_index).unwrap().clone();
 
                 set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
             } else if text_edit_response.has_focus()
@@ -153,8 +164,7 @@ pub fn hud_chat(
                 && state.history_index > 0
             {
                 state.history_index -= 1;
-                let next_item = state.history.get(state.history_index).unwrap().clone();
-                state.buf = next_item;
+                state.buf = state.history.get(state.history_index).unwrap().clone();
 
                 set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
             }

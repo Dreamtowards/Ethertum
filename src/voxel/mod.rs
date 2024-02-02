@@ -7,6 +7,7 @@ mod worldgen;
 use self::material::mtl;
 use crate::character_controller::{CharacterController, CharacterControllerCamera};
 use crate::game::{condition, WorldInfo};
+use crate::ui::CurrentUI;
 use crate::util::iter;
 use chunk::*;
 pub use chunk_system::*;
@@ -365,7 +366,7 @@ fn raycast(
 
     mut chunk_sys: ResMut<ChunkSystem>,
 
-    worldinfo: Res<WorldInfo>,
+    curr_ui: Res<State<CurrentUI>>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -392,7 +393,7 @@ fn raycast(
         hit_result.is_hit = false;
     }
 
-    if !worldinfo.is_manipulating {
+    if *curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
         return;
     }
     let do_break = mouse_btn.just_pressed(MouseButton::Left);

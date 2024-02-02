@@ -7,8 +7,7 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin},
-    net::{CPacket, NetworkClientPlugin, RenetClientHelper},
+    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, NetworkClientPlugin, RenetClientHelper}, ui::CurrentUI
 };
 
 use crate::voxel::VoxelPlugin;
@@ -137,10 +136,7 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut worldinfo: ResMut<WorldInfo>,
 ) {
-    worldinfo.is_manipulating = true;  // everytime enter a world. set manipulating.
-
     info!("Load World. setup Player, Camera, Sun.");
 
     // Logical Player
@@ -247,15 +243,18 @@ fn handle_inputs(
 
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut last_is_manipulating: Local<bool>,
+    
+    mut curr_ui: ResMut<State<CurrentUI>>,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
     let mut window = window_query.single_mut();
 
     let mut curr_manipulating = false;
-    if let Some(worldinfo) = &mut worldinfo {
+    if worldinfo.is_some() {
         if key.just_pressed(KeyCode::Escape) {
-            worldinfo.is_manipulating = !worldinfo.is_manipulating;
+            next_ui.set(if *curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None });
         }
-        curr_manipulating = worldinfo.is_manipulating;
+        curr_manipulating = *curr_ui == CurrentUI::None;
     }
     // fixed: disable manipulating when WorldInfo is removed.
     if *last_is_manipulating != curr_manipulating {
@@ -373,7 +372,7 @@ pub struct WorldInfo {
     pub is_paused: bool,
     pub paused_steps: i32,
 
-    pub is_manipulating: bool,
+    // pub is_manipulating: bool,
 
     pub dbg_text: bool,
 }
@@ -395,7 +394,7 @@ impl Default for WorldInfo {
             is_paused: false,
             paused_steps: 0,
 
-            is_manipulating: true,
+            // is_manipulating: true,
 
             dbg_text: true,
         }

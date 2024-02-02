@@ -35,7 +35,7 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         app.add_systems(Update, ui_menu_panel); // Debug MenuBar. before CentralPanel
-        app.add_systems(Update, main_menu::ui_pause_menu.run_if(condition::in_world()).before(ui_menu_panel));
+        app.add_systems(Update, main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)).before(ui_menu_panel));
 
         app.add_state::<CurrentUI>();
         app.add_systems(Update, main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)));
@@ -70,10 +70,12 @@ pub enum CurrentUI {
     None,
     #[default]
     MainMenu,
+    PauseMenu,
     WtfSettings,
     WtfServerList,
     ConnectingServer,
-    DisconnectedReason
+    DisconnectedReason,
+    ChatInput,
 }
 
 

@@ -18,7 +18,7 @@ pub fn ui_main_menu(
     mut cli: EthertiaClient,
 
     mut clientinfo: ResMut<ClientInfo>,
-    mut next_state: ResMut<NextState<CurrentUI>>,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -37,21 +37,21 @@ pub fn ui_main_menu(
             let siz = [240., 24.];
             if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
                 // 临时的单人版方法 直接进入世界而不管网络
+                next_ui.set(CurrentUI::None);
                 commands.insert_resource(WorldInfo::default());  
-                next_state.set(CurrentUI::None);
             }
             
             ui.text_edit_singleline(&mut clientinfo.username);
 
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
-                next_state.set(CurrentUI::ConnectingServer);
+                next_ui.set(CurrentUI::ConnectingServer);
                 cli.connect_server(&mut commands, "127.0.0.1:4000".into(), clientinfo.username.clone());
             }
             if ui.add_sized(siz, egui::Button::new("Join Server")).clicked() {
-                next_state.set(CurrentUI::WtfServerList);
+                next_ui.set(CurrentUI::WtfServerList);
             }
             if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {
-                next_state.set(CurrentUI::WtfSettings);
+                next_ui.set(CurrentUI::WtfSettings);
             }
             if ui.add_sized(siz, egui::Button::new("Terminate")).clicked() {
                 app_exit_events.send(AppExit);
@@ -76,14 +76,11 @@ pub fn ui_main_menu(
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut commands: Commands,
-    mut next_state_ui: ResMut<NextState<CurrentUI>>,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
 
     mut net_client: ResMut<RenetClient>,
-    mut worldinfo: ResMut<WorldInfo>,
+    // mut worldinfo: ResMut<WorldInfo>,
 ) {
-    if worldinfo.is_manipulating {
-        return;
-    }
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
     egui::CentralPanel::default()
         .frame(Frame::default().fill(Color32::from_black_alpha(190)))
@@ -115,7 +112,7 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Abilities");
                 ui.toggle_value(&mut false, "Quests");
                 if ui.toggle_value(&mut false, "Quit").clicked() {
-                    next_state_ui.set(CurrentUI::MainMenu);
+                    next_ui.set(CurrentUI::MainMenu);
                     commands.remove_resource::<WorldInfo>();
                     net_client.disconnect();
                     // cli.close_world();
