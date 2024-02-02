@@ -1,14 +1,14 @@
 use std::{f32::consts::{PI, TAU}, time::Duration};
 
-use anyhow::Ok;
-use bevy::{math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_atmosphere::prelude::*;
+use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
     character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin},
-    net::NetworkClientPlugin,
+    net::{CPacket, NetworkClientPlugin, RenetClientHelper},
 };
 
 use crate::voxel::VoxelPlugin;
@@ -63,12 +63,17 @@ impl Plugin for GamePlugin {
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
 
-        // WorldInfo
-        app.register_type::<WorldInfo>();
-        // app.insert_resource(WorldInfo::new());
+        // UI
+        app.add_plugins(crate::ui::UiPlugin);
 
         // ChunkSystem
         app.add_plugins(VoxelPlugin);
+
+        // ClientInfo
+        app.insert_resource(ClientInfo::default());
+
+        // WorldInfo
+        app.register_type::<WorldInfo>();
 
         app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
@@ -77,27 +82,53 @@ impl Plugin for GamePlugin {
         // Debug Draw Gizmos
         // app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
 
+        app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
+
         // Network Client
         app.add_plugins(NetworkClientPlugin);
 
-
-        app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
-
-        app.add_plugins(crate::ui::UiPlugin);
 
     }
 }
 
 
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum CurrentUI {
-    None,
-    #[default]
-    MainMenu,
-    WtfSettings,
-    WtfServerList,
+#[derive(SystemParam)]
+pub struct EthertiaClient {
+
 }
+
+impl EthertiaClient {
+
+    /// for Singleplayer
+    // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
+
+
+    pub fn connect_server(&mut self, cmds: &mut Commands, server_addr: String) {
+
+        let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
+        
+        net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
+
+        cmds.insert_resource(net_client);
+        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
+        
+        // let mut cmd = CommandQueue::default();
+        // cmd.push(move |world: &mut World| {
+        //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
+        //     world.insert_resource(RenetClient::new(bevy_renet::renet::ConnectionConfig::default()));
+            
+        //     let mut net_client = world.resource_mut::<RenetClient>();
+
+        //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
+        // });
+    }
+
+    pub fn enter_world() {
+
+    }
+}
+
 
 
 fn startup(
@@ -217,21 +248,22 @@ fn handle_inputs(
 ) {
     let mut window = window_query.single_mut();
 
+    let mut curr_manipulating = false;
     if let Some(worldinfo) = &mut worldinfo {
         if key.just_pressed(KeyCode::Escape) {
             worldinfo.is_manipulating = !worldinfo.is_manipulating;
         }
+        curr_manipulating = worldinfo.is_manipulating;
+    }
+    // fixed: disable manipulating when WorldInfo is removed.
+    if *last_is_manipulating != curr_manipulating {
+        *last_is_manipulating = curr_manipulating;
 
-        if *last_is_manipulating != worldinfo.is_manipulating {
-            let to_play = worldinfo.is_manipulating;
+        window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
+        window.cursor.visible = !curr_manipulating;
 
-            window.cursor.grab_mode = if to_play { CursorGrabMode::Locked } else { CursorGrabMode::None };
-            window.cursor.visible = !to_play;
-
-            for mut controller in &mut controller_query {
-                controller.enable_input = to_play;
-            }
-            *last_is_manipulating = worldinfo.is_manipulating;
+        for mut controller in &mut controller_query {
+            controller.enable_input = curr_manipulating;
         }
     }
 
@@ -373,8 +405,17 @@ impl Default for WorldInfo {
 //     server_list: Vec<>,
 // }
 
-struct ClientInfo {
+#[derive(Resource)]
+pub struct ClientInfo {
+    pub disconnected_reason: String,
+}
 
+impl Default for ClientInfo {
+    fn default() -> Self {
+        Self {
+            disconnected_reason: "none".into(),
+        }
+    }
 }
 
 #[derive(Component)]

@@ -1,14 +1,86 @@
-
+use bevy::prelude::*;
+use bevy::ecs::schedule::NextState;
 use bevy_egui::{egui::{self, Align2, Color32, Layout}, EguiContexts};
+use bevy_renet::renet::RenetClient;
 
-pub fn ui_serverlist(mut ctx: EguiContexts) {
+use crate::game::ClientInfo;
+
+use super::CurrentUI;
+
+
+fn new_egui_window(title: &str) -> egui::Window {
+    egui::Window::new(title).fixed_size([900., 500.]).title_bar(false).anchor(Align2::CENTER_CENTER, [0., 0.]).resizable(true).collapsible(false)
+}
+
+pub fn ui_connecting_server(
+    mut ctx: EguiContexts,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
+    net_client: Res<RenetClient>,
+) {
+    new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
+        let h = ui.available_height();
+
+        ui.vertical_centered(|ui| {
+            ui.add_space(h * 0.2);
+            
+            if net_client.is_connected() {
+                ui.label("Authenticating & logging in...");
+            } else {
+                ui.label("Connecting server...");
+            }
+            
+            ui.add_space(h * 0.3);
+            
+            if ui.button("Cancel").clicked() {
+                // todo: Interrupt Connection without handle Result.
+                next_ui.set(CurrentUI::MainMenu);
+            }
+
+        });
+
+    });
+}
+
+pub fn ui_disconnected_reason(
+    mut ctx: EguiContexts,
+    mut next_ui: ResMut<NextState<CurrentUI>>,
+
+    clientinfo: Res<ClientInfo>,
+    net_client: Res<RenetClient>,
+) {
+    new_egui_window("Disconnected Reason").show(ctx.ctx_mut(), |ui| {
+        let h = ui.available_height();
+
+        ui.vertical_centered(|ui| {
+            ui.add_space(h * 0.3);
+
+            ui.label("Disconnected:");
+            ui.colored_label(Color32::WHITE, clientinfo.disconnected_reason.as_str());
+            if let Some(reason) = net_client.disconnect_reason() {
+                ui.label(reason.to_string());
+            }
+            
+            ui.add_space(h * 0.3);
+            
+            if ui.button("Back to title").clicked() {
+                // todo: Interrupt Connection without handle Result.
+                next_ui.set(CurrentUI::MainMenu);
+            }
+
+        });
+
+    });
+}
+
+
+
+
+pub fn ui_serverlist(mut ctx: EguiContexts, mut next_ui: ResMut<NextState<CurrentUI>>,) {
     egui::Window::new("ServerList").title_bar(false).anchor(Align2::CENTER_CENTER, [0., 0.]).resizable(true).collapsible(false).show(ctx.ctx_mut(), |ui| {
 
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 let btnsize = [160., 22.];
-                if ui.add_sized(btnsize, egui::Button::new("Join Server")).clicked() {
-                }
                 if ui.add_sized(btnsize, egui::Button::new("Add Server")).clicked() {
                 }
                 if ui.add_sized(btnsize, egui::Button::new("Direct Connect")).clicked() {
@@ -16,6 +88,7 @@ pub fn ui_serverlist(mut ctx: EguiContexts) {
                 if ui.add_sized(btnsize, egui::Button::new("Refresh")).clicked() {
                 }
                 if ui.add_sized(btnsize, egui::Button::new("Cancel")).clicked() {
+                    next_ui.set(CurrentUI::MainMenu);
                 }
             });
             

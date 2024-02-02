@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, UdpSocket};
+use std::{net::{SocketAddr, UdpSocket}, time::Duration};
 
 use crate::util::{current_timestamp, current_timestamp_millis};
 use bevy::prelude::*;
@@ -14,11 +14,15 @@ use bevy_renet::{
 use serde::{Deserialize, Serialize};
 
 mod packet;
-use packet::{CPacket, SPacket};
+pub use packet::{CPacket, SPacket};
+
+mod client_handler;
+
+
 
 const PROTOCOL_ID: u64 = 1;
 
-fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
+pub fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
     // let public_addr = "127.0.0.1:4000".parse().unwrap();  // SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)
     let socket = UdpSocket::bind(public_addr).unwrap();
     let server_config = ServerConfig {
@@ -31,7 +35,7 @@ fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> 
     NetcodeServerTransport::new(server_config, socket).unwrap()
 }
 
-fn new_netcode_client_transport(server_addr: SocketAddr) -> NetcodeClientTransport {
+pub fn new_netcode_client_transport(server_addr: SocketAddr) -> NetcodeClientTransport {
     // let server_addr = "127.0.0.1:5000".parse().unwrap();
     let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
     let current_time = current_timestamp();
@@ -73,7 +77,7 @@ impl Plugin for NetworkClientPlugin {
 
         app.insert_resource(RenetClient::new(ConnectionConfig::default()));
 
-        app.add_systems(Update, client_sys);
+        app.add_systems(Update, client_handler::client_sys);
 
         // app.add_systems(Update, ui_client_net);
     }
@@ -146,10 +150,10 @@ fn server_sys(mut server_events: EventReader<ServerEvent>, mut server: ResMut<Re
     for event in server_events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
-                println!("Client {client_id} connected {}", server.connected_clients());
+                println!("Client {client_id} connected (all: {})", server.connected_clients());
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
-                println!("Client {client_id} disconnected: {reason}");
+                println!("Client {client_id} disconnected: {reason}. (all: {})", server.connected_clients());
             }
         }
     }
@@ -200,6 +204,9 @@ fn server_sys(mut server_events: EventReader<ServerEvent>, mut server: ResMut<Re
                 }
                 CPacket::Login { uuid, access_token } => {
                     info!("Login Requested: {} {}", uuid, access_token);
+
+                    std::thread::sleep(Duration::from_millis(2000));
+
                     server.send_packet(client_id, &SPacket::LoginSuccess {});
                 }
                 CPacket::ChatMessage { message } => {
@@ -214,47 +221,7 @@ fn server_sys(mut server_events: EventReader<ServerEvent>, mut server: ResMut<Re
     }
 }
 
-fn client_sys(
-    // mut client_events: EventReader<ClientEvent>,
-    mut client: ResMut<RenetClient>,
-) {
-    while let Some(bytes) = client.receive_message(DefaultChannel::ReliableOrdered) {
-        info!("Client Received: {}", String::from_utf8_lossy(&bytes));
-        let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
-        match &packet {
-            SPacket::Disconnect { reason } => {
-                info!("Disconnected: {}", reason);
-                client.disconnect();
-            }
-            SPacket::ServerInfo {
-                motd,
-                num_players_limit,
-                num_players_online,
-                protocol_version,
-                favicon,
-            } => {
-                info!("ServerInfo: {:?}", &packet);
-            }
-            SPacket::Pong { client_time, server_time } => {
-                let curr = current_timestamp_millis();
-                info!(
-                    "Ping: {}ms = cs {} + sc {}",
-                    curr - client_time,
-                    server_time - client_time,
-                    curr - server_time
-                );
-            }
-            SPacket::LoginSuccess {} => {
-                info!("Login Success!");
-            }
-            SPacket::Chat { message } => {
-                info!("[Chat]: {}", message);
-            }
-        }
-    }
-}
-
-trait RenetServerHelper {
+pub trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);
@@ -268,7 +235,7 @@ impl RenetServerHelper for RenetServer {
     }
 }
 
-trait RenetClientHelper {
+pub trait RenetClientHelper {
     fn send_packet<P: Serialize>(&mut self, packet: &P);
 }
 impl RenetClientHelper for RenetClient {
