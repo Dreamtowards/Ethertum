@@ -104,12 +104,17 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
         visuals.handle_shape = HandleShape::Rect { aspect_ratio: 0.5 };
         visuals.slider_trailing_fill = true;
 
-        visuals.widgets.hovered.bg_stroke = Stroke::new(2.0, Color32::from_white_alpha(200));
+        visuals.widgets.hovered.bg_stroke = Stroke::new(2.0, Color32::from_white_alpha(180));
         visuals.widgets.active.bg_stroke = Stroke::new(3.0, Color32::WHITE);
 
-        visuals.widgets.inactive.weak_bg_fill = Color32::from_white_alpha(10);
+        visuals.widgets.inactive.weak_bg_fill = Color32::from_white_alpha(10);  // button
         visuals.widgets.hovered.weak_bg_fill = Color32::from_white_alpha(20); // button hovered
-        visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60); // button hovered
+        visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60); // button pressed
+
+        visuals.selection.bg_fill = Color32::from_rgb(27,76,201);
+        visuals.selection.stroke = Stroke::new(2.0, Color32::from_white_alpha(200));  // visuals.selection.bg_fill
+
+        visuals.extreme_bg_color = Color32::from_black_alpha(170);  // TextEdit, ProgressBar, ScrollBar Bg, Plot Bg
     });
 
     let mut fonts = FontDefinitions::default();

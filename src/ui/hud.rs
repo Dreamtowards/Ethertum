@@ -49,12 +49,12 @@ pub fn hud_chat(
     let has_new_chat = *last_chat_count > state.scrollback.len();
     *last_chat_count = state.scrollback.len();
 
-    egui::Window::new("Chat").default_size([600., 400.]).title_bar(false).resizable(true).collapsible(false).anchor(Align2::LEFT_BOTTOM, [0., -100.]).frame(Frame::default().fill(Color32::from_black_alpha(140))).show(ctx.ctx_mut(), |ui| {
+    egui::Window::new("Chat").default_size([660., 400.]).title_bar(false).resizable(true).collapsible(false).anchor(Align2::LEFT_BOTTOM, [0., -100.]).frame(Frame::default().fill(Color32::from_black_alpha(140))).show(ctx.ctx_mut(), |ui| {
         ui.vertical(|ui| {
-            let scroll_height = ui.available_height() - 30.0;
+            let scroll_height = ui.available_height() - 46.0;
 
-            ui.separator();
-            
+            ui.add_space(4.);
+
             // Scroll area
             ScrollArea::vertical()
                 .auto_shrink([false, false])
@@ -80,19 +80,18 @@ pub fn hud_chat(
                 return;
             }
 
-            ui.separator();
+            // ui.separator();
 
             // Input
             let text_edit = TextEdit::singleline(&mut state.buf)
                 .desired_width(f32::INFINITY)
-                .lock_focus(true)
-                .font(egui::TextStyle::Monospace);
+                .lock_focus(true);
 
             // Handle enter
             let text_edit_response = ui.add(text_edit);
-            
-            ui.separator();
 
+            ui.add_space(6.);
+            
             if text_edit_response.lost_focus()
                 && ui.input(|i| i.key_pressed(egui::Key::Enter))
             {
