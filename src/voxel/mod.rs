@@ -32,8 +32,19 @@ use bevy_xpbd_3d::{
 use futures_lite::future;
 use once_cell::sync::Lazy;
 use std::sync::{Arc, RwLock};
-use std::{cell::RefCell, time::Instant};
+use std::{cell::RefCell};
 use thread_local::ThreadLocal;
+
+use instant::Instant;
+
+type ChunkLoadingData = (IVec3, ChunkPtr);
+type ChunkRemeshData = (IVec3, Mesh, Option<Collider>, Entity, Handle<Mesh>);
+
+#[derive(Resource, Deref, Clone)]
+struct ChunkDataTx<T>(crate::channel_impl::Sender<T>);
+
+#[derive(Resource, Deref, Clone)]
+struct ChunkDataRx<T>(crate::channel_impl::Receiver<T>);
 
 pub struct VoxelPlugin;
 
@@ -46,6 +57,20 @@ impl Plugin for VoxelPlugin {
         app.register_asset_reflect::<TerrainMaterial>();
 
         app.insert_resource(HitResult::default());
+
+        {
+            {
+                let (tx, rx) = crate::channel_impl::unbounded::<ChunkLoadingData>();
+                app.insert_resource(ChunkDataTx(tx));
+                app.insert_resource(ChunkDataRx(rx));
+            }
+
+            {
+                let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
+                app.insert_resource(ChunkDataTx(tx));
+                app.insert_resource(ChunkDataRx(rx));
+            }
+        }
 
         app.add_systems(First, startup.run_if(condition::load_world()));
 
@@ -113,6 +138,9 @@ fn chunks_detect_load_and_unload(
 
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+
+    chunk_data_tx: Res<ChunkDataTx<ChunkLoadingData>>,
+    chunk_data_rx: Res<ChunkDataRx<ChunkLoadingData>>,
 ) {
     // let chunk_sys_entity = commands.entity(chunk_sys.entity);
 
@@ -145,6 +173,9 @@ fn chunks_detect_load_and_unload(
                         continue;
                     }
 
+                    #[cfg(feature = "experimental_channel")]
+                    let tx = chunk_data_tx.clone();
+
                     let task = AsyncComputeTaskPool::get().spawn(async move {
 
                         let mut chunk = Chunk::new(chunkpos);
@@ -153,10 +184,23 @@ fn chunks_detect_load_and_unload(
 
                         // info!("Load Chunk: {:?}", chunkpos);
 
-                        Arc::new(RwLock::new(chunk))
+                        #[cfg(feature = "target_native_os")]
+                        {
+                            Arc::new(RwLock::new(chunk))
+                        }
+
+                        #[cfg(feature = "experimental_channel")]
+                        tx.send((chunkpos, chunkptr)).unwrap();
                     });
 
+                    #[cfg(feature = "target_native_os")]
                     chunk_sys.chunks_loading.insert(chunkpos, task);
+
+                    #[cfg(feature = "experimental_channel")]
+                    {
+                        task.detach();
+                        chunk_sys.chunks_loading.insert(chunkpos, ());
+                    }
 
                     // gizmo.cuboid(Transform::from_translation(p.as_vec3()).with_scale(Vec3::splat(16.)), Color::RED);
                 }
@@ -168,6 +212,8 @@ fn chunks_detect_load_and_unload(
     let chunksys_entity = chunk_sys.entity;
     let material_handle = chunk_sys.vox_mtl.clone();
     let mut goingtospawn = Vec::new();
+
+    #[cfg(feature = "target_native_os")]
     chunk_sys.chunks_loading.retain(|chunkpos, task| {
         if task.is_finished() {
             let chunkptr = future::block_on(future::poll_once(task)).unwrap();
@@ -199,6 +245,36 @@ fn chunks_detect_load_and_unload(
         }
         true
     });
+
+    #[cfg(feature = "experimental_channel")]
+    while let Ok((chunkpos, chunkptr)) = chunk_data_rx.try_recv() {
+        chunk_sys.chunks_loading.retain(|k, _| *k != chunkpos );
+
+        {
+            let mut chunk = chunkptr.write().unwrap();
+
+            chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+
+            chunk.entity = commands
+                .spawn((
+                    ChunkComponent::new(chunkpos),
+                    MaterialMeshBundle {
+                        mesh: chunk.mesh_handle.clone(),
+                        material: material_handle.clone(),
+                        transform: Transform::from_translation(chunkpos.as_vec3()),
+                        visibility: Visibility::Hidden, // Hidden is required since Mesh is empty.
+                        ..default()
+                    },
+                    Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                    RigidBody::Static,
+                ))
+                .set_parent(chunksys_entity)
+                .id();
+        }
+
+        goingtospawn.push(chunkptr);
+    }
+
     for chunkptr in goingtospawn {
         chunk_sys.spawn_chunk(chunkptr);
     }
@@ -230,6 +306,9 @@ fn chunks_remesh(
     mut chunk_sys: ResMut<ChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
+
+    chunk_data_tx: Res<ChunkDataTx<ChunkRemeshData>>,
+    chunk_data_rx: Res<ChunkDataRx<ChunkRemeshData>>,
 ) {
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
@@ -245,6 +324,9 @@ fn chunks_remesh(
 
         if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
             let chunkptr = chunkptr.clone();
+
+            #[cfg(feature = "experimental_channel")]
+            let tx = chunk_data_tx.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
                 let mut vbuf = THREAD_LOCAL_VERTEX_BUFFERS.get_or(|| RefCell::new(VertexBuffer::default())).borrow_mut();
@@ -287,15 +369,30 @@ fn chunks_remesh(
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                (mesh, collider, entity, mesh_handle)
+                #[cfg(feature = "target_native_os")]
+                {
+                    (mesh, collider, entity, mesh_handle)
+                }
+
+                #[cfg(feature = "experimental_channel")]
+                tx.send((chunkpos, mesh, collider, entity, mesh_handle)).unwrap();
             });
 
             // info!("Queued ReMesh");
+            
+            #[cfg(feature = "target_native_os")]
             chunk_sys.chunks_meshing.insert(chunkpos, task);
+
+            #[cfg(feature = "experimental_channel")]
+            {
+                task.detach();
+                chunk_sys.chunks_meshing.insert(chunkpos, ());
+            }
         }
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
+    #[cfg(feature = "target_native_os")]
     chunk_sys.chunks_meshing.retain(|_chunkpos, task| {
         if task.is_finished() {
             let (mesh, collider, entity, mesh_handle) = future::block_on(future::poll_once(task)).unwrap();
@@ -315,6 +412,24 @@ fn chunks_remesh(
         }
         true
     });
+
+    #[cfg(feature = "experimental_channel")]
+    while let Ok((chunkpos, mesh, collider, entity, mesh_handle)) = chunk_data_rx.try_recv() {
+        chunk_sys.chunks_loading.retain(|k, _| *k != chunkpos);
+
+        {
+            // Update Mesh Asset
+            *meshes.get_mut(mesh_handle).unwrap() = mesh;
+
+            // Update Phys Collider TriMesh
+            if let Some(collider) = collider {
+                if let Some(mut cmds) = commands.get_entity(entity) {
+                    // the entity may be already unloaded ?
+                    cmds.remove::<Collider>().insert(collider).insert(Visibility::Visible);
+                }
+            }
+        }
+    }
 }
 
 fn gizmos(mut gizmos: Gizmos, chunk_sys: Res<ChunkSystem>) {

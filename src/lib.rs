@@ -6,3 +6,5 @@ pub mod voxel;
 
 pub mod character_controller;
 pub mod editor;
+
+use crossbeam_channel as channel_impl;

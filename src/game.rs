@@ -2,7 +2,10 @@ use std::{f32::consts::{PI, TAU}, time::Duration};
 
 use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
+
+#[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
+
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
@@ -42,8 +45,11 @@ impl Plugin for GamePlugin {
         // Render
         {
             // Atmosphere
-            app.insert_resource(AtmosphereModel::default());
-            app.add_plugins(AtmospherePlugin);
+            #[cfg(feature = "target_native_os")]
+            {
+                app.insert_resource(AtmosphereModel::default());
+                app.add_plugins(AtmospherePlugin);
+            }
     
             // ShadowMap sizes
             app.insert_resource(DirectionalLightShadowMap { size: 512 });
@@ -169,7 +175,10 @@ fn startup(
             camera: Camera { hdr: true, ..default() },
             ..default()
         },
+
+        #[cfg(feature = "target_native_os")]
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+
         CharacterControllerCamera,
         Name::new("Camera"),
     ));
@@ -279,7 +288,9 @@ fn handle_inputs(
 }
 
 fn tick_world(
+    #[cfg(feature = "target_native_os")]
     mut atmosphere: AtmosphereMut<Nishita>,
+
     mut query: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
     time: Res<Time>,
@@ -310,7 +321,11 @@ fn tick_world(
 
     // Atmosphere SunPos
     let sun_ang = worldinfo.daytime * PI * 2.;
-    atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
+    
+    #[cfg(feature = "target_native_os")]
+    {
+        atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
+    }
 
     if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
         directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
