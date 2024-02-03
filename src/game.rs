@@ -411,7 +411,7 @@ impl Default for WorldInfo {
 
             // is_manipulating: true,
 
-            dbg_text: true,
+            dbg_text: false,
         }
     }
 }

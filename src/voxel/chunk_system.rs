@@ -47,6 +47,9 @@ pub struct ChunkSystem {
     pub vox_mtl: Handle<TerrainMaterial>,
 
     pub dbg_remesh_all_chunks: bool,
+
+    pub max_concurrent_loading: usize,
+    pub max_concurrent_meshing: usize,
 }
 
 impl Default for ChunkSystem {
@@ -60,6 +63,8 @@ impl Default for ChunkSystem {
             chunks_remesh: HashSet::default(),
             chunks_meshing: HashMap::default(),
             chunks_loading: HashMap::default(),
+            max_concurrent_loading: 16,
+            max_concurrent_meshing: 16,
         }
     }
 }

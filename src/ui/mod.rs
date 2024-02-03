@@ -146,7 +146,11 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
 
 
-fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>) {
+fn ui_menu_panel(
+    mut ctx: EguiContexts,
+    mut worldinfo: Option<ResMut<WorldInfo>>,
+    mut chunk_sys: ResMut<ChunkSystem>,
+) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
@@ -244,8 +248,21 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>
                             ui.toggle_value(&mut true, "HUD");
                             ui.toggle_value(&mut false, "Fullscreen");
                             ui.button("Save Screenshot");
-                            // ui.separator();
-                            // ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
+
+                            if let Some(worldinfo) = &mut worldinfo {
+                                ui.separator();
+                                ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
+
+                                ui.label("ViewDistance: h&v");
+                                ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
+                                ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));
+
+                                ui.label("max_concurrent_loading:");
+                                ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_loading).speed(1.));
+                                ui.label("max_concurrent_meshing:");
+                                ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_meshing).speed(1.));
+
+                            }
                         });
                     });
                 });
@@ -283,6 +300,7 @@ pub fn ui_settings(
     mut ctx: EguiContexts, 
     mut settings_panel: Local<SettingsPanel>, 
     mut next_ui: ResMut<NextState<CurrentUI>>, 
+
     mut clientinfo: ResMut<ClientInfo>,
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
@@ -387,16 +405,23 @@ fn hud_debug_text(
 
     hit_result: Res<HitResult>,
 ) {
-    if worldinfo.dbg_text {
+    if !worldinfo.dbg_text {
         return;
+    }
+    
+    let dt = time.delta_seconds();
+
+    #[cfg(feature = "target_native_os")]
+    {
+
     }
 
     use crate::util::TimeIntervals;
+
     if time.at_interval(2.0) {
         sys.refresh_cpu();
         sys.refresh_memory();
     }
-    let dt = time.delta_seconds();
 
     let mut frame_time = time.delta_seconds_f64();
     if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME) {
@@ -422,10 +447,10 @@ fn hud_debug_text(
 
     let cpu_arch = std::env::consts::ARCH;
     let dist_id = std::env::consts::OS;
-    let os_ver = sys.long_os_version().unwrap();
-    let os_ver_sm = sys.os_version().unwrap();
+    let os_ver = sys.long_os_version().unwrap_or_default();
+    let os_ver_sm = sys.os_version().unwrap_or_default();
 
-    let cpu_cores = sys.physical_core_count().unwrap();
+    let cpu_cores = sys.physical_core_count().unwrap_or_default();
     let cpu_name = sys.global_cpu_info().brand().trim().to_string();
     let cpu_usage = sys.global_cpu_info().cpu_usage();
 

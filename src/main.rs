@@ -11,6 +11,7 @@ fn main() {
                 present_mode: bevy::window::PresentMode::AutoNoVsync,
                 resolution: bevy::window::WindowResolution::new(1280., 720.),
                 title: "Ethertia 0.2.2 2024.02a Connect, Login, Chat".into(),
+                fit_canvas_to_parent: true,
                 ..default()
             }),
             ..default()

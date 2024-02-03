@@ -50,7 +50,7 @@ pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ChunkSystem::new(ivec2(10, 3)));
+        app.insert_resource(ChunkSystem::new(ivec2(18, 3)));
         app.register_type::<ChunkSystem>();
 
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
@@ -149,14 +149,12 @@ fn chunks_detect_load_and_unload(
 
     // Chunks Detect Load/Gen
 
-    const MAX_CONCURRENT_LOADING: usize = 16;
-
     let max_n = vd.max_element();
     'outer: for n in 0..max_n {
         for y in -n..=n {
             for z in -n..=n {
                 for x in -n..=n {
-                    if chunk_sys.chunks_loading.len() > MAX_CONCURRENT_LOADING {
+                    if chunk_sys.chunks_loading.len() > chunk_sys.max_concurrent_loading {
                         break 'outer;
                     }
                     if x.abs() < n && y.abs() < n && z.abs() < n {
@@ -313,10 +311,8 @@ fn chunks_remesh(
     let p = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());
     chunks_remesh.sort_unstable_by_key(|v| FloatOrd(v.distance_squared(p) as f32));
 
-    const MAX_CONCURRENT_MESHING: usize = 16;
-
     for chunkpos in chunks_remesh {
-        if chunk_sys.chunks_meshing.len() > MAX_CONCURRENT_MESHING {
+        if chunk_sys.chunks_meshing.len() > chunk_sys.max_concurrent_meshing {
             break;
         }
 
@@ -547,14 +543,17 @@ pub struct TerrainMaterial {
     #[texture(3)]
     pub texture_dram: Option<Handle<Image>>,
 
+    // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
     #[uniform(4)]
-    pub sample_scale: f32,
-    #[uniform(5)]
-    pub normal_intensity: f32,
-    #[uniform(6)]
-    pub triplanar_blend_pow: f32,
-    #[uniform(7)]
-    pub heightmap_blend_pow: f32, // littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
+    pub wasm0: Vec4,
+
+    // pub sample_scale: f32,
+    // #[uniform(5)]
+    // pub normal_intensity: f32,
+    // #[uniform(6)]
+    // pub triplanar_blend_pow: f32,
+    // #[uniform(7)]
+    // pub heightmap_blend_pow: f32, // littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
 }
 
 impl Default for TerrainMaterial {
@@ -563,10 +562,11 @@ impl Default for TerrainMaterial {
             texture_diffuse: None,
             texture_normal: None,
             texture_dram: None,
-            sample_scale: 1.0,
-            normal_intensity: 1.0,
-            triplanar_blend_pow: 4.5,
-            heightmap_blend_pow: 0.48,
+            wasm0: Vec4::new(1.0, 1.0, 4.5, 0.48),
+            // sample_scale: 1.0,
+            // normal_intensity: 1.0,
+            // triplanar_blend_pow: 4.5,
+            // heightmap_blend_pow: 0.48,
         }
     }
 }
