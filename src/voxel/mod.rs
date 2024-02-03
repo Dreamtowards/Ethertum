@@ -246,7 +246,7 @@ fn chunks_detect_load_and_unload(
 
     #[cfg(feature = "experimental_channel")]
     while let Ok((chunkpos, chunkptr)) = chunk_data_rx.try_recv() {
-        chunk_sys.chunks_loading.retain(|k, _| *k != chunkpos );
+        chunk_sys.chunks_loading.remove(&chunkpos);
 
         {
             let mut chunk = chunkptr.write().unwrap();
@@ -413,7 +413,8 @@ fn chunks_remesh(
 
     #[cfg(feature = "experimental_channel")]
     while let Ok((chunkpos, mesh, collider, entity, mesh_handle)) = chunk_data_rx.try_recv() {
-        chunk_sys.chunks_loading.retain(|k, _| *k != chunkpos);
+        chunk_sys.chunks_meshing.remove(&chunkpos);
+        // todo: .remove
 
         {
             // Update Mesh Asset

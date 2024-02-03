@@ -5,8 +5,6 @@
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
 [![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
 ![repo size](https://img.shields.io/github/repo-size/Dreamtowards/Ethertum)
-
-
 [![Official Site](https://img.shields.io/badge/website-ethertia.com-blue.svg)](//ethertia.com)
 [![Docs](https://img.shields.io/badge/documentations-blue.svg)](//docs.ethertia.com) ' 
 [![bilibili](https://img.shields.io/badge/bilibili-gray.svg)](https://space.bilibili.com/19483166)
@@ -27,8 +25,7 @@
 <!-- ![MIT](https://img.shields.io/badge/license-MIT-blue.svg) -->
 <!-- ![Apache](https://img.shields.io/badge/license-Apache-blue.svg) -->
 
-A Sandbox Survival Game, with Rust, Bevy.   
-inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, GTA<sup>V,SA</sup>, VRChat, RisingWorld, Palworld,. 
+A Sandbox Survival Game, with Rust, Bevy. inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, GTA<sup>V,SA</sup>, VRChat, RisingWorld, Palworld,. 
 
 <!-- [Documentations](https://docs.ethertia.com) - 
 [Official Site](https://ethertia.com) - 

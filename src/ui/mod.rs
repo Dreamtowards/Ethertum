@@ -323,8 +323,8 @@ pub fn ui_settings(
                 match *settings_panel {
                     SettingsPanel::Profile => {
 
+                        ui.label("Profile");
                         ui.group(|ui| {
-                            ui.label("Profile");
                             
                             ui.label("ref.dreamtowards@gmail.com (2736310270)");
 
