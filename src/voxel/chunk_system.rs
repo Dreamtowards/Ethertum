@@ -21,13 +21,24 @@ pub struct ChunkSystem {
 
     // Spare Voxel Octree for Spatial lookup acceleration.
     // chunks_svo: SVO<Arc<RwLock<Chunk>>>,
+
+    #[cfg(feature = "target_native_os")]
     #[reflect(ignore)]
     pub chunks_loading: HashMap<IVec3, Task<ChunkPtr>>,
 
-    pub chunks_remesh: HashSet<IVec3>, // marked as ReMesh
+    #[cfg(feature = "experimental_channel")]
+    #[reflect(ignore)]
+    pub chunks_loading: HashMap<IVec3, ()>,
 
+    #[cfg(feature = "target_native_os")]
     #[reflect(ignore)]
     pub chunks_meshing: HashMap<IVec3, Task<(Mesh, Option<Collider>, Entity, Handle<Mesh>)>>,
+
+    #[cfg(feature = "experimental_channel")]
+    #[reflect(ignore)]
+    pub chunks_meshing: HashMap<IVec3, ()>,
+
+    pub chunks_remesh: HashSet<IVec3>, // marked as ReMesh
 
     pub view_distance: IVec2,
 

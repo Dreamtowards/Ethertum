@@ -438,7 +438,7 @@ fn hud_debug_text(
     let mut mem_usage_phys = 0.;
     let mut mem_usage_virtual = 0.;
 
-    #[cfg(not(feature = "web"))]
+    #[cfg(feature = "target_native_os")]
     {
         if let Some(usage) = memory_stats::memory_stats() {
             // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
