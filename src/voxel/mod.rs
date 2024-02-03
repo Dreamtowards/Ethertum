@@ -562,6 +562,7 @@ impl Default for TerrainMaterial {
             texture_diffuse: None,
             texture_normal: None,
             texture_dram: None,
+
             wasm0: Vec4::new(1.0, 1.0, 4.5, 0.48),
             // sample_scale: 1.0,
             // normal_intensity: 1.0,

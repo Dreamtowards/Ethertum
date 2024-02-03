@@ -39,23 +39,25 @@ jobs:
 
       - name: Zip Artifact
         run: |
-          mkdir -p "${APP_NAME}.app/Contents/MacOS"
-          mkdir -p "${APP_NAME}.app/Contents/Resources"
-          cp "./build/macOS/Info.plist" "${APP_NAME}.app/Contents/Info.plist"
-          cp -a assets "${APP_NAME}.app/Contents/MacOS/"
-          lipo "target/x86_64-apple-darwin/release/${APP_NAME}" \
-               "target/aarch64-apple-darwin/release/${APP_NAME}" \
-            -create -output "./build/macOS/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
-          hdiutil create -fs HFS+ -volname "${APP_NAME}" -srcfolder "${APP_NAME}.app" ${APP_NAME}.dmg
+          zip darwin-x86_64.zip "./target/x86_64-apple-darwin/release/${APP_NAME}" "./target/x86_64-apple-darwin/release/dedicated_server"
+          zip darwin-aarch64.zip "./target/aarch64-apple-darwin/release/${APP_NAME}" "./target/aarch64-apple-darwin/release/dedicated_server"
+
+          # mkdir -p "${APP_NAME}.app/Contents/MacOS"
+          # mkdir -p "${APP_NAME}.app/Contents/Resources"
+          # cp "./build/macOS/Info.plist" "${APP_NAME}.app/Contents/Info.plist"
+          # cp -a assets "${APP_NAME}.app/Contents/MacOS/"
+          # lipo "target/x86_64-apple-darwin/release/${APP_NAME}" \
+          #      "target/aarch64-apple-darwin/release/${APP_NAME}" \
+          #   -create -output "./build/macOS/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+          # hdiutil create -fs HFS+ -volname "${APP_NAME}" -srcfolder "${APP_NAME}.app" ${APP_NAME}.dmg
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: artifacts
           path: |
-            ./${APP_NAME}.dmg
-            ./target/x86_64-apple-darwin/release/${APP_NAME}
-            ./target/aarch64-apple-darwin/release/${APP_NAME}
+            ./darwin-x86_64.zip
+            ./darwin-aarch64.zip
 
       # - name: Upload Artifacts
       #   uses: actions/upload-release-asset@v1
