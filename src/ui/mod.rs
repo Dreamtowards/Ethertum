@@ -12,7 +12,7 @@ use bevy_egui::{
 };
 
 use crate::{
-    game::{condition, EthertiaClient, WorldInfo},
+    game::{condition, ClientInfo, EthertiaClient, WorldInfo},
     voxel::{ChunkSystem, HitResult},
 };
 
@@ -124,6 +124,7 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
         visuals.window_fill = color32_gray_alpha(0.1, 0.8);
         visuals.window_shadow = egui::epaint::Shadow{ extrusion: 8., color: Color32::from_black_alpha(45) };
+        visuals.popup_shadow = visuals.window_shadow;
     });
 
     let mut fonts = FontDefinitions::default();
@@ -253,7 +254,19 @@ fn ui_menu_panel(mut ctx: EguiContexts, mut worldinfo: Option<ResMut<WorldInfo>>
 }
 
 
-#[derive(Default, PartialEq)]
+
+
+pub fn new_egui_window(title: &str) -> egui::Window {
+    egui::Window::new(title)
+        .fixed_size([800., 600.])
+        .title_bar(false) 
+        .anchor(Align2::CENTER_CENTER, [0., 0.])
+        .resizable(false)
+        .collapsible(false)
+}
+
+
+#[derive(Default, PartialEq, Debug)]
 pub enum SettingsPanel {
     #[default]
     Profile,
@@ -266,42 +279,89 @@ pub enum SettingsPanel {
     Credits,
 }
 
-pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPanel>, mut next_state: ResMut<NextState<CurrentUI>>) {
-    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
-        ui.add_space(48.);
-        ui.heading("Settings");
-        ui.add_space(24.);
+pub fn ui_settings(
+    mut ctx: EguiContexts, 
+    mut settings_panel: Local<SettingsPanel>, 
+    mut next_ui: ResMut<NextState<CurrentUI>>, 
+    mut clientinfo: ResMut<ClientInfo>,
+) {
+    new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
 
         ui.horizontal(|ui| {
-            ui.group(|ui| {
-                ui.vertical(|ui| {
-                    if ui.small_button("<").clicked() {
-                        next_state.set(CurrentUI::MainMenu); // or set to InGame if it's openned from InGame state
-                    }
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Profile, "Profile");
-                    // ui.separator();
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Audio, "Music & Sounds");
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
-                    // ui.separator();
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
-                    // ui.separator();
-                    ui.radio_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
+            ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
+                ui.set_width(128.);
 
-                    // ui.set_max_width(180.);
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Profile, "General");
+                ui.separator();
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Audio, "Audio");
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
+                ui.separator();
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
+                ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+
+                // ui.separator();
+                // ui.selectable_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
+                // ui.separator();
+                
+                ui.add_space(60.);
+                ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
+                    if ui.selectable_label(false, "Cancel").clicked() {
+                        next_ui.set(CurrentUI::MainMenu);
+                    }
                 });
-                // ui.set_max_width(180.);
             });
-            ui.group(|ui| match *settings_panel {
-                SettingsPanel::Profile => {
-                    ui.label("Profile");
+            ui.separator();
+            ui.vertical(|ui| {
+                ui.set_min_width(580.);
+                
+                ui.add_space(6.);
+                ui.heading(format!("{:?}", *settings_panel));
+                ui.add_space(6.);
+
+                match *settings_panel {
+                    SettingsPanel::Profile => {
+
+                        ui.group(|ui| {
+                            ui.label("Profile");
+                            
+                            ui.label("ref.dreamtowards@gmail.com (2736310270)");
+
+                            ui.label("Username: ");
+                            ui.text_edit_singleline(&mut clientinfo.username);
+                            
+                            ui.separator();
+                            
+                            ui.horizontal(|ui| {
+                                if ui.button("Account Info").clicked() {
+                                    ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
+                                }
+                                if ui.button("Log out").clicked() {
+                                }
+                            });
+                            // if ui.button("Switch Account").clicked() {
+                            //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
+                            // }
+                        });
+                    }
+                    SettingsPanel::Graphics => {
+                        ui.heading("Graphics");
+                    }
+                    SettingsPanel::Audio => {
+                        ui.heading("Music & Sound");
+                    }
+                    SettingsPanel::Controls => {
+                        ui.heading("Controls");
+                    }
+                    SettingsPanel::Language => {
+                        ui.heading("Language");
+                    }
+                    SettingsPanel::Mods => {
+                        ui.heading("Mods");
+                    }
+                    _ => (),
                 }
-                SettingsPanel::Graphics => {
-                    ui.label("Graphics");
-                }
-                _ => (),
             });
         });
     });

@@ -60,7 +60,7 @@ pub fn hud_chat(
     if has_new_chat {
         *last_time_new_chat = curr_time;
     } 
-    if *last_time_new_chat < curr_time - 14. && *curr_ui != CurrentUI::ChatInput {
+    if *last_time_new_chat < curr_time - 8. && *curr_ui != CurrentUI::ChatInput {
         return;  
     }
 

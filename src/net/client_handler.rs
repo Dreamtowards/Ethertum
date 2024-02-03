@@ -41,7 +41,7 @@ pub fn client_sys(
             SPacket::Disconnect { reason } => {
                 info!("Disconnected: {}", reason);
                 clientinfo.disconnected_reason = reason.clone();
-                client.disconnect();
+                client.disconnect_due_to_transport();
             }
             SPacket::ServerInfo {
                 motd,

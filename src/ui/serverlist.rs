@@ -7,15 +7,8 @@ use crate::game::ClientInfo;
 
 use super::CurrentUI;
 
+use super::new_egui_window;
 
-fn new_egui_window(title: &str) -> egui::Window {
-    egui::Window::new(title)
-        .fixed_size([800., 600.])
-        .title_bar(false) 
-        .anchor(Align2::CENTER_CENTER, [0., 0.])
-        .resizable(false)
-        .collapsible(false)
-}
 
 pub fn ui_connecting_server(
     mut ctx: EguiContexts,
