@@ -58,13 +58,19 @@ fn vertex(
     return out;
 }
 
+struct Ubo {
+    sample_scale: f32,
+    normal_intensity: f32,
+    triplanar_blend_pow: f32,
+    _padding: f32,
+}
 
 @group(1) @binding(0) var _sampler: sampler;
 @group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
 @group(1) @binding(2) var tex_normal: texture_2d<f32>;
 @group(1) @binding(3) var tex_dram: texture_2d<f32>;
 
-@group(1) @binding(4) var<uniform> wasm0: vec4<f32>;
+@group(1) @binding(4) var<uniform> ubo: Ubo;
 // @group(1) @binding(4) var<uniform> sample_scale: f32;
 // @group(1) @binding(5) var<uniform> normal_intensity: f32;
 // @group(1) @binding(6) var<uniform> triplanar_blend_pow: f32;
@@ -86,7 +92,7 @@ fn triplanar_uv(mtl_id: f32, _p: vec3<f32>) -> array<vec2<f32>, 3> {
 	let bias = 0.001 / num_mtls;  // intoduce Epsilon to fix Mipmap Error (and Float-point Error) on Tex Boundary 0.02
     let tex_mul_x = 1.0 / num_mtls;
     let tex_add_x = mtl_id / num_mtls;
-    let p = _p / wasm0.x;//sample_scale;
+    let p = _p / ubo.sample_scale;
     let uvX = vec2<f32>(tex_add_x + _mod(-p.z * tex_mul_x, tex_mul_x -bias*2.0) +bias, 1.0-p.y);
     let uvY = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x -bias*2.0) +bias,     p.z);
     let uvZ = vec2<f32>(tex_add_x + _mod( p.x * tex_mul_x, tex_mul_x -bias*2.0) +bias, 1.0-p.y);
@@ -122,7 +128,7 @@ fn fragment(
     let mtls = round(in.mtls / in.bary);
     let bary = in.bary;
 
-    var blend_triplanar = pow(abs(worldnorm), vec3<f32>(wasm0.z));  // pow: [4-12], 12=sharper
+    var blend_triplanar = pow(abs(worldnorm), vec3<f32>(ubo.triplanar_blend_pow));  // pow: [4-12], 12=sharper
     // blend_triplanar = max(blend_triplanar - vec3<f32>(triplanar_blend_sharpness), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
@@ -153,7 +159,7 @@ fn fragment(
     
     // NORMAL
     // let normal_intensity = vec3<f32>(1., 1., 1.0);
-    blend_triplanar = blend_triplanar * wasm0.y;//normal_intensity;
+    blend_triplanar = blend_triplanar * ubo.normal_intensity;
     let uvs = triplanar_uv(mtls[vi_mtl], worldpos);
     let tnormX = _normal_sample(uvs[0]);
     let tnormY = _normal_sample(uvs[1]);

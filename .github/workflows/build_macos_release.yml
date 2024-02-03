@@ -39,19 +39,23 @@ jobs:
 
       - name: Zip Artifact
         run: |
-          lipo "target/x86_64-apple-darwin/release/ethertia" "target/aarch64-apple-darwin/release/ethertia" \
-            -create -output "./build/macOS/Ethertia.app/Contents/MacOS/Ethertia"
-          cp -r assets ./build/macOS/Ethertia.app/Contents/MacOS/
-          hdiutil create -fs HFS+ -volname Ethertia -srcfolder ./build/macOS/Ethertia.app Ethertia.dmg
+          mkdir -p "${APP_NAME}.app/Contents/MacOS"
+          mkdir -p "${APP_NAME}.app/Contents/Resources"
+          cp "./build/macOS/Info.plist" "${APP_NAME}.app/Contents/Info.plist"
+          cp -a assets "${APP_NAME}.app/Contents/MacOS/"
+          lipo "target/x86_64-apple-darwin/release/${APP_NAME}" \
+               "target/aarch64-apple-darwin/release/${APP_NAME}" \
+            -create -output "./build/macOS/${APP_NAME}.app/Contents/MacOS/${APP_NAME}"
+          hdiutil create -fs HFS+ -volname "${APP_NAME}" -srcfolder "${APP_NAME}.app" ${APP_NAME}.dmg
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: artifacts
           path: |
-            ./Ethertia.dmg
-            ./target/x86_64-apple-darwin/release/ethertia
-            ./target/aarch64-apple-darwin/release/ethertia
+            ./${APP_NAME}.dmg
+            ./target/x86_64-apple-darwin/release/${APP_NAME}
+            ./target/aarch64-apple-darwin/release/${APP_NAME}
 
       # - name: Upload Artifacts
       #   uses: actions/upload-release-asset@v1
