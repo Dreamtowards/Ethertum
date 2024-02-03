@@ -177,16 +177,14 @@ fn chunks_detect_load_and_unload(
                     let tx = chunk_data_tx.clone();
 
                     let task = AsyncComputeTaskPool::get().spawn(async move {
-
-                        let mut chunk = Chunk::new(chunkpos);
-
-                        WorldGen::generate_chunk(&mut chunk);
-
                         // info!("Load Chunk: {:?}", chunkpos);
+                        let mut chunk = Chunk::new(chunkpos);
+                        WorldGen::generate_chunk(&mut chunk);
+                        let chunkptr = Arc::new(RwLock::new(chunk));
 
                         #[cfg(feature = "target_native_os")]
                         {
-                            Arc::new(RwLock::new(chunk))
+                            chunkptr
                         }
 
                         #[cfg(feature = "experimental_channel")]
