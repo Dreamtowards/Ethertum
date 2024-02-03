@@ -1,0 +1,65 @@
+name: Web
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      APP_NAME: ethertia
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, rust-src, clippy
+
+      - name: Install Dependencies
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-bindgen-cli
+
+      - name: Build for WASM
+        run: |
+          cargo build --release --target wasm32-unknown-unknown
+          wasm-bindgen --no-typescript --out-dir ./build/wasm --target web target/wasm32-unknown-unknown/release/ethertia.wasm --out-name bevy_game
+          
+      - name: Zip Artifact
+        run: |
+          cp -r assets ./build/wasm/
+          zip --recurse-paths ethertia-wasm.zip ./build/wasm/
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            ./ethertia-wasm.zip
+
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ github.ref }}
+      #     release_name: Release ${{ github.ref }}
+      #     body: |
+      #       This is the release of ${APP_NAME}.
+      #     draft: false
+      #     prerelease: true
+
+
