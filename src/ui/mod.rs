@@ -46,7 +46,7 @@ impl Plugin for UiPlugin {
             EntityCountDiagnosticsPlugin,
             //SystemInformationDiagnosticsPlugin
         ));
-        app.add_systems(Update, hud_debug_text.run_if(condition::in_world()));
+        app.add_systems(Update, hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text));
 
         // HUDs
         {
@@ -150,6 +150,7 @@ fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut chunk_sys: ResMut<ChunkSystem>,
+    mut clientinfo: ResMut<ClientInfo>,
 ) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
@@ -249,9 +250,10 @@ fn ui_menu_panel(
                             ui.toggle_value(&mut false, "Fullscreen");
                             ui.button("Save Screenshot");
 
+                            ui.separator();
+                            ui.toggle_value(&mut clientinfo.dbg_text, "Debug Info");
+
                             if let Some(worldinfo) = &mut worldinfo {
-                                ui.separator();
-                                ui.toggle_value(&mut worldinfo.dbg_text, "Debug Info");
 
                                 ui.label("ViewDistance: h&v");
                                 ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
@@ -390,81 +392,66 @@ fn hud_debug_text(
     // world: &World,
     // cmds: Commands,
     mut ctx: EguiContexts,
-
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
-
-    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
-    mut last_cam_pos: Local<Vec3>,
+    clientinfo: Res<ClientInfo>,
 
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
+    worldinfo: Option<Res<WorldInfo>>,
     chunk_sys: Res<ChunkSystem>,
-    worldinfo: Res<WorldInfo>,
-
     hit_result: Res<HitResult>,
+    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
+    mut last_cam_pos: Local<Vec3>,
 ) {
-    if !worldinfo.dbg_text {
-        return;
-    }
+
+    let mut str_sys = String::default();
+    #[cfg(feature = "target_native_os")]
+    {
+        use crate::util::TimeIntervals;
     
-    let dt = time.delta_seconds();
-
-    #[cfg(feature = "target_native_os")]
-    {
-
-    }
-
-    use crate::util::TimeIntervals;
-
-    if time.at_interval(2.0) {
-        sys.refresh_cpu();
-        sys.refresh_memory();
-    }
-
-    let mut frame_time = time.delta_seconds_f64();
-    if let Some(frame_time_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME) {
-        if let Some(frame_time_smoothed) = frame_time_diagnostic.smoothed() {
-            frame_time = frame_time_smoothed;
+        if time.at_interval(2.0) {
+            sys.refresh_cpu();
+            sys.refresh_memory();
         }
-    }
 
-    let mut fps = frame_time / 1.0;
-    if let Some(fps_diagnostic) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-        if let Some(fps_smoothed) = fps_diagnostic.smoothed() {
-            fps = fps_smoothed;
-        }
-    }
+        // "HOMEPATH", "\\Users\\Dreamtowards",
+        // "LANG", "en_US.UTF-8",
+        // "USERNAME", "Dreamtowards",
 
-    // "HOMEPATH", "\\Users\\Dreamtowards",
-    // "LANG", "en_US.UTF-8",
-    // "USERNAME", "Dreamtowards",
+        let num_concurrency = std::thread::available_parallelism().unwrap().get();
 
-    let num_concurrency = std::thread::available_parallelism().unwrap().get();
+        use sysinfo::{CpuExt, SystemExt};
 
-    use sysinfo::{CpuExt, SystemExt};
+        let cpu_arch = std::env::consts::ARCH;
+        let dist_id = std::env::consts::OS;
+        let os_ver = sys.long_os_version().unwrap_or_default();
+        let os_ver_sm = sys.os_version().unwrap_or_default();
+        
+        // let curr_path = std::env::current_exe().unwrap().display().to_string();
+        let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
+        //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
-    let cpu_arch = std::env::consts::ARCH;
-    let dist_id = std::env::consts::OS;
-    let os_ver = sys.long_os_version().unwrap_or_default();
-    let os_ver_sm = sys.os_version().unwrap_or_default();
+        let cpu_cores = sys.physical_core_count().unwrap_or_default();
+        let cpu_name = sys.global_cpu_info().brand().trim().to_string();
+        let cpu_usage = sys.global_cpu_info().cpu_usage();
 
-    let cpu_cores = sys.physical_core_count().unwrap_or_default();
-    let cpu_name = sys.global_cpu_info().brand().trim().to_string();
-    let cpu_usage = sys.global_cpu_info().cpu_usage();
+        let mem_used = sys.used_memory() as f64 * BYTES_TO_GIB;
+        let mem_total = sys.total_memory() as f64 * BYTES_TO_GIB;
 
-    let mem_used = sys.used_memory() as f64 * BYTES_TO_GIB;
-    let mem_total = sys.total_memory() as f64 * BYTES_TO_GIB;
+        const BYTES_TO_MIB: f64 = 1.0 / 1024.0 / 1024.0;
+        const BYTES_TO_GIB: f64 = 1.0 / 1024.0 / 1024.0 / 1024.0;
 
-    const BYTES_TO_MIB: f64 = 1.0 / 1024.0 / 1024.0;
-    const BYTES_TO_GIB: f64 = 1.0 / 1024.0 / 1024.0 / 1024.0;
+        let mut mem_usage_phys = 0.;
+        let mut mem_usage_virtual = 0.;
 
-    let mut mem_usage_phys = 0.;
-    let mut mem_usage_virtual = 0.;
+        let gpu_name = &render_adapter_info.0.name;
+        let gpu_backend = &render_adapter_info.0.backend.to_str();
+        let gpu_driver_name = &render_adapter_info.0.driver;
+        let gpu_driver_info = &render_adapter_info.0.driver_info;
 
-    #[cfg(feature = "target_native_os")]
-    {
+        // #[cfg(feature = "target_native_os")]
         if let Some(usage) = memory_stats::memory_stats() {
             // println!("Current physical memory usage: {}", byte_unit::Byte::from_bytes(usage.physical_mem as u128).get_appropriate_unit(false).to_string());
             // println!("Current virtual memory usage: {}", byte_unit::Byte::from_bytes(usage.virtual_mem as u128).get_appropriate_unit(false).to_string());
@@ -472,61 +459,57 @@ fn hud_debug_text(
             mem_usage_phys = usage.physical_mem as f64 * BYTES_TO_MIB;
             mem_usage_virtual = usage.virtual_mem as f64 * BYTES_TO_MIB;
         }
-    }
 
-    let gpu_name = &render_adapter_info.0.name;
-    let gpu_backend = &render_adapter_info.0.backend.to_str();
-    let gpu_driver_name = &render_adapter_info.0.driver;
-    let gpu_driver_info = &render_adapter_info.0.driver_info;
-
-    let (cam_trans, cam_visible_entities) = query_cam.single();
-    let cam_pos = cam_trans.translation;
-    let cam_pos_diff = cam_pos - *last_cam_pos;
-    let cam_pos_spd = cam_pos_diff.length() / dt;
-    let cam_pos_kph = cam_pos_spd * 3.6;
-    let cam_pos_x = cam_pos.x;
-    let cam_pos_y = cam_pos.y;
-    let cam_pos_z = cam_pos.z;
-
-    let cam_visible_entities_num = cam_visible_entities.entities.len();
-    let num_all_entities = 0; //world.entities().len();
-
-    // let curr_path = std::env::current_exe().unwrap().display().to_string();
-    let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
-                                                                   //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
-
-    let daytime = worldinfo.daytime;
-    let world_inhabited = worldinfo.time_inhabited;
-    let world_seed = worldinfo.seed;
-
-    let num_chunks_loaded = chunk_sys.num_chunks();
-    let num_chunks_loading = chunk_sys.chunks_loading.len();
-    let num_chunks_remesh = chunk_sys.chunks_remesh.len();
-    let num_chunks_meshing = chunk_sys.chunks_meshing.len();
-
-    let mut hit_str = "none".into();
-    if hit_result.is_hit {
-        hit_str = format!(
-            "p: {}, n: {}, d: {}, vox: {}",
-            hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel
-        );
-    }
-
-    let str = format!(
-        "fps: {fps:.1}, dt: {frame_time:.4}ms
-cam: ({cam_pos_x:.2}, {cam_pos_y:.2}, {cam_pos_z:.2}). spd: {cam_pos_spd:.2} mps, {cam_pos_kph:.2} kph.
-visible entities: {cam_visible_entities_num} / all {num_all_entities}.
-
-OS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
+        str_sys = format!(
+"\nOS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
 CPU: {cpu_name}, usage {cpu_usage:.1}%
 GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
-RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB
+RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB\n\n");
+    }
+    
+    let mut cam_visible_entities_num = 0;
+    let mut str_world = String::default();
+    if let Some(worldinfo) = worldinfo {
+        let (cam_trans, cam_visible_entities) = query_cam.single();
+        let cam_pos = cam_trans.translation;
+        let cam_pos_spd = (cam_pos - *last_cam_pos).length() / time.delta_seconds();
+        *last_cam_pos = cam_pos;
+        cam_visible_entities_num = cam_visible_entities.entities.len();
 
+        let num_chunks_loading = chunk_sys.chunks_loading.len();
+        let num_chunks_remesh = chunk_sys.chunks_remesh.len();
+        let num_chunks_meshing = chunk_sys.chunks_meshing.len();
+
+        let mut hit_str = "none".into();
+        if hit_result.is_hit {
+            hit_str = format!(
+                "p: {}, n: {}, d: {}, vox: {}",
+                hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel
+            );
+        }
+
+        str_world = format!(
+"
+Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph.
 Hit: {hit_str},
+World: '{}', daytime: {}. inhabited: {}, seed: {}
+Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
+cam_pos.x, cam_pos.y, cam_pos.z, cam_pos_spd, cam_pos_spd * 3.6,
+worldinfo.name, worldinfo.daytime, worldinfo.time_inhabited, worldinfo.seed,
+chunk_sys.num_chunks());
+    }
 
-World: '', daytime: {daytime}. inhabited: {world_inhabited}, seed: {world_seed}
-Entity: N; components: N, T: n
-Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.
+    let frame_time = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME).map_or(time.delta_seconds_f64(), |d|d.smoothed().unwrap_or_default());
+
+    let fps = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).map_or(frame_time / 1.0, |d|d.smoothed().unwrap_or_default());
+
+    let num_entity = diagnostics.get(EntityCountDiagnosticsPlugin::ENTITY_COUNT).map_or(0., |f|f.smoothed().unwrap_or_default()) as usize;
+
+    let str = format!(
+"fps: {fps:.1}, dt: {frame_time:.4}ms
+entity vis: {cam_visible_entities_num} / all {num_entity}.
+{str_sys}
+{str_world}
 "
     );
 
@@ -535,8 +518,7 @@ Chunk: {num_chunks_loaded} loaded, {num_chunks_loading} loading, {num_chunks_rem
         Align2::LEFT_TOP,
         str,
         FontId::proportional(12.),
-        Color32::from_gray(230),
+        Color32::WHITE,
     );
 
-    *last_cam_pos = cam_pos;
 }

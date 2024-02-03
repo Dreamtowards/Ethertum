@@ -39,12 +39,9 @@ pub fn hud_chat(
     mut last_time_new_chat: Local<f32>,
     time: Res<Time>,
 
-
     mut net_client: ResMut<RenetClient>,
 
     input_key: Res<Input<KeyCode>>,
-    mut worldinfo: ResMut<WorldInfo>,
-    
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
@@ -105,11 +102,11 @@ pub fn hud_chat(
                 .desired_width(f32::INFINITY)
                 .lock_focus(true);
 
-            // Handle enter
             let text_edit_response = ui.add(text_edit);
 
             ui.add_space(5.);
             
+            // Handle enter
             if text_edit_response.lost_focus()
                 && ui.input(|i| i.key_pressed(egui::Key::Enter))
             {

@@ -252,12 +252,14 @@ fn handle_inputs(
 
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut last_is_manipulating: Local<bool>,
-    
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
+
+    mut clientinfo: ResMut<ClientInfo>,
 ) {
     let mut window = window_query.single_mut();
 
+    // Auto set Manipulating Game (grabbing mouse) when UI set. 
     let mut curr_manipulating = false;
     if worldinfo.is_some() {
         if key.just_pressed(KeyCode::Escape) {
@@ -275,6 +277,11 @@ fn handle_inputs(
         for mut controller in &mut controller_query {
             controller.enable_input = curr_manipulating;
         }
+    }
+
+    // Toggle F3 DebugInfo
+    if key.just_pressed(KeyCode::F3) {
+        clientinfo.dbg_text = !clientinfo.dbg_text;
     }
 
     // Toggle Fullscreen
@@ -389,7 +396,6 @@ pub struct WorldInfo {
 
     // pub is_manipulating: bool,
 
-    pub dbg_text: bool,
 }
 
 impl Default for WorldInfo {
@@ -411,7 +417,6 @@ impl Default for WorldInfo {
 
             // is_manipulating: true,
 
-            dbg_text: false,
         }
     }
 }
@@ -426,6 +431,8 @@ pub struct ClientInfo {
     pub disconnected_reason: String,
 
     pub username: String,
+    
+    pub dbg_text: bool,
 }
 
 impl Default for ClientInfo {
@@ -433,6 +440,7 @@ impl Default for ClientInfo {
         Self {
             disconnected_reason: "none".into(),
             username: "User1".into(),
+            dbg_text: false,
         }
     }
 }
