@@ -49,9 +49,16 @@ pub fn hud_chat(
     let has_new_chat = *last_chat_count > state.scrollback.len();
     *last_chat_count = state.scrollback.len();
 
-    egui::Window::new("Chat").default_size([660., 400.]).title_bar(false).resizable(true).collapsible(false).anchor(Align2::LEFT_BOTTOM, [0., -100.]).frame(Frame::default().fill(Color32::from_black_alpha(140))).show(ctx.ctx_mut(), |ui| {
+    egui::Window::new("Chat")
+    .default_size([620., 320.])
+    .title_bar(false)
+    .resizable(true)
+    .collapsible(false)
+    .anchor(Align2::LEFT_BOTTOM, [0., -100.])
+    // .frame(Frame::default().fill(Color32::from_black_alpha(140)))
+    .show(ctx.ctx_mut(), |ui| {
         ui.vertical(|ui| {
-            let scroll_height = ui.available_height() - 46.0;
+            let scroll_height = ui.available_height() - 38.0;
 
             ui.add_space(4.);
 
@@ -90,7 +97,7 @@ pub fn hud_chat(
             // Handle enter
             let text_edit_response = ui.add(text_edit);
 
-            ui.add_space(6.);
+            ui.add_space(5.);
             
             if text_edit_response.lost_focus()
                 && ui.input(|i| i.key_pressed(egui::Key::Enter))
@@ -174,3 +181,20 @@ pub fn hud_chat(
     });
 }
 
+
+pub fn hud_hotbar(mut ctx: EguiContexts) {
+    egui::Window::new("HUD Hotbar")
+        .title_bar(false)
+        .resizable(false)
+        .anchor(Align2::CENTER_BOTTOM, [0., -16.])
+        // .frame(Frame::default().fill(Color32::from_black_alpha(180)))
+        .show(ctx.ctx_mut(), |ui| {
+            let s = 50.;
+
+            ui.horizontal(|ui| {
+                for i in 0..9 {
+                    ui.add_sized([s, s], egui::Button::new(""));
+                }
+            });
+        });
+}

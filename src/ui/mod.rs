@@ -50,7 +50,7 @@ impl Plugin for UiPlugin {
 
         // HUDs
         {
-            app.add_systems(Update, hud_hotbar.run_if(condition::in_world()));
+            app.add_systems(Update, hud::hud_hotbar.run_if(condition::in_world()));
             
             app.insert_resource(ChatHistory::default());
             app.add_systems(Update, hud::hud_chat.run_if(condition::in_world()));
@@ -86,10 +86,16 @@ fn to_color32(c: Color) -> Color32 {
     Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3])
 }
 
+fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {
+    let g = (gray * 255.) as u8;
+    let a = (alpha * 255.) as u8;
+    Color32::from_rgba_premultiplied(g, g, g, a)
+}
+
 fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContexts) {
     ctx.ctx_mut().style_mut(|style| {
         let mut visuals = &mut style.visuals;
-        let round = Rounding::from(0.);
+        let round = Rounding::from(2.);
 
         visuals.window_rounding = round;
         visuals.widgets.noninteractive.rounding = round;
@@ -112,9 +118,12 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
         visuals.widgets.active.weak_bg_fill = Color32::from_white_alpha(60); // button pressed
 
         visuals.selection.bg_fill = Color32::from_rgb(27,76,201);
-        visuals.selection.stroke = Stroke::new(2.0, Color32::from_white_alpha(200));  // visuals.selection.bg_fill
+        visuals.selection.stroke = Stroke::new(2.0, color32_gray_alpha(1., 0.78));  // visuals.selection.bg_fill
 
-        visuals.extreme_bg_color = Color32::from_black_alpha(170);  // TextEdit, ProgressBar, ScrollBar Bg, Plot Bg
+        visuals.extreme_bg_color = color32_gray_alpha(0.02, 0.66);  // TextEdit, ProgressBar, ScrollBar Bg, Plot Bg
+
+        visuals.window_fill = color32_gray_alpha(0.1, 0.8);
+        visuals.window_shadow = egui::epaint::Shadow{ extrusion: 8., color: Color32::from_black_alpha(45) };
     });
 
     let mut fonts = FontDefinitions::default();
@@ -298,20 +307,6 @@ pub fn ui_settings(mut ctx: EguiContexts, mut settings_panel: Local<SettingsPane
     });
 }
 
-fn hud_hotbar(mut ctx: EguiContexts) {
-    egui::Window::new("HUD Hotbar")
-        .title_bar(false)
-        .anchor(Align2::CENTER_BOTTOM, [0., -16.])
-        .show(ctx.ctx_mut(), |ui| {
-            let s = 50.;
-
-            ui.horizontal(|ui| {
-                for i in 0..9 {
-                    ui.add_sized([s, s], egui::Button::new(""));
-                }
-            });
-        });
-}
 
 fn hud_debug_text(
     // world: &World,

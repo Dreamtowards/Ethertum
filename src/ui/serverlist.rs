@@ -10,8 +10,8 @@ use super::CurrentUI;
 
 fn new_egui_window(title: &str) -> egui::Window {
     egui::Window::new(title)
-        .fixed_size([900., 600.])
-        .title_bar(true) 
+        .fixed_size([800., 600.])
+        .title_bar(false) 
         .anchor(Align2::CENTER_CENTER, [0., 0.])
         .resizable(false)
         .collapsible(false)
