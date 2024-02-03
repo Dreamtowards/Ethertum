@@ -36,6 +36,8 @@ pub fn hud_chat(
     mut ctx: EguiContexts,
     mut state: ResMut<ChatHistory>,
     mut last_chat_count: Local<usize>,
+    mut last_time_new_chat: Local<f32>,
+    time: Res<Time>,
 
 
     mut net_client: ResMut<RenetClient>,
@@ -46,8 +48,21 @@ pub fn hud_chat(
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
-    let has_new_chat = *last_chat_count > state.scrollback.len();
+    let has_new_chat = state.scrollback.len() > *last_chat_count;
     *last_chat_count = state.scrollback.len();
+
+    if input_key.just_pressed(KeyCode::Slash) && *curr_ui == CurrentUI::None {
+        next_ui.set(CurrentUI::ChatInput);
+    }
+
+    // Hide ChatUi when long time no new message.
+    let curr_time = time.elapsed_seconds();
+    if has_new_chat {
+        *last_time_new_chat = curr_time;
+    } 
+    if *last_time_new_chat < curr_time - 14. && *curr_ui != CurrentUI::ChatInput {
+        return;  
+    }
 
     egui::Window::new("Chat")
     .default_size([620., 320.])
@@ -80,14 +95,10 @@ pub fn hud_chat(
                     // }
                 });
 
-            if input_key.just_pressed(KeyCode::Slash) && *curr_ui == CurrentUI::None {
-                next_ui.set(CurrentUI::ChatInput);
-            }
+            // hide input box when gaming.
             if *curr_ui != CurrentUI::ChatInput {
                 return;
             }
-
-            // ui.separator();
 
             // Input
             let text_edit = TextEdit::singleline(&mut state.buf)
@@ -140,6 +151,9 @@ pub fn hud_chat(
                 // }
 
                 state.buf.clear();
+
+                // Close ChatUi after Enter.
+                next_ui.set(CurrentUI::None);
             }
 
             // Clear on ctrl+l
