@@ -1,0 +1,77 @@
+name: macOS
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    
+    env:
+      APP_NAME: ethertia
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, rust-src, clippy
+
+      - name: Install Dependencies
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
+
+      - name: Build
+        run: |
+          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+
+      - name: Zip Artifact
+        run: |
+          lipo "target/x86_64-apple-darwin/release/ethertia" "target/aarch64-apple-darwin/release/ethertia" \
+            -create -output "./build/macOS/Ethertia.app/Contents/MacOS/Ethertia"
+          cp -r assets ./build/macOS/Ethertia.app/Contents/MacOS/
+          hdiutil create -fs HFS+ -volname Ethertia -srcfolder ./build/macOS/Ethertia.app Ethertia.dmg
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            ./Ethertia.dmg
+            ./target/x86_64-apple-darwin/release/ethertia
+            ./target/aarch64-apple-darwin/release/ethertia
+
+      # - name: Upload Artifacts
+      #   uses: actions/upload-release-asset@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./target/x86_64-apple-darwin/release/${APP_NAME}
+      #     asset_name: ${APP_NAME}-darwin-amd64
+      #     asset_content_type: application/octet-stream
+
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: ${{ github.ref }}
+      #     release_name: Release ${{ github.ref }}
+      #     body: |
+      #       This is the release of ${APP_NAME}.
+      #     draft: false
+      #     prerelease: false

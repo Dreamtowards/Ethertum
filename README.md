@@ -3,6 +3,8 @@
 
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Windows/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_windows_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
+[![CI](https://github.com/Dreamtowards/Ethertum/workflows/macOS/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_macos_release.yml)
+[![CI](https://github.com/Dreamtowards/Ethertum/workflows/Web/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_wasm_release.yml)
 [![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
 ![repo size](https://img.shields.io/github/repo-size/Dreamtowards/Ethertum)
 [![Official Site](https://img.shields.io/badge/website-ethertia.com-blue.svg)](//ethertia.com)
