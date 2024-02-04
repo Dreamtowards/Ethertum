@@ -1,9 +1,0 @@
-{
-    "rust-analyzer.cargo.extraEnv": {
-        "RUSTFLAGS": "-Clinker=rust-lld.exe"  // for Windows faster compilation time.
-    },
-    "rust-analyzer.cargo.features": [
-        "bevy/dynamic_linking",
-        "bevy/file_watcher"  // Shader HotReload
-    ]
-}

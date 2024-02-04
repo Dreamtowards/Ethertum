@@ -222,7 +222,7 @@ pub fn ui_settings(
                 });
                 strip.cell(|ui| {
                     
-                    let p = ui.cursor().left_top() + egui::Vec2::new(-4., 0.);
+                    let p = ui.cursor().left_top();// + egui::Vec2::new(-4., 0.);
                     let p2 = pos2(p.x, p.y+ui.available_height());
                     ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
 
@@ -236,29 +236,29 @@ pub fn ui_settings(
                             SettingsPanel::General => {
 
                                 ui.label("Profile: ");
-                                ui.indent("ProfileIndent", |ui| {
+                                // ui.indent("ProfileIndent", |ui| {
 
-                                    ui.group(|ui| {
+                                //     ui.group(|ui| {
                                     
-                                        // ui.label("ref.dreamtowards@gmail.com (2736310270)");
+                                //         // ui.label("ref.dreamtowards@gmail.com (2736310270)");
             
-                                        ui.label("Username: ");
-                                        ui.text_edit_singleline(&mut clientinfo.username);
+                                //         ui.label("Username: ");
+                                //         ui.text_edit_singleline(&mut clientinfo.username);
                                         
-                                        ui.separator();
+                                //         ui.separator();
                                         
-                                        ui.horizontal(|ui| {
-                                            if ui.button("Account Info").clicked() {
-                                                ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
-                                            }
-                                            if ui.button("Log out").clicked() {
-                                            }
-                                        });
-                                        // if ui.button("Switch Account").clicked() {
-                                        //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
-                                        // }
-                                    });
-                                });
+                                //         ui.horizontal(|ui| {
+                                //             if ui.button("Account Info").clicked() {
+                                //                 ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
+                                //             }
+                                //             if ui.button("Log out").clicked() {
+                                //             }
+                                //         });
+                                //         // if ui.button("Switch Account").clicked() {
+                                //         //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
+                                //         // }
+                                //     });
+                                // });
                             }
                             SettingsPanel::Graphics => {
                             }
