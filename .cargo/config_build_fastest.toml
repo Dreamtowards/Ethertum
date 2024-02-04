@@ -1,0 +1,25 @@
+[target.wasm32-unknown-unknown]
+runner = "wasm-server-runner"
+
+# sudo apt-get install lld
+# sudo apt install mold clang
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = [
+    "-Clink-arg=-fuse-ld=/usr/bin/mold",        # Use mold linker: mold is up to 5× (five times!) faster than LLD
+    "-Zshare-generics=y",                       # (Nightly) Make the current crate share its generic instantiations
+    "-Zthreads=0",                              # (Nightly) Use improved multithreading with the recommended amount of threads.
+]
+
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools-preview
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"                         # Use LLD Linker
+rustflags = [
+    "-Zshare-generics=n",
+    "-Zthreads=0",
+]
+
+# improves compile times, but reduces the amount of debug info to 'line number tables only'
+[profile.dev]
+debug = 1
