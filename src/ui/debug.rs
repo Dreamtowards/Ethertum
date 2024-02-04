@@ -41,7 +41,7 @@ pub fn ui_menu_panel(
 
             egui::menu::bar(ui, |ui| {
                 ui.style_mut().spacing.button_padding.x = 6.;
-                ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(180);
+                ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(130);
                 ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210); // MenuButton lighter
 
                 ui.with_layout(Layout::right_to_left(egui::Align::BOTTOM), |ui| {
@@ -59,10 +59,7 @@ pub fn ui_menu_panel(
                             let ni = net_client.network_info();
 
                             let bytes_per_sec = ni.bytes_sent_per_second+ni.bytes_received_per_second;
-                            ui.menu_button(format!("{:.2}ms {}/s{}", 
-                                ni.rtt, human_bytes(bytes_per_sec), 
-                                if ni.packet_loss != 0. { format!(" loss {}", ni.packet_loss) } else { String::default() }
-                            ), |ui| {
+                            ui.menu_button(format!("{}ms {}/s", ni.rtt as u32, human_bytes(bytes_per_sec)), |ui| {
                                 let ping = clientinfo.ping;
                                 ui.label("server_addr");  // transport.netcode_client.server_addr()
                                 ui.add_space(12.);
@@ -146,9 +143,9 @@ pub fn ui_menu_panel(
                                 ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
                                 ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));
 
-                                ui.label("max_concurrent_loading:");
+                                ui.label("max_loading:");
                                 ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_loading).speed(1.));
-                                ui.label("max_concurrent_meshing:");
+                                ui.label("max_meshing:");
                                 ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_meshing).speed(1.));
 
                             }

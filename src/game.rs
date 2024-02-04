@@ -260,14 +260,14 @@ fn handle_inputs(
     let mut window = window_query.single_mut();
 
     // Auto set Manipulating Game (grabbing mouse) when UI set. 
-    let mut curr_manipulating = false;
-    if worldinfo.is_some() {
-        if key.just_pressed(KeyCode::Escape) {
+    if key.just_pressed(KeyCode::Escape) {
+        if worldinfo.is_some() {
             next_ui.set(if *curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None });
+        } else {
+            next_ui.set(CurrentUI::MainMenu);
         }
-        curr_manipulating = *curr_ui == CurrentUI::None;
     }
-    // fixed: disable manipulating when WorldInfo is removed.
+    let curr_manipulating = *curr_ui == CurrentUI::None;
     if *last_is_manipulating != curr_manipulating {
         *last_is_manipulating = curr_manipulating;
 

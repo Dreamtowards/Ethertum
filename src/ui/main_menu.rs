@@ -35,19 +35,23 @@ pub fn ui_main_menu(
             ui.add_space(h * 0.2);
 
             let siz = [240., 24.];
-            if ui.add_sized(siz, egui::Button::new("Play")).clicked() {
+            
+            ui.text_edit_singleline(&mut clientinfo.username);
+
+            if ui.add_sized(siz, egui::Button::new("Debug Enter World")).clicked() {
                 // 临时的单人版方法 直接进入世界而不管网络
                 next_ui.set(CurrentUI::None);
                 commands.insert_resource(WorldInfo::default());  
             }
-            
-            ui.text_edit_singleline(&mut clientinfo.username);
-
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
                 next_ui.set(CurrentUI::ConnectingServer);
                 cli.connect_server(&mut commands, "127.0.0.1:4000".into(), clientinfo.username.clone());
             }
-            if ui.add_sized(siz, egui::Button::new("Join Server")).clicked() {
+
+            if ui.add_sized(siz, egui::Button::new("Singleplayer")).clicked() {
+                next_ui.set(CurrentUI::LocalSaves);
+            }
+            if ui.add_sized(siz, egui::Button::new("Multiplayer")).clicked() {
                 next_ui.set(CurrentUI::WtfServerList);
             }
             if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {

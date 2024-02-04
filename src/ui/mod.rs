@@ -10,6 +10,7 @@ use bevy_egui::{
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
+use egui_extras::{Size, StripBuilder};
 
 use crate::{
     game::{condition, ClientInfo, EthertiaClient, WorldInfo},
@@ -36,11 +37,7 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         app.add_systems(Update, debug::ui_menu_panel); // Debug MenuBar. before CentralPanel
-        app.add_systems(Update, main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)).before(debug::ui_menu_panel));
 
-        app.add_state::<CurrentUI>();
-        app.add_systems(Update, main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)));
-        app.add_systems(Update, ui_settings.run_if(in_state(CurrentUI::WtfSettings)));
 
         app.add_plugins((
             FrameTimeDiagnosticsPlugin,
@@ -57,11 +54,23 @@ impl Plugin for UiPlugin {
             app.add_systems(Update, hud::hud_chat.run_if(condition::in_world()));
         }
         
+        app.add_state::<CurrentUI>();
 
-        app.add_systems(Update, serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)));
-        
-        app.add_systems(Update, serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)));
-        app.add_systems(Update, serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)));
+        app.add_systems(Update, (
+            main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)),
+            ui_settings.run_if(in_state(CurrentUI::WtfSettings)),
+
+            serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
+
+            serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
+            serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
+            serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
+
+            main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)).before(debug::ui_menu_panel),
+        ));
+
+
+
     }
 }
 
@@ -77,13 +86,14 @@ pub enum CurrentUI {
     ConnectingServer,
     DisconnectedReason,
     ChatInput,
+    LocalSaves,
 }
 
 
 
 pub fn new_egui_window(title: &str) -> egui::Window {
     egui::Window::new(title)
-        .fixed_size([800., 600.])
+        .default_size([720., 380.])
         .title_bar(false) 
         .anchor(Align2::CENTER_CENTER, [0., 0.])
         .resizable(false)
@@ -131,7 +141,7 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
         visuals.extreme_bg_color = color32_gray_alpha(0.02, 0.66);  // TextEdit, ProgressBar, ScrollBar Bg, Plot Bg
 
-        visuals.window_fill = color32_gray_alpha(0.1, 0.8);
+        visuals.window_fill = color32_gray_alpha(0.1, 0.98);
         visuals.window_shadow = egui::epaint::Shadow{ extrusion: 8., color: Color32::from_black_alpha(45) };
         visuals.popup_shadow = visuals.window_shadow;
     });
@@ -160,7 +170,7 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 #[derive(Default, PartialEq, Debug)]
 pub enum SettingsPanel {
     #[default]
-    Profile,
+    General,
     Graphics,
     Audio,
     Controls,
@@ -179,83 +189,90 @@ pub fn ui_settings(
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
 
-        ui.horizontal(|ui| {
-            ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
-                ui.set_width(128.);
+        StripBuilder::new(ui)
+            .size(Size::exact(120.0))
+            .size(Size::remainder().at_least(450.0)) // Right
+            .horizontal(|mut strip| {
+                strip.strip(|builder| {
+                    builder
+                        .size(Size::relative(1.0))
+                        .size(Size::exact(40.))
+                        .vertical(|mut strip| {
+                            strip.cell(|ui| {
+                                ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::General, "General");
+                                    ui.separator();
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Audio, "Audio");
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
+                                    ui.separator();
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
+                                    ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+                                });
+                            });
+                            strip.cell(|ui| {
+                                ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
+                                    if ui.selectable_label(false, "Cancel").clicked() {
+                                        next_ui.set(CurrentUI::MainMenu);
+                                    }
+                                });
+                            });
+                        });
+                });
+                strip.cell(|ui| {
+                    let p = ui.cursor().left_top();
+                    // ui.painter().line_segment([p, p+pos2(0., ui.available_height())], ui.visuals().);
 
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Profile, "General");
-                ui.separator();
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Audio, "Audio");
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
-                ui.separator();
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
-                ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                    
+                        ui.add_space(6.);
+                        ui.heading(format!("{:?}", *settings_panel));
+                        ui.add_space(6.);
 
-                // ui.separator();
-                // ui.selectable_value(&mut *settings_panel, SettingsPanel::Credits, "Credits");
-                // ui.separator();
-                
-                ui.add_space(60.);
-                ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
-                    if ui.selectable_label(false, "Cancel").clicked() {
-                        next_ui.set(CurrentUI::MainMenu);
-                    }
+                        match *settings_panel {
+                            SettingsPanel::General => {
+
+                                ui.label("Profile: ");
+                                ui.indent("ProfileIndent", |ui| {
+
+                                    ui.group(|ui| {
+                                    
+                                        // ui.label("ref.dreamtowards@gmail.com (2736310270)");
+            
+                                        ui.label("Username: ");
+                                        ui.text_edit_singleline(&mut clientinfo.username);
+                                        
+                                        ui.separator();
+                                        
+                                        ui.horizontal(|ui| {
+                                            if ui.button("Account Info").clicked() {
+                                                ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
+                                            }
+                                            if ui.button("Log out").clicked() {
+                                            }
+                                        });
+                                        // if ui.button("Switch Account").clicked() {
+                                        //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
+                                        // }
+                                    });
+                                });
+                            }
+                            SettingsPanel::Graphics => {
+                            }
+                            SettingsPanel::Audio => {
+                            }
+                            SettingsPanel::Controls => {
+                            }
+                            SettingsPanel::Language => {
+                            }
+                            SettingsPanel::Mods => {
+                            }
+                            _ => (),
+                        }
+                    });
                 });
             });
-            ui.separator();
-            ui.vertical(|ui| {
-                ui.set_min_width(580.);
-                
-                ui.add_space(6.);
-                ui.heading(format!("{:?}", *settings_panel));
-                ui.add_space(6.);
-
-                match *settings_panel {
-                    SettingsPanel::Profile => {
-
-                        ui.label("Profile");
-                        ui.group(|ui| {
-                            
-                            ui.label("ref.dreamtowards@gmail.com (2736310270)");
-
-                            ui.label("Username: ");
-                            ui.text_edit_singleline(&mut clientinfo.username);
-                            
-                            ui.separator();
-                            
-                            ui.horizontal(|ui| {
-                                if ui.button("Account Info").clicked() {
-                                    ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
-                                }
-                                if ui.button("Log out").clicked() {
-                                }
-                            });
-                            // if ui.button("Switch Account").clicked() {
-                            //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
-                            // }
-                        });
-                    }
-                    SettingsPanel::Graphics => {
-                        ui.heading("Graphics");
-                    }
-                    SettingsPanel::Audio => {
-                        ui.heading("Music & Sound");
-                    }
-                    SettingsPanel::Controls => {
-                        ui.heading("Controls");
-                    }
-                    SettingsPanel::Language => {
-                        ui.heading("Language");
-                    }
-                    SettingsPanel::Mods => {
-                        ui.heading("Mods");
-                    }
-                    _ => (),
-                }
-            });
-        });
     });
 }
 

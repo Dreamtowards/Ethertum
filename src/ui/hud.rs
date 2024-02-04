@@ -76,7 +76,7 @@ pub fn hud_chat(
 
             // Scroll area
             ScrollArea::vertical()
-                .auto_shrink([false, false])
+                .auto_shrink([false, true])
                 .stick_to_bottom(true)
                 .max_height(scroll_height)
                 .show(ui, |ui| {

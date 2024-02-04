@@ -50,7 +50,7 @@ pub struct VoxelPlugin;
 
 impl Plugin for VoxelPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(ChunkSystem::new(ivec2(18, 3)));
+        app.insert_resource(ChunkSystem::new(ivec2(10, 3)));
         app.register_type::<ChunkSystem>();
 
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
