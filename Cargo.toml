@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [features]
-default = ["experimental_channel"]
+default = ["target_native_os"]
 target_native_os = ["dep:bevy_atmosphere", "dep:native-dialog", "dep:memory-stats"]
 target_web = []
 experimental_channel = []

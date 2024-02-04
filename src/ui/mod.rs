@@ -1,7 +1,7 @@
 use std::{default, sync::Arc};
 
 use bevy::{
-    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, prelude::*, transform::commands
+    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
@@ -195,7 +195,7 @@ pub fn ui_settings(
             .horizontal(|mut strip| {
                 strip.strip(|builder| {
                     builder
-                        .size(Size::relative(1.0))
+                        .size(Size::remainder())
                         .size(Size::exact(40.))
                         .vertical(|mut strip| {
                             strip.cell(|ui| {
@@ -221,8 +221,10 @@ pub fn ui_settings(
                         });
                 });
                 strip.cell(|ui| {
-                    let p = ui.cursor().left_top();
-                    // ui.painter().line_segment([p, p+pos2(0., ui.available_height())], ui.visuals().);
+                    
+                    let p = ui.cursor().left_top() + egui::Vec2::new(-4., 0.);
+                    let p2 = pos2(p.x, p.y+ui.available_height());
+                    ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
 
                     egui::ScrollArea::vertical().show(ui, |ui| {
                     

@@ -92,7 +92,9 @@ pub fn ui_serverlist(mut ctx: EguiContexts, mut next_ui: ResMut<NextState<Curren
                         .size(Size::exact(40.))
                         .vertical(|mut strip| {
                             strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 12.;
+                                ui.style_mut().spacing.item_spacing.y = 7.;
+                                ui.style_mut().spacing.button_padding.y = 3.;
+                                
                                 ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
                                     if ui.selectable_label(false, "Add Server").clicked() {
                                     
@@ -106,7 +108,6 @@ pub fn ui_serverlist(mut ctx: EguiContexts, mut next_ui: ResMut<NextState<Curren
                                 });
                             });
                             strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 12.;
                                 ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
                                     if ui.selectable_label(false, "Cancel").clicked() {
                                         next_ui.set(CurrentUI::MainMenu);
@@ -165,7 +166,8 @@ pub fn ui_localsaves(
                         .size(Size::exact(40.))
                         .vertical(|mut strip| {
                             strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 8.;
+                                ui.style_mut().spacing.item_spacing.y = 7.;
+                                ui.style_mut().spacing.button_padding.y = 3.;
 
                                 ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
                                     if ui.selectable_label(false, "New World").clicked() {
@@ -177,8 +179,6 @@ pub fn ui_localsaves(
                                 });
                             });
                             strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 8.;
-
                                 ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
                                     if ui.selectable_label(false, "Cancel").clicked() {
                                         next_ui.set(CurrentUI::MainMenu);
