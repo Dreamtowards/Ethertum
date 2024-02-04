@@ -5,7 +5,7 @@ edition = "2021"
 
 
 [features]
-default = ["experimental_channel"]
+default = ["target_native_os"]
 target_native_os = ["bevy_atmosphere", "native-dialog", "memory-stats"]
 target_web = []
 experimental_channel = []
@@ -47,6 +47,7 @@ log = "0.4.20"
 env_logger = "0.11"
 chrono = "0.4.31"
 anyhow = "1.0.75"  # error handling
+human_bytes = "0.4"
 
 instant = "0.1.12"
 crossbeam-channel = "0.5.11"

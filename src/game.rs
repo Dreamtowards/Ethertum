@@ -433,6 +433,9 @@ pub struct ClientInfo {
     pub username: String,
     
     pub dbg_text: bool,
+
+    // ping. (full, client-time, server-time, client-time) in ms.
+    pub ping: (u32, u64, u64, u64),
 }
 
 impl Default for ClientInfo {
@@ -441,6 +444,7 @@ impl Default for ClientInfo {
             disconnected_reason: "none".into(),
             username: "User1".into(),
             dbg_text: false,
+            ping: (0,0,0,0),
         }
     }
 }
