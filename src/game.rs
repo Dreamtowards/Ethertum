@@ -37,6 +37,12 @@ pub mod condition {
     }
 }
 
+/// Despawn the Entity on World Unload.
+#[derive(Component)]
+pub struct DespawnOnWorldUnload;
+
+
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
@@ -166,6 +172,7 @@ fn startup(
             },
         ),
         Name::new("Player"),
+        DespawnOnWorldUnload,
     ));
 
     // Camera
@@ -181,6 +188,7 @@ fn startup(
 
         CharacterControllerCamera,
         Name::new("Camera"),
+        DespawnOnWorldUnload,
     ));
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
     // .insert(TemporalAntiAliasBundle::default());
@@ -196,6 +204,7 @@ fn startup(
         },
         Sun, // Marks the light as Sun
         Name::new("Sun"),
+        DespawnOnWorldUnload,
     ));
 
     // commands.spawn((
@@ -235,14 +244,13 @@ fn startup(
 
 fn cleanup(
     mut commands: Commands,
-    cam_query: Query<Entity, With<CharacterControllerCamera>>,
-    player_query: Query<Entity, With<CharacterController>>,
-    sun_query: Query<Entity, With<Sun>>,
+    query_despawn: Query<Entity, With<DespawnOnWorldUnload>>,
 ) {
     info!("Unload World");
-    commands.entity(cam_query.single()).despawn_recursive();
-    commands.entity(player_query.single()).despawn_recursive();
-    commands.entity(sun_query.single()).despawn_recursive();
+
+    for entity in query_despawn.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 fn handle_inputs(

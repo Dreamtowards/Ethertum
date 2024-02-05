@@ -6,7 +6,7 @@ mod worldgen;
 
 use self::material::mtl;
 use crate::character_controller::{CharacterController, CharacterControllerCamera};
-use crate::game::{condition, WorldInfo};
+use crate::game::{condition, DespawnOnWorldUnload, WorldInfo};
 use crate::ui::CurrentUI;
 use crate::util::iter;
 use chunk::*;
@@ -78,8 +78,8 @@ impl Plugin for VoxelPlugin {
             Update,
             (
                 raycast,
-                chunks_remesh,
-                chunks_detect_load_and_unload,
+                // chunks_remesh,
+                // chunks_detect_load_and_unload,
                 gizmos,
                 // chunks_apply_loaded
                 // chunks_apply_remeshed
@@ -112,6 +112,7 @@ fn startup(
             InheritedVisibility::VISIBLE,
             GlobalTransform::IDENTITY,
             Transform::IDENTITY,
+            DespawnOnWorldUnload,
         ))
         .id();
 }
