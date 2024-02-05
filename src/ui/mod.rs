@@ -96,7 +96,7 @@ pub enum CurrentUI {
 
 pub fn new_egui_window(title: &str) -> egui::Window {
     egui::Window::new(title)
-        .default_size([720., 380.])
+        .default_size([680., 420.])
         .title_bar(false) 
         .anchor(Align2::CENTER_CENTER, [0., 0.])
         .resizable(false)

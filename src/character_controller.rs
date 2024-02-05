@@ -18,7 +18,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(Update, input_move.run_if(condition::in_world()));
 
-        app.add_systems(PostUpdate, sync_camera.after(PhysicsSet::Sync));
+        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
     }
 }
 
@@ -162,8 +162,8 @@ fn input_move(
 
             // 3rd person cam distance.
             if key_input.pressed(KeyCode::AltLeft) {
-                cam_dist_smoothed.target += -wheel_delta;  //(ctl.cam_distance*0.1).max(0.3) * 
-                cam_dist_smoothed.target = cam_dist_smoothed.target.clamp(-10., 1_000.);
+                cam_dist_smoothed.target += (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
+                cam_dist_smoothed.target = cam_dist_smoothed.target.clamp(0., 1_000.);
 
                 cam_dist_smoothed.update(time.delta_seconds() * 18.);
                 ctl.cam_distance = cam_dist_smoothed.current;
@@ -320,8 +320,9 @@ fn sync_camera(
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
-            cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
+            // BUG: 3rd person camera 不同步
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
+            cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
             fov_val.target = if ctl.is_sprinting { cli.fov + 20. } else { cli.fov };

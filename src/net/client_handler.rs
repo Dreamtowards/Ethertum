@@ -1,5 +1,6 @@
 
 use bevy::prelude::*;
+use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 
 use crate::{game::{ClientInfo, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
@@ -75,7 +76,7 @@ pub fn client_sys(
                 info!("[Chat]: {}", message);
                 chats.scrollback.push(message.clone());
             }
-            SPacket::EntityNew { entity_id } => {
+            SPacket::EntityNew { entity_id, name } => {
                 info!("Spawn EntityNew {}", entity_id.raw());
 
                 // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
@@ -91,6 +92,21 @@ pub fn client_sys(
                         material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
                         transform: Transform::from_xyz(0.0, 0.0, 0.0),
                         ..default()
+                    }).with_children(|parent| {
+                        parent.spawn(BillboardTextBundle {
+                            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.002)),
+                            text: Text::from_sections([
+                                TextSection {
+                                    value: name.clone(),
+                                    style: TextStyle {
+                                        font_size: 32.0,
+                                        color: Color::WHITE,
+                                        ..default()
+                                    }
+                                },
+                            ]).with_alignment(TextAlignment::Center),
+                            ..default() 
+                        });
                     });
             }
             SPacket::EntityPos { entity_id, position } => {

@@ -69,6 +69,7 @@ pub enum SPacket {
 
     EntityNew {
         entity_id: EntityId,
+        name: String, // temporary way.
         // type: {Player}
     },
     EntityPos {

@@ -58,9 +58,13 @@ impl Plugin for GamePlugin {
             // Atmosphere
             #[cfg(feature = "target_native_os")]
             {
-                app.insert_resource(AtmosphereModel::default());
                 app.add_plugins(AtmospherePlugin);
+                app.insert_resource(AtmosphereModel::default());
             }
+
+            // Billiboard
+            use bevy_mod_billboard::prelude::*;
+            app.add_plugins(BillboardPlugin);
     
             // ShadowMap sizes
             app.insert_resource(DirectionalLightShadowMap { size: 512 });
@@ -322,6 +326,7 @@ fn tick_world(
 
     query_player: Query<&Transform, (With<CharacterController>, Without<Sun>)>,
     mut net_client: ResMut<RenetClient>,
+    mut last_player_pos: Local<Vec3>,
 ) {
     // worldinfo.tick_timer.tick(time.delta());
     // if !worldinfo.tick_timer.just_finished() {
@@ -348,8 +353,11 @@ fn tick_world(
     }
 
     // Send PlayerPos
-    let player_pos = query_player.single();
-    net_client.send_packet(&CPacket::PlayerPos { position: player_pos.translation });
+    let player_pos = query_player.single().translation;
+    if *last_player_pos != player_pos {
+        *last_player_pos = player_pos;
+        net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
+    }
 
 
     // Sun Pos

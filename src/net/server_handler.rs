@@ -112,19 +112,18 @@ pub fn server_sys(
                     let entity_id = cmds.spawn(TransformBundle::default()).id();
                     let entity_id = EntityId::from_server(entity_id);
 
+                    // Send Server Players to the client. Note: Before insert of online_players
+                    for player in serverinfo.online_players.values() {
+                        server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id, name: player.username.clone() });
+                    }
+
+                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
+
                     serverinfo.online_players.insert(client_id, PlayerInfo { 
                         username, 
                         user_id: uuid,
                         entity_id,
                     });
-                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id });
-
-                    // Send Server Players to him
-                    for player in serverinfo.online_players.values() {
-                        if player.entity_id != entity_id {
-                            server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id });
-                        }
-                    }
                 }
                 // Play Stage:
                 _ => {
@@ -141,6 +140,7 @@ pub fn server_sys(
                             server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
                         }
                         CPacket::PlayerPos { position } => {
+                            // todo: check diff, skip the same
 
                             server.broadcast_packet_except(client_id, 
                                 &SPacket::EntityPos { entity_id: player.entity_id, position });
