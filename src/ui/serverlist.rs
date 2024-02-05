@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::schedule::NextState;
-use bevy_egui::{egui::{self, Align2, Color32, Layout}, EguiContexts};
+use bevy_egui::{egui::{self, Align2, Color32, Layout, Ui}, EguiContexts};
 use bevy_renet::renet::RenetClient;
 use egui_extras::{Size, StripBuilder};
 
@@ -77,74 +77,101 @@ pub fn ui_disconnected_reason(
 }
 
 
+pub fn ui_lr_panel(
+    ui: &mut Ui,
+    separator: bool,
+    add_nav: impl FnOnce(&mut Ui),
+    next_ui: &mut ResMut<NextState<CurrentUI>>,
+    add_main: impl FnOnce(&mut Ui),
+) {
+    
+    let mut builder = StripBuilder::new(ui)
+    .size(Size::exact(120.0));  // Left 
+    if separator {
+        builder = builder.size(Size::exact(0.0));  // Separator
+    }
+    builder
+    .size(Size::remainder().at_least(300.0)) // Right
+    .horizontal(|mut strip| {
+        strip.strip(|builder| {
+            builder
+                .size(Size::remainder())
+                .size(Size::exact(40.))
+                .vertical(|mut strip| {
+                    strip.cell(|ui| {
+                        ui.add_space(6.);
+                        ui.style_mut().spacing.item_spacing.y = 8.;
+                        // ui.style_mut().spacing.button_padding.y = 3.;
+                        
+                        ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
+                            add_nav(ui);
+                        });
+                    });
+                    strip.cell(|ui| {
+                        ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
+                            if ui.selectable_label(false, "Cancel").clicked() {
+                                next_ui.set(CurrentUI::MainMenu);
+                            }
+                        });
+                    });
+                });
+        });
+        if separator {
+            strip.cell(|ui| {});
+        }
+        strip.cell(|ui| {
+            if separator {
+                let p = ui.cursor().left_top() + egui::Vec2::new(-ui.style().spacing.item_spacing.x, 0.);
+                let p2 = egui::pos2(p.x, p.y+ui.available_height());
+                ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
+            }
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                add_main(ui);
+            });
+        });
+    });
+}
 
 
 pub fn ui_serverlist(mut ctx: EguiContexts, mut next_ui: ResMut<NextState<CurrentUI>>,) {
     new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
 
-        StripBuilder::new(ui)
-            .size(Size::exact(120.0))  // Left 
-            .size(Size::remainder().at_least(450.0)) // Right
-            .horizontal(|mut strip| {
-                strip.strip(|builder| {
-                    builder
-                        .size(Size::remainder())
-                        .size(Size::exact(40.))
-                        .vertical(|mut strip| {
-                            strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 7.;
-                                ui.style_mut().spacing.button_padding.y = 3.;
-                                
-                                ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
-                                    if ui.selectable_label(false, "Add Server").clicked() {
-                                    
-                                    }
-                                    if ui.selectable_label(false, "Direct Connect").clicked() {
-                                        
-                                    }
-                                    if ui.selectable_label(false, "Refresh").clicked() {
-                                        
-                                    }
-                                });
-                            });
-                            strip.cell(|ui| {
-                                ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
-                                    if ui.selectable_label(false, "Cancel").clicked() {
-                                        next_ui.set(CurrentUI::MainMenu);
-                                    }
-                                });
-                            });
+        ui_lr_panel(ui, false, |ui| {
+            if ui.selectable_label(false, "Add Server").clicked() {
+                            
+            }
+            if ui.selectable_label(false, "Direct Connect").clicked() {
+                
+            }
+            if ui.selectable_label(false, "Refresh").clicked() {
+                
+            }
+        }, &mut next_ui, |ui| {
+            for i in 0..8 {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.colored_label(Color32::WHITE, "Server Name").on_hover_text("IP: 192.168.1.10");
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            ui.label("21ms 12/64");
                         });
-                });
-                strip.cell(|ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for i in 0..8 {
-                            ui.group(|ui| {
-                                ui.horizontal(|ui| {
-                                    ui.colored_label(Color32::WHITE, "Server Name").on_hover_text("IP: 192.168.1.10");
-                                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                        ui.label("21ms 12/64");
-                                    });
-                                });
-                                ui.horizontal(|ui| {
-                                    ui.label("A Dedicated Server");
-                                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                        if ui.button("Del").clicked() {
-    
-                                        }
-                                        if ui.button("Edit").clicked() {
-    
-                                        }
-                                        if ui.button("Join").clicked() {
-    
-                                        }
-                                    });
-                                });
-                            });
-                        }
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("A Dedicated Server");
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            if ui.button("Del").clicked() {
+
+                            }
+                            if ui.button("Edit").clicked() {
+
+                            }
+                            if ui.button("Join").clicked() {
+
+                            }
+                        });
                     });
                 });
-            });
+            }
+        });
     });
 }
 
@@ -155,71 +182,43 @@ pub fn ui_localsaves(
 ) {
     new_egui_window("Local Saves").resizable(true).show(ctx.ctx_mut(), |ui| {
 
-
-        StripBuilder::new(ui)
-            .size(Size::exact(120.0))  // Left 
-            .size(Size::remainder().at_least(450.0)) // Right
-            .horizontal(|mut strip| {
-                strip.strip(|builder| {
-                    builder
-                        .size(Size::remainder())
-                        .size(Size::exact(40.))
-                        .vertical(|mut strip| {
-                            strip.cell(|ui| {
-                                ui.style_mut().spacing.item_spacing.y = 7.;
-                                ui.style_mut().spacing.button_padding.y = 3.;
-
-                                ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
-                                    if ui.selectable_label(false, "New World").clicked() {
+        ui_lr_panel(ui, false, |ui| {
+            if ui.selectable_label(false, "New World").clicked() {
                                     
-                                    }
-                                    if ui.selectable_label(false, "Refresh").clicked() {
-                                        
-                                    }
-                                });
-                            });
-                            strip.cell(|ui| {
-                                ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
-                                    if ui.selectable_label(false, "Cancel").clicked() {
-                                        next_ui.set(CurrentUI::MainMenu);
-                                    }
-                                });
-                            });
-                        });
-                });
-                strip.cell(|ui| {
-                    egui::ScrollArea::vertical().show(ui, |ui| {
-                        for i in 0..8 {
-                            ui.group(|ui| {
-                                ui.horizontal(|ui| {
-                                    ui.colored_label(Color32::WHITE, "World Name").on_hover_text(
+            }
+            if ui.selectable_label(false, "Refresh").clicked() {
+                
+            }
+        }, &mut next_ui, |ui| {
+            for i in 0..8 {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.colored_label(Color32::WHITE, "World Name").on_hover_text(
 "Path: /Saves/Saa
 Size: 10.3 MiB
 Time Modified: 2024.02.01 11:20 AM
 Time Created: 2024.02.01 11:20 AM
 Inhabited: 10.3 hours");
-                                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                        ui.label("3 days ago · 13 MB");
-                                    });
-                                });
-                                ui.horizontal(|ui| {
-                                    ui.label("Survival · Cheats");
-                                    ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                        if ui.button("Del").clicked() {
-    
-                                        }
-                                        if ui.button("Edit").clicked() {
-    
-                                        }
-                                        if ui.button("Play").clicked() {
-    
-                                        }
-                                    });
-                                });
-                            });
-                        }
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            ui.label("3 days ago · 13 MB");
+                        });
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Survival · Cheats");
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            if ui.button("Del").clicked() {
+
+                            }
+                            if ui.button("Edit").clicked() {
+
+                            }
+                            if ui.button("Play").clicked() {
+
+                            }
+                        });
                     });
                 });
-            });
+            }
         });
+    });
 }
