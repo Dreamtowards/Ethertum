@@ -17,6 +17,8 @@ use crate::voxel::VoxelPlugin;
 
 pub mod condition {
     use bevy::ecs::{schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
+    use crate::ui::CurrentUI;
+
     use super::WorldInfo;
     
     // fn is_manipulating() -> impl Condition<()> {
@@ -34,6 +36,9 @@ pub mod condition {
     }
     pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
         resource_removed::<WorldInfo>()
+    }
+    pub fn manipulating() -> impl FnMut(Res<State<CurrentUI>>) -> bool + Clone {
+        |curr_ui: Res<State<CurrentUI>>| *curr_ui == CurrentUI::None
     }
 }
 
@@ -385,6 +390,7 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
     gizmo.ray(p + rot * offset, Vec3::X * n, Color::RED);
     gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
     gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
+
 }
 
 #[derive(Resource, Reflect)]
@@ -454,6 +460,9 @@ pub struct ClientInfo {
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
+
+    // as same as SPacket::PlayerList. username, ping.
+    pub playerlist: Vec<(String, u32)>,
 }
 
 impl Default for ClientInfo {
@@ -464,6 +473,7 @@ impl Default for ClientInfo {
             dbg_text: false,
             ping: (0,0,0,0),
             fov: 85.,
+            playerlist: Vec::new(),
         }
     }
 }

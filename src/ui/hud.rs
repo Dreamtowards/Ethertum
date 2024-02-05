@@ -2,10 +2,11 @@
 use std::collections::VecDeque;
 
 use bevy::{prelude::*, reflect::List};
-use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, ScrollArea, TextEdit, TextFormat}, EguiContexts};
+use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, Id, Layout, ScrollArea, TextEdit, TextFormat}, EguiContexts};
 use bevy_renet::renet::RenetClient;
+use egui_extras::{Size, StripBuilder};
 
-use crate::{game::WorldInfo, net::{CPacket, RenetClientHelper}};
+use crate::{game::{ClientInfo, WorldInfo}, net::{CPacket, RenetClientHelper, SPacket}};
 
 use super::CurrentUI;
 
@@ -193,7 +194,7 @@ pub fn hud_chat(
 }
 
 
-pub fn hud_hotbar(mut ctx: EguiContexts) {
+pub fn hud_hotbar(mut ctx: EguiContexts, curr_ui: Res<State<CurrentUI>>,) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
@@ -207,5 +208,49 @@ pub fn hud_hotbar(mut ctx: EguiContexts) {
                     ui.add_sized([s, s], egui::Button::new(""));
                 }
             });
+
+        });
+        
+}
+
+pub fn hud_playerlist(
+    mut ctx: EguiContexts,
+    input_key: Res<Input<KeyCode>>,
+    
+    clientinfo: Res<ClientInfo>,
+    mut net_client: ResMut<RenetClient>,
+) {
+    if !input_key.pressed(KeyCode::Tab) {
+        return;
+    }
+    if input_key.just_pressed(KeyCode::Tab) {
+        info!("Request PlayerList");
+        net_client.send_packet(&CPacket::PlayerList);
+    }
+
+    egui::Window::new("PlayerList")
+        .title_bar(false)
+        .resizable(false)
+        .anchor(Align2::CENTER_TOP, [0., 16.])
+        .show(ctx.ctx_mut(), |ui| {
+
+            for player in &clientinfo.playerlist {
+                
+                ui.horizontal(|ui| {
+                    ui.set_width(280.);
+
+                    // ui.add_sized([180., 24.], egui::Label::new(player.0.as_str()));
+                    ui.colored_label(Color32::WHITE, player.0.as_str());
+
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.colored_label(Color32::GREEN, format!("{}ms", player.1));
+                    })
+                });
+            }
+            // ui.separator();
+            // ui.label("Server MOTD Footer Test");
+            
+            // Lock Focus when pressing Tab
+            ui.memory_mut(|m| m.request_focus(Id::NULL));
         });
 }

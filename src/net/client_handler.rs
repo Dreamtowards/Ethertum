@@ -39,7 +39,7 @@ pub fn client_sys(
     
 
     while let Some(bytes) = client.receive_message(DefaultChannel::ReliableOrdered) {
-        info!("CLI Recv PACKET: {}", String::from_utf8_lossy(&bytes));
+        // info!("CLI Recv PACKET: {}", String::from_utf8_lossy(&bytes));
         let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
         match &packet {
             SPacket::Disconnect { reason } => {
@@ -98,6 +98,14 @@ pub fn client_sys(
                 
                 cmds.get_or_spawn(entity_id.client_entity())
                     .insert(Transform::from_translation(*position));
+            }
+            SPacket::EntityDel { entity_id } => {
+
+                cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
+            }
+            SPacket::PlayerList { playerlist } => {
+
+                clientinfo.playerlist = playerlist.clone();  // should move?
             }
         }
     }

@@ -46,7 +46,10 @@ impl Plugin for UiPlugin {
 
         // HUDs
         {
-            app.add_systems(Update, hud::hud_hotbar.run_if(condition::in_world()));
+            app.add_systems(Update, (
+                hud::hud_hotbar,
+                hud::hud_playerlist.run_if(condition::manipulating()),
+            ).run_if(condition::in_world()));
             
             app.insert_resource(ChatHistory::default());
             app.add_systems(Update, hud::hud_chat.run_if(condition::in_world()));

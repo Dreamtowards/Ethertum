@@ -35,7 +35,9 @@ pub enum CPacket {
 
     PlayerPos {
         position: Vec3,
-    }
+    },
+
+    PlayerList,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,5 +74,13 @@ pub enum SPacket {
     EntityPos {
         entity_id: EntityId,
         position: Vec3,
+    },
+    EntityDel {
+        entity_id: EntityId,
+    },
+
+    PlayerList {
+        // name, ping
+        playerlist: Vec<(String, u32)>
     }
 }

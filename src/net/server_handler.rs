@@ -50,7 +50,10 @@ pub fn server_sys(
                 info!("Cli Disconnected {} {}", client_id, reason);
 
                 if let Some(player) = serverinfo.online_players.remove(client_id) {
+                    
                     server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
+                    
+                    server.broadcast_packet(&SPacket::EntityDel { entity_id: player.entity_id });
                 }
             }
         }
@@ -59,7 +62,7 @@ pub fn server_sys(
     // Receive message from all clients
     for client_id in server.clients_id() {
         while let Some(bytes) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
-            info!("Server Received: {}", String::from_utf8_lossy(&bytes));
+            // info!("Server Received: {}", String::from_utf8_lossy(&bytes));
             let packet: CPacket = bincode::deserialize(&bytes[..]).unwrap();
             match packet {
                 CPacket::Handshake { protocol_version } => {
@@ -98,7 +101,7 @@ pub fn server_sys(
                         continue;
                     }
                     // 模拟登录验证
-                    std::thread::sleep(Duration::from_millis(1000));
+                    std::thread::sleep(Duration::from_millis(2000));
 
                     // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess {});
@@ -141,6 +144,12 @@ pub fn server_sys(
 
                             server.broadcast_packet_except(client_id, 
                                 &SPacket::EntityPos { entity_id: player.entity_id, position });
+                        }
+                        CPacket::PlayerList => {
+
+                            let playerlist = serverinfo.online_players.iter()
+                                .map(|e| (e.1.username.clone(), server.network_info(*e.0).unwrap().rtt as u32)).collect();
+                            server.send_packet(client_id, &SPacket::PlayerList { playerlist })
                         }
                         _ => {
                             warn!("Unknown Packet {:?}", packet);
