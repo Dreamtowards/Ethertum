@@ -292,9 +292,14 @@ fn handle_inputs(
         }
     }
 
-    // Toggle F3 DebugInfo
+    // Toggle F3 Debug TextInfo
     if key.just_pressed(KeyCode::F3) {
         clientinfo.dbg_text = !clientinfo.dbg_text;
+    }
+
+    // Toggle F12 Debug MenuBar
+    if key.just_pressed(KeyCode::F12) {
+        clientinfo.dbg_menubar = !clientinfo.dbg_menubar;
     }
 
     // Toggle Fullscreen
@@ -457,6 +462,7 @@ pub struct ClientInfo {
     pub username: String,
     
     pub dbg_text: bool,
+    pub dbg_menubar: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -471,6 +477,7 @@ impl Default for ClientInfo {
             disconnected_reason: "none".into(),
             username: "User1".into(),
             dbg_text: false,
+            dbg_menubar: true,
             ping: (0,0,0,0),
             fov: 85.,
             playerlist: Vec::new(),

@@ -34,15 +34,17 @@ impl Plugin for UiPlugin {
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
 
-        app.add_systems(Update, debug::ui_menu_panel); // Debug MenuBar. before CentralPanel
-
-
-        app.add_plugins((
-            FrameTimeDiagnosticsPlugin,
-            EntityCountDiagnosticsPlugin,
-            //SystemInformationDiagnosticsPlugin
-        ));
-        app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text));
+        // Debug UI
+        {
+            app.add_systems(Update, debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar)); // Debug MenuBar. before CentralPanel
+            app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text));
+    
+            app.add_plugins((
+                FrameTimeDiagnosticsPlugin,
+                EntityCountDiagnosticsPlugin,
+                //SystemInformationDiagnosticsPlugin
+            ));
+        }
 
         // HUDs
         {

@@ -11,8 +11,7 @@ use bevy_egui::{
 };
 
 use crate::{
-    game::{condition, ClientInfo, EthertiaClient, WorldInfo},
-    voxel::{ChunkSystem, HitResult},
+    character_controller::CharacterController, game::{condition, ClientInfo, EthertiaClient, WorldInfo}, voxel::{ChunkSystem, HitResult}
 };
 
 use super::{new_egui_window, ui_lr_panel, CurrentUI};
@@ -37,6 +36,7 @@ pub fn ui_settings(
     mut next_ui: ResMut<NextState<CurrentUI>>, 
 
     mut clientinfo: ResMut<ClientInfo>,
+    mut query_cam: Query<&CharacterController>,
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
 

@@ -54,3 +54,17 @@ pub fn hashcode<T: Hash>(t: &T) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
+
+
+
+#[derive(Default)]
+pub struct SmoothValue {
+    pub target: f32,
+    pub current: f32,
+}
+
+impl SmoothValue {
+    pub fn update(&mut self, dt: f32) {
+        self.current += dt * (self.target - self.current);
+    }
+}

@@ -194,7 +194,9 @@ pub fn hud_chat(
 }
 
 
-pub fn hud_hotbar(mut ctx: EguiContexts, curr_ui: Res<State<CurrentUI>>,) {
+pub fn hud_hotbar(
+    mut ctx: EguiContexts,
+) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
@@ -231,7 +233,7 @@ pub fn hud_playerlist(
     egui::Window::new("PlayerList")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_TOP, [0., 16.])
+        .anchor(Align2::CENTER_TOP, [0., 28.])
         .show(ctx.ctx_mut(), |ui| {
 
             for player in &clientinfo.playerlist {

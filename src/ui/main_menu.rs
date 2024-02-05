@@ -117,6 +117,10 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Team");
                 ui.toggle_value(&mut false, "Abilities");
                 ui.toggle_value(&mut false, "Quests");
+                ui.separator();
+                if ui.toggle_value(&mut false, "Settings").clicked() {
+                    next_ui.set(CurrentUI::WtfSettings);
+                }
                 if ui.toggle_value(&mut false, "Quit").clicked() {
                     next_ui.set(CurrentUI::MainMenu);
                     commands.remove_resource::<WorldInfo>();

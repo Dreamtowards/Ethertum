@@ -1,6 +1,6 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy::{input::mouse::{MouseMotion, MouseWheel}, prelude::*};
 use bevy_xpbd_3d::{
     components::*,
     parry::na::ComplexField,
@@ -8,7 +8,7 @@ use bevy_xpbd_3d::{
     PhysicsSet,
 };
 
-use crate::game::condition;
+use crate::{game::{condition, ClientInfo}, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
 
@@ -18,7 +18,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(Update, input_move.run_if(condition::in_world()));
 
-        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
+        app.add_systems(PostUpdate, sync_camera.after(PhysicsSet::Sync));
     }
 }
 
@@ -81,6 +81,9 @@ pub struct CharacterController {
     pub acceleration: f32,
     pub max_slope_angle: f32,
 
+    // 3rd person camera distance.
+    pub cam_distance: f32,
+
     // Input
     pub enable_input: bool,
     // fly_speed: f32,
@@ -113,6 +116,7 @@ impl Default for CharacterController {
             jump_impulse: 7.,
             acceleration: 50.,
             max_slope_angle: PI * 0.25,
+            cam_distance: 0.,
         }
     }
 }
@@ -121,7 +125,8 @@ fn input_move(
     key_input: Res<Input<KeyCode>>,
     // phys_ctx: ,
     time: Res<Time>,
-    mut mouse_events: EventReader<MouseMotion>,
+    mut mouse_motion_events: EventReader<MouseMotion>,
+    mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query: Query<(
         &mut Transform,
         &mut CharacterController,
@@ -130,10 +135,15 @@ fn input_move(
         &ShapeHits,
         &Rotation,
     )>,
+    mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
     let mut mouse_delta = Vec2::ZERO;
-    for mouse_event in mouse_events.read() {
-        mouse_delta += mouse_event.delta;
+    for motion in mouse_motion_events.read() {
+        mouse_delta += motion.delta;
+    }
+    let mut wheel_delta = 0.0;
+    for w in mouse_wheel_events.read() {
+        wheel_delta += w.x + w.y;
     }
     let dt_sec = time.delta_seconds();
 
@@ -148,6 +158,15 @@ fn input_move(
             ctl.yaw -= mouse_delta.x;
             if ctl.yaw.abs() > PI {
                 ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
+            }
+
+            // 3rd person cam distance.
+            if key_input.pressed(KeyCode::AltLeft) {
+                cam_dist_smoothed.target += -wheel_delta;  //(ctl.cam_distance*0.1).max(0.3) * 
+                cam_dist_smoothed.target = cam_dist_smoothed.target.clamp(-10., 1_000.);
+
+                cam_dist_smoothed.update(time.delta_seconds() * 18.);
+                ctl.cam_distance = cam_dist_smoothed.current;
             }
 
             // Disp Move
@@ -290,31 +309,23 @@ fn input_move(
     }
 }
 
-#[derive(Default)]
-struct SmoothValue {
-    pub target: f32,
-    current: f32,
-}
-
-impl SmoothValue {
-    fn tick(&mut self, dt: f32) {
-        self.current += dt * (self.target - self.current);
-    }
-}
 
 fn sync_camera(
     mut query_cam: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
     query_char: Query<(&Position, &CharacterController), Without<CharacterControllerCamera>>,
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
+
+    cli: Res<ClientInfo>,
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
-            cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.);
+            cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
 
-            fov_val.target = if ctl.is_sprinting { 90. } else { 70. };
-            fov_val.tick(time.delta_seconds() * 16.);
+            // Smoothed FOV on sprinting
+            fov_val.target = if ctl.is_sprinting { cli.fov + 20. } else { cli.fov };
+            fov_val.update(time.delta_seconds() * 16.);
 
             if let Projection::Perspective(pp) = proj.as_mut() {
                 pp.fov = fov_val.current.to_radians();
