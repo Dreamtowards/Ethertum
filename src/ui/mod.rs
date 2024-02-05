@@ -188,8 +188,8 @@ pub fn ui_lr_panel(
                 .vertical(|mut strip| {
                     strip.cell(|ui| {
                         ui.add_space(8.);
-                        ui.style_mut().spacing.item_spacing.y = 6.;
-                        ui.style_mut().spacing.button_padding.y = 2.;
+                        ui.style_mut().spacing.item_spacing.y = 7.;
+                        ui.style_mut().spacing.button_padding.y = 3.;
                         
                         ui.with_layout(Layout::top_down_justified(egui::Align::Min), |ui| {
                             add_nav(ui);
@@ -197,7 +197,7 @@ pub fn ui_lr_panel(
                     });
                     strip.cell(|ui| {
                         ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
-                            if ui.selectable_label(false, "Cancel").clicked() {
+                            if ui.selectable_label(false, "⬅Back").clicked() {
                                 next_ui.set(CurrentUI::MainMenu);
                             }
                         });

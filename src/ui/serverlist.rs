@@ -29,6 +29,7 @@ pub fn ui_connecting_server(
             } else {
                 ui.label("Connecting server...");
             }
+            ui.add_space(38.);
             ui.spinner();
             
             ui.add_space(h * 0.3);

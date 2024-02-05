@@ -17,6 +17,10 @@ pub fn client_sys(
     mut chats: ResMut<crate::ui::hud::ChatHistory>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
     mut cmds: Commands,
+    
+    // 临时测试 待移除:
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     if *last_connected != 1 && client.is_connecting() {
         *last_connected = 1;
@@ -70,6 +74,30 @@ pub fn client_sys(
             SPacket::Chat { message } => {
                 info!("[Chat]: {}", message);
                 chats.scrollback.push(message.clone());
+            }
+            SPacket::EntityNew { entity_id } => {
+                info!("Spawn EntityNew {}", entity_id.raw());
+
+                // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
+                // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
+
+                cmds.get_or_spawn(entity_id.client_entity())
+                    .insert(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Capsule {
+                            radius: 0.4,
+                            depth: 1.0,
+                            ..default()
+                        })),
+                        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                        ..default()
+                    });
+            }
+            SPacket::EntityPos { entity_id, position } => {
+                info!("EntityPos {} -> {}", entity_id.raw(), position);
+                
+                cmds.get_or_spawn(entity_id.client_entity())
+                    .insert(Transform::from_translation(*position));
             }
         }
     }

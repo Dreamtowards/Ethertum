@@ -10,7 +10,7 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, NetworkClientPlugin, RenetClientHelper}, ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, NetworkClientPlugin, RenetClientHelper, SPacket}, ui::CurrentUI
 };
 
 use crate::voxel::VoxelPlugin;
@@ -160,7 +160,7 @@ fn startup(
                 ..default()
             })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-            transform: Transform::from_xyz(0.0, 1.5, 0.0),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         },
         CharacterControllerBundle::new(
@@ -306,9 +306,12 @@ fn tick_world(
     #[cfg(feature = "target_native_os")]
     mut atmosphere: AtmosphereMut<Nishita>,
 
-    mut query: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
+    mut query_sun: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
     time: Res<Time>,
+
+    query_player: Query<&Transform, (With<CharacterController>, Without<Sun>)>,
+    mut net_client: ResMut<RenetClient>,
 ) {
     // worldinfo.tick_timer.tick(time.delta());
     // if !worldinfo.tick_timer.just_finished() {
@@ -334,19 +337,24 @@ fn tick_world(
         worldinfo.daytime -= worldinfo.daytime.trunc(); // trunc to [0-1]
     }
 
-    // Atmosphere SunPos
-    let sun_ang = worldinfo.daytime * PI * 2.;
+    // Send PlayerPos
+    let player_pos = query_player.single();
+    net_client.send_packet(&CPacket::PlayerPos { position: player_pos.translation });
+
+
+    // Sun Pos
+    let sun_angle = worldinfo.daytime * PI * 2.;
     
     #[cfg(feature = "target_native_os")]
     {
-        atmosphere.sun_position = Vec3::new(sun_ang.cos(), sun_ang.sin(), 0.);
+        atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
     }
 
-    if let Some((mut light_trans, mut directional)) = query.single_mut().into() {
-        directional.illuminance = sun_ang.sin().max(0.0).powf(2.0) * 100000.0;
+    if let Some((mut light_trans, mut directional)) = query_sun.single_mut().into() {
+        directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * 100000.0;
 
         // or from000.looking_at()
-        light_trans.rotation = Quat::from_rotation_z(sun_ang) * Quat::from_rotation_y(PI / 2.3);
+        light_trans.rotation = Quat::from_rotation_z(sun_angle) * Quat::from_rotation_y(PI / 2.3);
     }
 }
 

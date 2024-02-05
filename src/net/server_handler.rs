@@ -7,11 +7,19 @@ use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTranspor
 
 use crate::{net::{CPacket, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis};
 
-type UserId = u64;
+use super::packet::EntityId;
+
+struct PlayerInfo {
+    username: String,
+    user_id: u64,
+
+    entity_id: EntityId,
+
+}
 
 #[derive(Default)]
 pub struct ServerInfo {
-    online_players: HashMap<ClientId, String>,
+    online_players: HashMap<ClientId, PlayerInfo>,
 }
 
 impl ServerInfo {
@@ -24,6 +32,8 @@ pub fn server_sys(
     mut server: ResMut<RenetServer>,
     transport: Res<NetcodeServerTransport>,
     mut serverinfo: Local<ServerInfo>,
+
+    mut cmds: Commands,
 ) {
     for event in server_events.read() {
         match event {
@@ -40,7 +50,7 @@ pub fn server_sys(
                 info!("Cli Disconnected {} {}", client_id, reason);
 
                 if let Some(player) = serverinfo.online_players.remove(client_id) {
-                    server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player, serverinfo.online_players.len()));
+                    server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
                 }
             }
         }
@@ -83,21 +93,61 @@ pub fn server_sys(
                 CPacket::Login { uuid, access_token, username } => {
                     info!("Login Requested: {} {} {}", uuid, access_token, username);
 
-                    if serverinfo.online_players.values().any(|v| v==&username) {
+                    if serverinfo.online_players.values().any(|v| &v.username == &username) {
                         server.send_packet_disconnect(client_id, format!("Player {} already logged in", &username));
                         continue;
                     }
+                    // 模拟登录验证
                     std::thread::sleep(Duration::from_millis(1000));
 
+                    // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess {});
 
                     server.broadcast_packet_chat(format!("Player {} joined. ({}/N)", &username, serverinfo.online_players.len()+1));
-                    serverinfo.online_players.insert(client_id, username);
+                    
+
+                    let entity_id = cmds.spawn(TransformBundle::default()).id();
+                    let entity_id = EntityId::from_server(entity_id);
+
+                    serverinfo.online_players.insert(client_id, PlayerInfo { 
+                        username, 
+                        user_id: uuid,
+                        entity_id,
+                    });
+                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id });
+
+                    // Send Server Players to him
+                    for player in serverinfo.online_players.values() {
+                        if player.entity_id != entity_id {
+                            server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id });
+                        }
+                    }
                 }
-                CPacket::ChatMessage { message } => {
-                    let username = serverinfo.online_players.get(&client_id).unwrap();
-                    server.broadcast_packet_chat(format!("<{}>: {}", username, message.clone()));
+                // Play Stage:
+                _ => {
+                    // Requires Logged in.
+                    // 这几行应该有语法糖简化..
+                    let player = serverinfo.online_players.get(&client_id);
+                    if player.is_none() {
+                        continue;
+                    } 
+                    let player = player.unwrap();
+                    
+                    match packet {
+                        CPacket::ChatMessage { message } => {
+                            server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
+                        }
+                        CPacket::PlayerPos { position } => {
+
+                            server.broadcast_packet_except(client_id, 
+                                &SPacket::EntityPos { entity_id: player.entity_id, position });
+                        }
+                        _ => {
+                            warn!("Unknown Packet {:?}", packet);
+                        }
+                    }
                 }
+
             }
 
         }

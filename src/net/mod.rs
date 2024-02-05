@@ -2,7 +2,6 @@ use std::{net::{SocketAddr, UdpSocket}, time::Duration};
 
 use crate::util::{current_timestamp, current_timestamp_millis};
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
 use bevy_renet::{
     renet::{
         transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES},
@@ -157,10 +156,12 @@ impl Plugin for NetworkClientPlugin {
 
 pub trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
+    
+    fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);
     
-    fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String);
+    fn broadcast_packet_except<P: Serialize>(&mut self, except_id: ClientId, packet: &P);
     
     fn broadcast_packet_chat(&mut self, message: String);
 }
@@ -168,11 +169,14 @@ impl RenetServerHelper for RenetServer {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P) {
         self.send_message(client_id, DefaultChannel::ReliableOrdered, bincode::serialize(packet).unwrap());
     }
+    fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String) {
+        self.send_packet(client_id, &SPacket::Disconnect { reason });
+    }
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P) {
         self.broadcast_message(DefaultChannel::ReliableOrdered, bincode::serialize(packet).unwrap());
     }
-    fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String) {
-        self.send_packet(client_id, &SPacket::Disconnect { reason });
+    fn broadcast_packet_except<P: Serialize>(&mut self, except_id: ClientId, packet: &P) {
+        self.broadcast_message_except(except_id, DefaultChannel::ReliableOrdered, bincode::serialize(packet).unwrap());
     }
     fn broadcast_packet_chat(&mut self, message: String) {
         info!("[BroadcastChat] {}", &message);

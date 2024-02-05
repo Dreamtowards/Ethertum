@@ -34,7 +34,7 @@ pub fn ui_main_menu(
             ui.heading("ethertia");
             ui.add_space(h * 0.2);
 
-            let siz = [240., 28.];
+            let siz = [240., 24.];
             
             // ui.text_edit_singleline(&mut clientinfo.username);
 
