@@ -430,6 +430,8 @@ impl Default for WorldInfo {
 pub struct ClientInfo {
     pub disconnected_reason: String,
 
+    pub fov: f32,
+
     pub username: String,
     
     pub dbg_text: bool,
@@ -445,6 +447,7 @@ impl Default for ClientInfo {
             username: "User1".into(),
             dbg_text: false,
             ping: (0,0,0,0),
+            fov: 85.,
         }
     }
 }
