@@ -50,7 +50,7 @@ pub fn ui_disconnected_reason(
     mut next_ui: ResMut<NextState<CurrentUI>>,
 
     clientinfo: Res<ClientInfo>,
-    net_client: Res<RenetClient>,
+    mut net_client: ResMut<RenetClient>,
 ) {
     new_egui_window("Disconnected Reason").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
@@ -68,6 +68,7 @@ pub fn ui_disconnected_reason(
             
             if ui.button("Back to title").clicked() {
                 // todo: Interrupt Connection without handle Result.
+                net_client.disconnect();
                 next_ui.set(CurrentUI::MainMenu);
             }
 

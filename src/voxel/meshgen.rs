@@ -14,7 +14,7 @@ use bevy::{
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
-use super::{chunk::*, chunk_system::ChunkPtr};
+use super::{chunk::*, ChunkPtr};
 
 // Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
 

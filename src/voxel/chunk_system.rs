@@ -11,6 +11,8 @@ use super::{chunk::*, TerrainMaterial};
 // Box<Chunk>;         not supported for SharedPtr
 pub type ChunkPtr = Arc<RwLock<Chunk>>;
 
+
+
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ChunkSystem {
@@ -44,7 +46,6 @@ pub struct ChunkSystem {
 
     pub entity: Entity,
 
-    pub vox_mtl: Handle<TerrainMaterial>,
 
     pub dbg_remesh_all_chunks: bool,
 
@@ -58,7 +59,7 @@ impl Default for ChunkSystem {
             chunks: HashMap::default(), //Arc::new(RwLock::new(HashMap::new())),
             view_distance: IVec2::new(1, 1),
             entity: Entity::PLACEHOLDER,
-            vox_mtl: Handle::default(),
+            shader_terrain: Handle::default(),
             dbg_remesh_all_chunks: false,
             chunks_remesh: HashSet::default(),
             chunks_meshing: HashMap::default(),
@@ -81,7 +82,7 @@ impl ChunkSystem {
 
     pub fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
         assert!(Chunk::is_chunkpos(chunkpos));
-
+        self.chunks.get(&chunkpos)
         /*
         if let Some(chunk) = self.chunks.get(&chunkpos) {
             //.read().unwrap().get(&chunkpos) {
@@ -90,7 +91,6 @@ impl ChunkSystem {
             None
         }
         */
-        self.chunks.get(&chunkpos)
     }
 
     pub fn has_chunk(&self, chunkpos: IVec3) -> bool {
@@ -125,16 +125,16 @@ impl ChunkSystem {
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        {
-                            let mut neib_chunk = neib_chunkptr.write().unwrap();
+                        
+                        let mut neib_chunk = neib_chunkptr.write().unwrap();
 
-                            // update neighbor's `neighbor_chunk`
-                            neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
+                        // update neighbor's `neighbor_chunk`
+                        neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
-                            if neib_chunk.is_neighbors_complete() {
-                                load.push(neib_chunk.chunkpos);
-                            }
+                        if neib_chunk.is_neighbors_complete() {
+                            load.push(neib_chunk.chunkpos);
                         }
+                        
 
                         Some(Arc::downgrade(neib_chunkptr))
                     } else {

@@ -10,7 +10,6 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
-use crate::{character_controller::CharacterController, voxel::HitResult};
 
 pub struct EditorPlugin;
 
@@ -30,7 +29,7 @@ impl Plugin for EditorPlugin {
         // Setup Controls
         app.insert_resource(res_editor_controls());
         app.add_systems(Startup, setup_editor_camera_controls);
-        app.add_systems(Update, handle_inputs);
+        // app.add_systems(Update, handle_inputs);
 
         app.add_plugins((
             FrameTimeDiagnosticsPlugin,
@@ -40,36 +39,36 @@ impl Plugin for EditorPlugin {
     }
 }
 
-fn handle_inputs(
-    mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
-    key: Res<Input<KeyCode>>,
-    // mouse_input: Res<Input<MouseButton>>,
-) {
-    let mut window = window_query.single_mut();
+// fn handle_inputs(
+//     mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
+//     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
+//     mut controller_query: Query<&mut CharacterController>,
+//     key: Res<Input<KeyCode>>,
+//     // mouse_input: Res<Input<MouseButton>>,
+// ) {
+//     let mut window = window_query.single_mut();
 
-    // Toggle MouseGrab
-    for event in editor_events.read() {
-        if let EditorEvent::Toggle { now_active } = *event {
-            let playing = !now_active;
-            window.cursor.grab_mode = if playing { CursorGrabMode::Locked } else { CursorGrabMode::None };
-            window.cursor.visible = !playing;
-            for mut controller in &mut controller_query {
-                controller.enable_input = playing;
-            }
-        }
-    }
+//     // Toggle MouseGrab
+//     for event in editor_events.read() {
+//         if let EditorEvent::Toggle { now_active } = *event {
+//             let playing = !now_active;
+//             window.cursor.grab_mode = if playing { CursorGrabMode::Locked } else { CursorGrabMode::None };
+//             window.cursor.visible = !playing;
+//             for mut controller in &mut controller_query {
+//                 controller.enable_input = playing;
+//             }
+//         }
+//     }
 
-    // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) {
-        window.mode = if window.mode != WindowMode::Fullscreen {
-            WindowMode::Fullscreen
-        } else {
-            WindowMode::Windowed
-        };
-    }
-}
+//     // Toggle Fullscreen
+//     if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) {
+//         window.mode = if window.mode != WindowMode::Fullscreen {
+//             WindowMode::Fullscreen
+//         } else {
+//             WindowMode::Windowed
+//         };
+//     }
+// }
 fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
     use bevy_editor_pls::controls::*;
     let mut editor_controls = EditorControls::default_bindings();

@@ -11,14 +11,15 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    game::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, voxel::{ChunkSystem, HitResult}
+    game::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, 
+    voxel::{ClientChunkSystem, HitResult}
 };
 
 
 pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    mut chunk_sys: ResMut<ChunkSystem>,
+    mut chunk_sys: ResMut<ClientChunkSystem>,
     mut clientinfo: ResMut<ClientInfo>,
 
     net_client: Option<Res<RenetClient>>,
@@ -137,18 +138,6 @@ pub fn ui_menu_panel(
                             ui.separator();
                             ui.toggle_value(&mut clientinfo.dbg_text, "Debug Info");
 
-                            if let Some(worldinfo) = &mut worldinfo {
-
-                                ui.label("ViewDistance: h&v");
-                                ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
-                                ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));
-
-                                ui.label("max_loading:");
-                                ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_loading).speed(1.));
-                                ui.label("max_meshing:");
-                                ui.add(egui::DragValue::new(&mut chunk_sys.max_concurrent_meshing).speed(1.));
-
-                            }
                         });
                     });
                 });
@@ -169,7 +158,7 @@ pub fn hud_debug_text(
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
     worldinfo: Option<Res<WorldInfo>>,
-    chunk_sys: Res<ChunkSystem>,
+    chunk_sys: Res<ClientChunkSystem>,
     hit_result: Res<HitResult>,
     query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
@@ -245,9 +234,9 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         *last_cam_pos = cam_pos;
         cam_visible_entities_num = cam_visible_entities.entities.len();
 
-        let num_chunks_loading = chunk_sys.chunks_loading.len();
+        let num_chunks_loading = -1;//chunk_sys.chunks_loading.len();
         let num_chunks_remesh = chunk_sys.chunks_remesh.len();
-        let num_chunks_meshing = chunk_sys.chunks_meshing.len();
+        let num_chunks_meshing = -1;//chunk_sys.chunks_meshing.len();
 
         let mut hit_str = "none".into();
         if hit_result.is_hit {

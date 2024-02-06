@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock, Weak};
+use std::{sync::{Arc, RwLock, Weak}, usize};
 
 use bevy::{math::ivec3, prelude::*};
 
@@ -72,7 +72,7 @@ impl Chunk {
     }
 
     pub fn get_cell(&self, localpos: IVec3) -> &Cell {
-        &self.cells[Chunk::local_cell_idx(localpos)]
+        &self.cells[Chunk::local_idx(localpos)]
     }
 
     pub fn get_cell_neighbor(&self, relpos: IVec3) -> Option<Cell> {
@@ -121,11 +121,11 @@ impl Chunk {
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {
-        &mut self.cells[Chunk::local_cell_idx(localpos)]
+        &mut self.cells[Chunk::local_idx(localpos)]
     }
 
     pub fn set_cell(&mut self, localpos: IVec3, cell: &Cell) {
-        self.cells[Chunk::local_cell_idx(localpos)] = *cell;
+        self.cells[Chunk::local_idx(localpos)] = *cell;
     }
 
     pub fn is_neighbors_complete(&self) -> bool {
@@ -172,10 +172,18 @@ impl Chunk {
         p.x >= 0 && p.x < 16 && p.y >= 0 && p.y < 16 && p.z >= 0 && p.z < 16
     }
 
-    fn local_cell_idx(localpos: IVec3) -> usize {
+    pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
+
+    // the index range is [0, 16^3 or 4096)
+    fn local_idx(localpos: IVec3) -> usize {
         assert!(Chunk::is_localpos(localpos), "localpos = {}", localpos);
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }
+    pub fn local_idx_pos(idx: i32) -> IVec3 {
+        IVec3::new((idx >> 8) & 15, (idx >> 4) & 15, idx & 15)
+    }
+
+
 
     #[rustfmt::skip]
     pub const NEIGHBOR_DIR: [IVec3; 6 + 12 + 8] = [

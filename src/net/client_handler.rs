@@ -1,11 +1,18 @@
 
-use bevy::prelude::*;
+use std::sync::{Arc, RwLock};
+
+use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}};
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
+use bevy_xpbd_3d::components::RigidBody;
 
-use crate::{game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
+use crate::{
+    game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, 
+    ui::CurrentUI, util::current_timestamp_millis,
+    voxel::{Chunk, ChunkComponent, ClientChunkSystem}
+};
 
-use super::SPacket;
+use super::{packet::CellData, SPacket};
 
 
 
@@ -22,6 +29,8 @@ pub fn client_sys(
     // 临时测试 待移除:
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+
+    mut chunk_sys: ResMut<ClientChunkSystem>,
 ) {
     if *last_connected != 1 && client.is_connecting() {
         *last_connected = 1;
@@ -31,6 +40,7 @@ pub fn client_sys(
 
     } else if *last_connected != 0 && client.is_disconnected() {
         *last_connected = 0;
+        info!("Disconnected. {}", client.disconnect_reason().unwrap());
 
         cmds.remove_resource::<WorldInfo>();  // todo: cli.close_world();
         if client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
@@ -70,7 +80,7 @@ pub fn client_sys(
                 info!("Login Success!");
                 
                 next_ui.set(CurrentUI::None);
-                cmds.insert_resource(WorldInfo::default());
+                // cmds.insert_resource(WorldInfo::default());  // moved to Click Connect. 要在用之前初始化，如果现在标记 那么就来不及初始化 随后就有ChunkNew数据包 要用到资源
             }
             SPacket::Chat { message } => {
                 info!("[Chat]: {}", message);
@@ -82,6 +92,7 @@ pub fn client_sys(
                 // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
                 // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
 
+                // todo: 封装函数
                 cmds.get_or_spawn(entity_id.client_entity())
                     .insert((
                         PbrBundle {
@@ -125,6 +136,47 @@ pub fn client_sys(
             SPacket::PlayerList { playerlist } => {
 
                 clientinfo.playerlist = playerlist.clone();  // should move?
+            }
+
+            SPacket::ChunkNew { chunkpos, voxel } => {
+
+                let mut chunk = Chunk::new(*chunkpos);
+
+                CellData::to_chunk(voxel, &mut chunk);
+                
+                // todo 封装函数
+                {
+                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+    
+                    chunk.entity = cmds
+                        .spawn((
+                            ChunkComponent::new(*chunkpos),
+                            MaterialMeshBundle {
+                                mesh: chunk.mesh_handle.clone(),
+                                material: chunk_sys.shader_terrain.clone(),
+                                transform: Transform::from_translation(chunkpos.as_vec3()),
+                                visibility: Visibility::Hidden, // Hidden is required since Mesh is empty.
+                                ..default()
+                            },
+                            Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                            RigidBody::Static,
+                        ))
+                        .set_parent(chunk_sys.entity)
+                        .id();
+                }
+
+                let chunkptr = Arc::new(RwLock::new(chunk));
+
+                chunk_sys.spawn_chunk(chunkptr);
+
+            }
+            SPacket::ChunkDel { chunkpos } => {
+
+                if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
+
+                    cmds.entity(chunkptr.read().unwrap().entity).despawn_recursive();
+                }
+                
             }
         }
     }

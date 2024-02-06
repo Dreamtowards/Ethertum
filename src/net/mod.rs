@@ -56,9 +56,9 @@ pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<V
     NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
 }
 
-pub struct NetworkServerPlugin;
+pub struct ServerNetworkPlugin;
 
-impl Plugin for NetworkServerPlugin {
+impl Plugin for ServerNetworkPlugin {
     fn build(&self, app: &mut App) {
         let addr = "127.0.0.1:4000".parse().unwrap();
 
@@ -75,10 +75,11 @@ impl Plugin for NetworkServerPlugin {
     }
 }
 
-pub struct NetworkClientPlugin;
+pub struct ClientNetworkPlugin;
 
-impl Plugin for NetworkClientPlugin {
+impl Plugin for ClientNetworkPlugin {
     fn build(&self, app: &mut App) {
+        
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 

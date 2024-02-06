@@ -5,7 +5,7 @@ use std::{str::FromStr, time::Duration};
 use bevy::{prelude::*, utils::HashMap};
 use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent}};
 
-use crate::{net::{CPacket, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis};
+use crate::{net::{packet::CellData, CPacket, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::ServerChunkSystem};
 
 use super::packet::EntityId;
 
@@ -14,7 +14,7 @@ struct PlayerInfo {
     user_id: u64,
 
     entity_id: EntityId,
-
+    position: Vec3,
 }
 
 #[derive(Default)]
@@ -33,6 +33,7 @@ pub fn server_sys(
     transport: Res<NetcodeServerTransport>,
     mut serverinfo: Local<ServerInfo>,
 
+    mut chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
 ) {
     for event in server_events.read() {
@@ -112,18 +113,27 @@ pub fn server_sys(
                     let entity_id = cmds.spawn(TransformBundle::default()).id();
                     let entity_id = EntityId::from_server(entity_id);
 
+                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
+
                     // Send Server Players to the client. Note: Before insert of online_players
                     for player in serverinfo.online_players.values() {
                         server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id, name: player.username.clone() });
-                        // todo: send EntityPos
+                        server.send_packet(client_id, &SPacket::EntityPos { entity_id: player.entity_id, position: player.position });
                     }
 
-                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
+                    let mut idx = 0;
+                    for chunk in &chunk_sys.chunks {
+                        info!("Sending ChunkData {}/{} avail: {}", idx, chunk_sys.chunks.len(), server.channel_available_memory(client_id, DefaultChannel::ReliableOrdered));
+                        let data = CellData::from_chunk(&chunk.1.read().unwrap());
+                        server.send_packet(client_id, &SPacket::ChunkNew { chunkpos: *chunk.0, voxel: data });
+                        idx += 1;
+                    }
 
                     serverinfo.online_players.insert(client_id, PlayerInfo { 
                         username, 
                         user_id: uuid,
                         entity_id,
+                        position: Vec3::ZERO,
                     });
                 }
                 // Play Stage:

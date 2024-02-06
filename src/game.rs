@@ -10,10 +10,11 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, NetworkClientPlugin, RenetClientHelper, SPacket}, ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, 
+    net::{CPacket, ClientNetworkPlugin, RenetClientHelper, SPacket}, ui::CurrentUI
 };
 
-use crate::voxel::VoxelPlugin;
+use crate::voxel::ClientVoxelPlugin;
 
 pub mod condition {
     use bevy::ecs::{schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
@@ -71,10 +72,7 @@ impl Plugin for GamePlugin {
     
             // SSAO
             // app.add_plugins(TemporalAntiAliasPlugin);
-            // app.insert_resource(AmbientLight {
-            //         brightness: 0.05,
-            //         ..default()
-            //     });
+            // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
         }
 
         // Physics
@@ -87,7 +85,7 @@ impl Plugin for GamePlugin {
         app.add_plugins(crate::ui::UiPlugin);
 
         // ChunkSystem
-        app.add_plugins(VoxelPlugin);
+        app.add_plugins(ClientVoxelPlugin);
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
@@ -95,6 +93,7 @@ impl Plugin for GamePlugin {
         // WorldInfo
         app.register_type::<WorldInfo>();
 
+        // World Setup/Cleanup, Tick
         app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
@@ -105,7 +104,7 @@ impl Plugin for GamePlugin {
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
         // Network Client
-        app.add_plugins(NetworkClientPlugin);
+        app.add_plugins(ClientNetworkPlugin);
 
 
     }
@@ -125,6 +124,7 @@ impl EthertiaClient {
 
 
     pub fn connect_server(&mut self, cmds: &mut Commands, server_addr: String, username: String) {
+        info!("Connecting to {}", server_addr);
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
@@ -227,17 +227,17 @@ fn startup(
     //     RigidBody::Static,
     // ));
 
-    // Floor
-    commands.spawn((
-        SceneBundle {
-            scene: asset_server.load("playground.glb#Scene0"),
-            transform: Transform::from_xyz(0.5, -5.5, 0.5),
-            ..default()
-        },
-        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-        RigidBody::Static,
-        DespawnOnWorldUnload,
-    ));
+    // // Floor
+    // commands.spawn((
+    //     SceneBundle {
+    //         scene: asset_server.load("playground.glb#Scene0"),
+    //         transform: Transform::from_xyz(0.5, -5.5, 0.5),
+    //         ..default()
+    //     },
+    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+    //     RigidBody::Static,
+    //     DespawnOnWorldUnload,
+    // ));
 
     // // Cube
     // commands.spawn((
