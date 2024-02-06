@@ -356,7 +356,7 @@ fn tick_world(
 
     // Send PlayerPos
     let player_pos = query_player.single().translation;
-    if *last_player_pos != player_pos {
+    if player_pos.distance_squared(*last_player_pos) > 0.01*0.01 {
         *last_player_pos = player_pos;
         net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
     }

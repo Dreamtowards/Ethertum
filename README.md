@@ -5,14 +5,14 @@
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/macOS/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_macos_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Web/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_wasm_release.yml)
-[![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
-![repo size](https://img.shields.io/github/repo-size/Dreamtowards/Ethertum)
 [![Official Site](https://img.shields.io/badge/website-ethertia.com-blue.svg)](//ethertia.com)
 [![Docs](https://img.shields.io/badge/documentations-blue.svg)](//docs.ethertia.com) ' 
 [![bilibili](https://img.shields.io/badge/bilibili-gray.svg)](https://space.bilibili.com/19483166)
 [![qq](https://img.shields.io/badge/QQ-gray.svg)](https://jq.qq.com/?_wv=1027&k=tgM29oDM)
+[![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
 
 
+<!-- ![repo size](https://img.shields.io/github/repo-size/Dreamtowards/Ethertum) -->
 <!-- ![Lines of Code](https://tokei.rs/b1/github/Dreamtowards/Ethertum?category=code) -->
 <!-- [![code contributor count](https://badgen.net/github/contributors/Dreamtowards/Ethertum?label=code%20contributors)](https://github.com/Dreamtowards/Ethertum/graphs/contributors) -->
 <!-- [![dependency status](https://deps.rs/repo/github/Dreamtowards/Ethertum/status.svg)](https://deps.rs/repo/github/Dreamtowards/Ethertum) -->
