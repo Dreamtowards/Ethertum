@@ -12,7 +12,7 @@ use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
     game::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, 
-    voxel::{ClientChunkSystem, HitResult}
+    voxel::{ChunkSystem, ClientChunkSystem, HitResult}
 };
 
 

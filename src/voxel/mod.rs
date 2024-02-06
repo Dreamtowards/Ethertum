@@ -19,49 +19,15 @@ use std::sync::{Arc, RwLock};
 pub type ChunkPtr = Arc<RwLock<Chunk>>;  // Box<Chunk>;         not supported for SharedPtr
 
 
-
-// use self::material::mtl;
-// use crate::character_controller::{CharacterController, CharacterControllerCamera};
-// use crate::game::{condition, DespawnOnWorldUnload, WorldInfo};
-// use crate::ui::CurrentUI;
-// use crate::util::iter;
-// use meshgen::*;
-// use worldgen::*;
-
-use bevy::{
-    asset::ReflectAsset,
-    math::{ivec2, ivec3},
-    prelude::*,
-    render::{
-        primitives::Aabb,
-        render_resource::{AsBindGroup, PrimitiveTopology},
-    },
-    tasks::{AsyncComputeTaskPool, Task},
-    utils::{FloatOrd, HashMap},
-};
-use bevy_xpbd_3d::{
-    components::{AsyncCollider, Collider, ComputedCollider, RigidBody},
-    plugins::spatial_query::{SpatialQuery, SpatialQueryFilter},
-};
-// use futures_lite::future;
-// use once_cell::sync::Lazy;
-// use std::cell::RefCell;
-// use thread_local::ThreadLocal;
-// use instant::Instant;
-
-type ChunkLoadingData = (IVec3, ChunkPtr);
-
-// #[derive(Resource, Deref, Clone)]
-// struct ChunkDataTx<T>(crate::channel_impl::Sender<T>);
-
-// #[derive(Resource, Deref, Clone)]
-// struct ChunkDataRx<T>(crate::channel_impl::Receiver<T>);
+use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Resource, Deref, Clone)]
 struct MpscTx<T>(crate::channel_impl::Sender<T>);
 
 #[derive(Resource, Deref, Clone)]
 struct MpscRx<T>(crate::channel_impl::Receiver<T>);
+
+
 
 
 #[derive(Component)]
@@ -74,6 +40,30 @@ impl ChunkComponent {
         Self { chunkpos }
     }
 }
+
+
+
+pub trait ChunkSystem {
+    
+    fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr>;
+
+    fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
+        assert!(Chunk::is_chunkpos(chunkpos));
+        self.get_chunks().get(&chunkpos)
+    }
+
+    fn has_chunk(&self, chunkpos: IVec3) -> bool {
+        assert!(Chunk::is_chunkpos(chunkpos));
+        self.get_chunks().contains_key(&chunkpos)
+    }
+
+    fn num_chunks(&self) -> usize {
+        self.get_chunks().len() 
+    }
+
+}
+
+
 
 // #[derive(Component)]
 // struct ChunkMeshingTask;//(Task<Mesh>);

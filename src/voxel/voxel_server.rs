@@ -3,7 +3,11 @@ use std::sync::{Arc, RwLock};
 use bevy::{prelude::*, utils::{HashMap}};
 
 use crate::util::iter;
-use super::{Chunk, ChunkPtr, WorldGen};
+use super::{Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx, WorldGen};
+
+
+type ChunkLoadingData = (IVec3, ChunkPtr);
+
 
 pub struct ServerVoxelPlugin;
 
@@ -12,6 +16,11 @@ impl Plugin for ServerVoxelPlugin {
         
         app.insert_resource(ServerChunkSystem::new());
 
+        // {
+        //     let (tx, rx) = crate::channel_impl::unbounded::<ChunkLoadingData>();
+        //     app.insert_resource(MpscTx(tx));
+        //     app.insert_resource(MpscRx(rx));
+        // }
 
         app.add_systems(Update, chunk_loadance);
 
@@ -52,23 +61,18 @@ pub struct ServerChunkSystem {
     pub chunks: HashMap<IVec3, ChunkPtr>,
 }
 
+impl ChunkSystem for ServerChunkSystem {
+    fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr> {
+        &self.chunks
+    }
+}
+
 impl ServerChunkSystem {
     fn new() -> Self {
         Self {
             chunks: HashMap::default(),
         }
     }
-
-    pub fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
-        assert!(Chunk::is_chunkpos(chunkpos));
-        self.chunks.get(&chunkpos)
-    }
-    
-    pub fn has_chunk(&self, chunkpos: IVec3) -> bool {
-        assert!(Chunk::is_chunkpos(chunkpos));
-        self.chunks.contains_key(&chunkpos) //.read().unwrap().contains_key(&chunkpos)
-    }
-
 
     fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let cp = chunkptr.read().unwrap().chunkpos;

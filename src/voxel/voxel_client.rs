@@ -8,7 +8,7 @@ use crate::{
     game::{condition, DespawnOnWorldUnload}, 
     ui::CurrentUI
 };
-use super::{meshgen::MeshGen, Chunk, ChunkPtr, MpscRx, MpscTx};
+use super::{meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx};
 
 
 
@@ -25,19 +25,11 @@ impl Plugin for ClientVoxelPlugin {
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
         app.register_asset_reflect::<TerrainMaterial>();  // debug
 
-        // {
-        //     {
-        //         let (tx, rx) = crate::channel_impl::unbounded::<ChunkLoadingData>();
-        //         app.insert_resource(ChunkDataTx(tx));
-        //         app.insert_resource(ChunkDataRx(rx));
-        //     }
-
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
             app.insert_resource(MpscTx(tx));
             app.insert_resource(MpscRx(rx));
         }
-        // }
 
         // Startup Init
         app.add_systems(First, startup.run_if(condition::load_world()));
@@ -47,11 +39,7 @@ impl Plugin for ClientVoxelPlugin {
             (
                 raycast,
                 chunks_remesh_enqueue,
-                // chunks_remesh,
-                // chunks_detect_load_and_unload,
                 draw_gizmos,
-                // chunks_apply_loaded
-                // chunks_apply_remeshed
             )
             .chain()
             .run_if(condition::in_world()),
@@ -346,6 +334,13 @@ pub struct ClientChunkSystem {
     pub entity: Entity,
     pub max_concurrent_meshing: usize,
 }
+
+impl ChunkSystem for ClientChunkSystem {
+    fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr> {
+        &self.chunks
+    }
+}
+
 impl ClientChunkSystem {
 
     pub fn new() -> Self {
@@ -359,19 +354,6 @@ impl ClientChunkSystem {
         }
     }
     
-    pub fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
-        assert!(Chunk::is_chunkpos(chunkpos));
-        self.chunks.get(&chunkpos)
-    }
-
-    pub fn has_chunk(&self, chunkpos: IVec3) -> bool {
-        assert!(Chunk::is_chunkpos(chunkpos));
-        self.chunks.contains_key(&chunkpos)
-    }
-
-    pub fn num_chunks(&self) -> usize {
-        self.chunks.len() //.read().unwrap().len()
-    }
 
     pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
         self.chunks_remesh.insert(chunkpos);
