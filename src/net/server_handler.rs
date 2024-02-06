@@ -101,7 +101,7 @@ pub fn server_sys(
                         continue;
                     }
                     // 模拟登录验证
-                    std::thread::sleep(Duration::from_millis(2000));
+                    std::thread::sleep(Duration::from_millis(800));
 
                     // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess {});

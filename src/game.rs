@@ -157,6 +157,7 @@ fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
@@ -164,8 +165,8 @@ fn startup(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
-                radius: 0.4,
-                depth: 1.0,
+                radius: 0.3,
+                depth: 1.3,
                 ..default()
             })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
@@ -173,7 +174,7 @@ fn startup(
             ..default()
         },
         CharacterControllerBundle::new(
-            Collider::capsule(1., 0.4),
+            Collider::capsule(1.3, 0.3),
             CharacterController {
                 is_flying: true,
                 enable_input: true,
@@ -226,16 +227,17 @@ fn startup(
     //     RigidBody::Static,
     // ));
 
-    // // Floor
-    // commands.spawn((
-    //     SceneBundle {
-    //         scene: assets.load("playground.glb#Scene0"),
-    //         transform: Transform::from_xyz(0.5, -5.5, 0.5),
-    //         ..default()
-    //     },
-    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-    //     RigidBody::Static,
-    // ));
+    // Floor
+    commands.spawn((
+        SceneBundle {
+            scene: asset_server.load("playground.glb#Scene0"),
+            transform: Transform::from_xyz(0.5, -5.5, 0.5),
+            ..default()
+        },
+        AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
+        RigidBody::Static,
+        DespawnOnWorldUnload,
+    ));
 
     // // Cube
     // commands.spawn((

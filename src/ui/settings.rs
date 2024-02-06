@@ -37,6 +37,7 @@ pub fn ui_settings(
 
     mut clientinfo: ResMut<ClientInfo>,
     mut query_cam: Query<&CharacterController>,
+    mut chunk_sys: ResMut<ChunkSystem>,
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
 
@@ -86,10 +87,14 @@ pub fn ui_settings(
 
                     ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut clientinfo.username));
 
+
+                    ui.label("General:");
+
                     ui_setting_line(ui, "FOV", egui::Slider::new(&mut clientinfo.fov, 10.0..=170.0));
                    
-                    ui_setting_line(ui, "Chunks Meshing Max Concurrency", egui::Slider::new(&mut clientinfo.fov, 0.0..=50.0));
+                    ui_setting_line(ui, "Chunks Meshing Max Concurrency", egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50));
                    
+                    ui_setting_line(ui, "Chunks Loading Max Concurrency", egui::Slider::new(&mut chunk_sys.max_concurrent_loading, 0..=50));
                     
                     // ui.indent("ProfileIndent", |ui| {
 

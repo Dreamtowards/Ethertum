@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 
-use crate::{game::{ClientInfo, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
+use crate::{game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis};
 
 use super::SPacket;
 
@@ -83,18 +83,21 @@ pub fn client_sys(
                 // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
 
                 cmds.get_or_spawn(entity_id.client_entity())
-                    .insert(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Capsule {
-                            radius: 0.4,
-                            depth: 1.0,
+                    .insert((
+                        PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Capsule {
+                                radius: 0.3,
+                                depth: 1.3,
+                                ..default()
+                            })),
+                            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
                             ..default()
-                        })),
-                        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                        ..default()
-                    }).with_children(|parent| {
+                        }, 
+                        DespawnOnWorldUnload,
+                    )).with_children(|parent| {
                         parent.spawn(BillboardTextBundle {
-                            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.002)),
+                            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
                             text: Text::from_sections([
                                 TextSection {
                                     value: name.clone(),

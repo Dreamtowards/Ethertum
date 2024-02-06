@@ -59,18 +59,25 @@ impl Plugin for UiPlugin {
         
         app.add_state::<CurrentUI>();
 
-        app.add_systems(Update, (
-            main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)),
-            settings::ui_settings.run_if(in_state(CurrentUI::WtfSettings)),
+        app.add_systems(Update, 
+            (
 
-            serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
 
-            serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
-            serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
-            serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
+                settings::ui_settings.run_if(in_state(CurrentUI::WtfSettings)),
+                main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)),
 
-            main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)).before(debug::ui_menu_panel),
-        ));
+                // Menus
+                main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)),
+                serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
+
+                serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
+                serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
+                serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
+
+            )
+            .chain()
+            .before(debug::ui_menu_panel)
+        );
 
 
 
@@ -144,7 +151,7 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
         visuals.extreme_bg_color = color32_gray_alpha(0.02, 0.66);  // TextEdit, ProgressBar, ScrollBar Bg, Plot Bg
 
-        visuals.window_fill = color32_gray_alpha(0.1, 0.98);
+        visuals.window_fill = color32_gray_alpha(0.1, 0.99);
         visuals.window_shadow = egui::epaint::Shadow{ extrusion: 8., color: Color32::from_black_alpha(45) };
         visuals.popup_shadow = visuals.window_shadow;
     });
