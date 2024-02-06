@@ -41,19 +41,17 @@ jobs:
       - name: Build for Linux
         run: cargo build --release
 
-      # - name: Build for macOS
-      #   run: cargo build --release --target=x86_64-apple-darwin
-
-      - name: Zip Artifact
-        run: zip linux-x86_64.zip ./target/release/${APP_NAME}
+      # - name: Zip Artifact
+      #   run: zip linux-x86_64.zip ./target/release/${APP_NAME}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: linux-artifacts
           path: |
-            ./linux-x86_64.zip
+            # ./linux-x86_64.zip
             ./target/release/${APP_NAME}
+            ./target/release/dedicated_server
 
       # - name: Upload Artifacts
       #   uses: actions/upload-release-asset@v1

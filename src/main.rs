@@ -10,7 +10,7 @@ fn main() {
             primary_window: Some(Window {
                 present_mode: bevy::window::PresentMode::AutoNoVsync,
                 resolution: bevy::window::WindowResolution::new(1280., 720.),
-                title: "Ethertia 0.2.3 2024.02b PlayerSync, PlayerList, HeadName".into(),
+                title: "Ethertia 0.2.4 2024.02c ChunkSync".into(),
                 fit_canvas_to_parent: true,  // web: full-window
                 prevent_default_event_handling: true,  // web: avoid twice esc to pause problem.
                 ..default()

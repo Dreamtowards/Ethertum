@@ -115,6 +115,7 @@ pub fn server_sys(
                     // Send Server Players to the client. Note: Before insert of online_players
                     for player in serverinfo.online_players.values() {
                         server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id, name: player.username.clone() });
+                        // todo: send EntityPos
                     }
 
                     server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
