@@ -1,0 +1,14 @@
+{
+    "rust-analyzer.cargo.buildScripts.overrideCommand": {
+        "command": "cargo",
+        "args": [
+            "check",
+            "--quiet",
+            "--workspace",
+            "--message-format=json",
+            "--all-targets",
+            "--config=${fileWorkspaceFolder}/.cargo/config_build_faster.toml",
+            "--features=bevy/dynamic_linking"
+        ]
+    }
+}
