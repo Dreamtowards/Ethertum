@@ -98,8 +98,8 @@ impl Plugin for GamePlugin {
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
 
-        // Debug Draw Gizmos
-        // app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+        // Debug Draw Basis
+        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
 
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
@@ -396,15 +396,16 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
     }
 
     // View Basis
-    // if Ok(cam_trans) = query_cam.get_single() {
-    let cam_trans = query_cam.single();
-    let p = cam_trans.translation;
-    let rot = cam_trans.rotation;
-    let n = 0.03;
-    let offset = vec3(0., 0., -0.5);
-    gizmo.ray(p + rot * offset, Vec3::X * n, Color::RED);
-    gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
-    gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
+    if let Ok(cam_trans) = query_cam.get_single() {
+        // let cam_trans = query_cam.single();
+        let p = cam_trans.translation;
+        let rot = cam_trans.rotation;
+        let n = 0.03;
+        let offset = vec3(0., 0., -0.5);
+        gizmo.ray(p + rot * offset, Vec3::X * n, Color::RED);
+        gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
+        gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
+    }
 
 }
 
