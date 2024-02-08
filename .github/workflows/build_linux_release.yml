@@ -39,7 +39,7 @@ jobs:
         # xwin --accept-license splat --output ./.xwin
 
       - name: Build for Linux
-        run: cargo build --release
+        run: cargo build --release 
 
       # - name: Zip Artifact
       #   run: zip linux-x86_64.zip ./target/release/${APP_NAME}

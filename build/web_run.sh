@@ -5,5 +5,9 @@ trap "popd; exit 1" SIGINT
 
 pushd ../
 export WASM_SERVER_RUNNER_ADDRESS=0.0.0.0
-cargo run --release --target wasm32-unknown-unknown --no-default-features --features "experimental_channel" --bin ethertia
+
+# set CARGO_PROFILE_RELEASE_LTO true
+# set CARGO_PROFILE_RELEASE_OPT_LEVEL z
+
+cargo run --profile web-release --target wasm32-unknown-unknown --no-default-features --features "experimental_channel" --bin ethertia
 popd

@@ -69,5 +69,13 @@ opt-level = 3
 
 # further improve performances in a noticeable way, even for a release build (though the build itself will take longer to complete):
 [profile.release]
+lto = true
 codegen-units = 1
+strip = true
+
+
+# cargo build --target wasm32-unknown-unknown --profile web-release
+[profile.web-release]
+inherits = "release"
+opt-level = "z"  # default=39.2mb, "z"=17.3mb, 
 
