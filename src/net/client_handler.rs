@@ -178,6 +178,7 @@ pub fn client_sys(
                     cmds.entity(chunkptr.read().unwrap().entity).despawn_recursive();
                 }
                 
+                info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
         }
     }

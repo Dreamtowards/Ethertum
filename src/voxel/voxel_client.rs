@@ -404,9 +404,9 @@ impl ClientChunkSystem {
                 }
             }
 
-            // if chunk.is_neighbors_complete() {
+            if chunk.is_neighbors_complete() {
                 self.mark_chunk_remesh(chunkpos);
-            // }
+            }
             for cp in load {
                 self.mark_chunk_remesh(cp);
             }

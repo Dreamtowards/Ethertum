@@ -29,7 +29,11 @@ impl Plugin for ServerVoxelPlugin {
     }
 }
 
-
+fn in_load_distance(mid_cp: IVec3, cp: IVec3, vd: IVec2) -> bool {
+    (mid_cp.x - cp.x).abs() <= vd.x * Chunk::SIZE &&
+    (mid_cp.z - cp.z).abs() <= vd.x * Chunk::SIZE &&
+    (mid_cp.y - cp.y).abs() <= vd.y * Chunk::SIZE
+}
 
 fn chunks_load(
     mut chunk_sys: ResMut<ServerChunkSystem>,
@@ -94,6 +98,34 @@ fn chunks_load(
         info!("ChunkLoad Completed {} / {}", chunk_sys.num_chunks(), chunkpos);
     }
 
+
+    // 野蛮区块卸载检测
+    let chunkpos_all =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+    for chunkpos in chunkpos_all {
+        let mut any_desire = false;
+
+        for player in server.online_players.values_mut() {
+            if in_load_distance(Chunk::as_chunkpos(player.position.as_ivec3()), chunkpos, player.chunks_load_distance) {
+                any_desire = true;
+            }
+        }
+
+        if !any_desire {
+            let chunkptr = chunk_sys.despawn_chunk(chunkpos);
+            let entity = chunkptr.unwrap().read().unwrap().entity;
+            cmds.entity(entity).despawn_recursive();
+
+            net_server.broadcast_packet(&SPacket::ChunkDel { chunkpos });
+            
+            for player in server.online_players.values_mut() {
+                player.chunks_loaded.remove(&chunkpos);
+            }
+
+            info!("Chunk Unloaded {}", chunk_sys.num_chunks());
+        }
+    }
+
+
     // 野蛮的方法 把所有区块发给所有玩家
     for player in server.online_players.values_mut() {
 
@@ -112,6 +144,8 @@ fn chunks_load(
             }
         }
     }
+
+
 }
 
 
@@ -141,5 +175,9 @@ impl ServerChunkSystem {
     fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let cp = chunkptr.read().unwrap().chunkpos;
         self.chunks.insert(cp, chunkptr);
+    }
+
+    fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
+        self.chunks.remove(&chunkpos)
     }
 }
