@@ -1,6 +1,6 @@
 # `cargo install wasm-bindgen-cli`
 
-wasm-bindgen --no-typescript --out-dir wasm --target web ../target/wasm32-unknown-unknown/web-release/ethertia.wasm --out-name ethertia_bindgen
+wasm-bindgen --no-typescript --out-dir wasm --target web ../target/wasm32-unknown-unknown/web-release/ethertia.wasm --out-name ethertia
 
 # sudo apt install binaryen
 # ./wasm-opt.exe -Oz -o ./wasm/ethertia_opt.wasm ./wasm/ethertia_bindgen_bg.wasm
