@@ -165,7 +165,16 @@ fn input_move(
 
             // 3rd person cam distance.
             if key_input.pressed(KeyCode::AltLeft) {
-                cam_dist_smoothed.target += (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
+                let d = (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
+                if cam_dist_smoothed.target < 4. {
+                    if cam_dist_smoothed.target != 0. {
+                        cam_dist_smoothed.target = 0.;
+                    } else if d > 0. {
+                        cam_dist_smoothed.target = 4.;
+                    }
+                } else {
+                    cam_dist_smoothed.target += d;
+                }
                 cam_dist_smoothed.target = cam_dist_smoothed.target.clamp(0., 1_000.);
 
                 cam_dist_smoothed.update(time.delta_seconds() * 18.);
