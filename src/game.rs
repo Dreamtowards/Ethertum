@@ -177,7 +177,7 @@ fn startup(
             Collider::capsule(1.3, 0.3),
             CharacterController {
                 is_flying: true,
-                enable_input: true,
+                enable_input: false,
                 ..default()
             },
         ),

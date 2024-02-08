@@ -92,6 +92,29 @@ impl Plugin for ClientNetworkPlugin {
     }
 }
 
+
+// An unique id shared in Server and Client. in client with a big offset to avoid id collision.
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EntityId(u32);
+
+impl EntityId {
+
+    pub fn from_server(entity: Entity) -> EntityId {
+        EntityId(entity.index())
+    }
+
+    pub fn client_entity(&self) -> Entity {
+        Entity::from_raw(1_000_000 + self.0)
+    }
+
+    pub fn raw(&self) -> u32 {
+        self.0
+    }
+}
+
+
+
 // fn ui_client_net(
 //     mut ctx: EguiContexts,
 //     mut client: ResMut<RenetClient>,

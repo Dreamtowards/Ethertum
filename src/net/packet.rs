@@ -4,25 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::voxel::{Cell, Chunk};
 
+use super::EntityId;
 
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EntityId(u32);
-
-impl EntityId {
-
-    pub fn from_server(entity: Entity) -> EntityId {
-        EntityId(entity.index())
-    }
-
-    pub fn client_entity(&self) -> Entity {
-        Entity::from_raw(1_000_000 + self.0)
-    }
-
-    pub fn raw(&self) -> u32 {
-        self.0
-    }
-}
 
 
 
@@ -30,7 +13,7 @@ impl EntityId {
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CellData {
     local_idx: u16,  // 12 bits
-    density: u8, // val = (v / 255.0) - 0.5
+    density: f32, // val = (v / 255.0) - 0.5
     mtl_id: u16,
 }
 
@@ -43,7 +26,7 @@ impl CellData {
                 data.push(CellData {
                     local_idx: i as u16,
                     mtl_id: c.mtl,
-                    density: ((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
+                    density: c.value,  //((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
                 });
             }
         }
@@ -53,7 +36,7 @@ impl CellData {
         for c in data {
             chunk.set_cell(
                 Chunk::local_idx_pos(c.local_idx as i32), 
-                &Cell::new(c.density as f32 / 255.0 - 0.5, c.mtl_id)
+                &Cell::new(c.density, c.mtl_id)  //c.density as f32 / 255.0 - 0.5
             );
         }
     }

@@ -2,36 +2,19 @@
 
 use std::{str::FromStr, time::Duration};
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent}};
 
-use crate::{net::{packet::CellData, CPacket, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::ServerChunkSystem};
-
-use super::packet::EntityId;
-
-struct PlayerInfo {
-    username: String,
-    user_id: u64,
-
-    entity_id: EntityId,
-    position: Vec3,
-}
-
-#[derive(Default)]
-pub struct ServerInfo {
-    online_players: HashMap<ClientId, PlayerInfo>,
-}
-
-impl ServerInfo {
+use crate::{game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::ServerChunkSystem};
 
 
-}
+
 
 pub fn server_sys(
     mut server_events: EventReader<ServerEvent>,
     mut server: ResMut<RenetServer>,
     transport: Res<NetcodeServerTransport>,
-    mut serverinfo: Local<ServerInfo>,
+    mut serverinfo: ResMut<ServerInfo>,
 
     mut chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
@@ -134,14 +117,17 @@ pub fn server_sys(
                         user_id: uuid,
                         entity_id,
                         position: Vec3::ZERO,
+                        chunks_loaded: HashSet::default(),
+                        chunks_load_distance: IVec2::new(3, 2),
                     });
                 }
                 // Play Stage:
                 _ => {
                     // Requires Logged in.
                     // 这几行应该有语法糖简化..
-                    let player = serverinfo.online_players.get(&client_id);
+                    let player = serverinfo.online_players.get_mut(&client_id);
                     if player.is_none() {
+                        server.send_packet_disconnect(client_id, "illegal play-stage packet. you have not login yet".into());
                         continue;
                     } 
                     let player = player.unwrap();
@@ -152,6 +138,8 @@ pub fn server_sys(
                         }
                         CPacket::PlayerPos { position } => {
                             // todo: check diff, skip the same
+
+                            player.position = position;
 
                             server.broadcast_packet_except(client_id, 
                                 &SPacket::EntityPos { entity_id: player.entity_id, position });
