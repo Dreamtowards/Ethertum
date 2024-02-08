@@ -150,6 +150,9 @@ fn input_move(
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
         let mut movement = Vec3::ZERO;
 
+        // Flying
+        gravity_scale.0 = if ctl.is_flying { 0. } else { 2. };
+
         if ctl.enable_input {
             // View Rotation
             let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
@@ -198,8 +201,6 @@ fn input_move(
                 ctl.is_flying = !ctl.is_flying;
             }
 
-            // Flying
-            gravity_scale.0 = if ctl.is_flying { 0. } else { 2. };
 
             if ctl.is_flying {
                 if key_input.pressed(KeyCode::ShiftLeft) {
