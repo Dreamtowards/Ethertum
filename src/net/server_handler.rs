@@ -104,17 +104,10 @@ pub fn server_sys(
                         server.send_packet(client_id, &SPacket::EntityPos { entity_id: player.entity_id, position: player.position });
                     }
 
-                    let mut idx = 0;
-                    for chunk in &chunk_sys.chunks {
-                        info!("Sending ChunkData {}/{} avail: {}", idx, chunk_sys.chunks.len(), server.channel_available_memory(client_id, DefaultChannel::ReliableOrdered));
-                        let data = CellData::from_chunk(&chunk.1.read().unwrap());
-                        server.send_packet(client_id, &SPacket::ChunkNew { chunkpos: *chunk.0, voxel: data });
-                        idx += 1;
-                    }
-
                     serverinfo.online_players.insert(client_id, PlayerInfo { 
                         username, 
                         user_id: uuid,
+                        client_id,
                         entity_id,
                         position: Vec3::ZERO,
                         chunks_loaded: HashSet::default(),

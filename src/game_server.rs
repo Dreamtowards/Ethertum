@@ -48,6 +48,8 @@ pub struct PlayerInfo {
     pub username: String,
     pub user_id: u64,
 
+    pub client_id: ClientId,  // network client id. renet
+
     pub entity_id: EntityId,
     pub position: Vec3,
 

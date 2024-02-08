@@ -72,6 +72,7 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+# opt-level = "z"  # "z"=34.4 MB, zip=9.25 MB
 
 
 # cargo build --target wasm32-unknown-unknown --profile web-release

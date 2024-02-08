@@ -5,7 +5,7 @@ use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, 
 
 use crate::{
     character_controller::{CharacterController, CharacterControllerCamera}, 
-    game::{condition, DespawnOnWorldUnload}, 
+    game::{condition, ClientInfo, DespawnOnWorldUnload}, 
     ui::CurrentUI
 };
 use super::{meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx};
@@ -108,9 +108,9 @@ fn chunks_remesh_enqueue(
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::utils::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
-        // if chunk_sys.chunks_meshing.len() > chunk_sys.max_concurrent_meshing {
-        //     break;
-        // }
+        if tx_chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
+            break;
+        }
 
         if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
             let chunkptr = chunkptr.clone();
@@ -284,7 +284,7 @@ fn raycast(
 
 
 
-fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>) {
+fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo: Res<ClientInfo>) {
     // // chunks loading
     // for cp in chunk_sys.chunks_loading.keys() {
     //     gizmos.cuboid(
@@ -292,6 +292,16 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>) {
     //         Color::GREEN,
     //     );
     // }
+
+    // all loaded chunks
+    if clientinfo.dbg_gizmo_all_loaded_chunks {
+        for cp in chunk_sys.get_chunks().keys() {
+            gizmos.cuboid(
+                Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Color::DARK_GRAY,
+            );
+        }
+    }
 
     // chunks remesh
     for cp in chunk_sys.chunks_remesh.iter() {
@@ -394,9 +404,9 @@ impl ClientChunkSystem {
                 }
             }
 
-            if chunk.is_neighbors_complete() {
+            // if chunk.is_neighbors_complete() {
                 self.mark_chunk_remesh(chunkpos);
-            }
+            // }
             for cp in load {
                 self.mark_chunk_remesh(cp);
             }

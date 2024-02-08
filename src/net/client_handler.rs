@@ -9,7 +9,7 @@ use bevy_xpbd_3d::components::RigidBody;
 use crate::{
     game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, 
     ui::CurrentUI, util::current_timestamp_millis,
-    voxel::{Chunk, ChunkComponent, ClientChunkSystem}
+    voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
 };
 
 use super::{packet::CellData, SPacket};
@@ -169,6 +169,7 @@ pub fn client_sys(
 
                 chunk_sys.spawn_chunk(chunkptr);
 
+                info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
             SPacket::ChunkDel { chunkpos } => {
 

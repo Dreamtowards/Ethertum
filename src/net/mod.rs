@@ -13,7 +13,7 @@ use bevy_renet::{
 use serde::{Deserialize, Serialize};
 
 mod packet;
-pub use packet::{CPacket, SPacket};
+pub use packet::{CPacket, SPacket, CellData};
 
 mod client_handler;
 mod server_handler;

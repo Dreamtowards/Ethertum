@@ -466,7 +466,7 @@ impl Default for WorldInfo {
 
 #[derive(Resource)]
 pub struct ClientInfo {
-    pub disconnected_reason: String,
+    pub disconnected_reason: String,  // todo: Clean at Connect. prevents re-show old reason.
 
     pub fov: f32,
 
@@ -474,6 +474,7 @@ pub struct ClientInfo {
     
     pub dbg_text: bool,
     pub dbg_menubar: bool,
+    pub dbg_gizmo_all_loaded_chunks: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -487,11 +488,12 @@ impl Default for ClientInfo {
         Self {
             disconnected_reason: "none".into(),
             username: "User1".into(),
-            dbg_text: false,
-            dbg_menubar: true,
             ping: (0,0,0,0),
             fov: 85.,
             playerlist: Vec::new(),
+            dbg_text: false,
+            dbg_menubar: true,
+            dbg_gizmo_all_loaded_chunks: false,
         }
     }
 }

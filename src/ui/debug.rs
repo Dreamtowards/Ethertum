@@ -125,8 +125,13 @@ pub fn ui_menu_panel(
                             ui.button("Terminate");
                         });
                         ui.menu_button("World", |ui| {
-                            ui.button("Resume");
-                            ui.button("Step");
+                            if ui.button("ReMesh All Chunks").clicked() {
+                                let ls =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+                                for chunkpos in ls {
+                                    chunk_sys.mark_chunk_remesh(chunkpos);
+                                }
+                            }
+                            ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Gizmo All Chunks");
                         });
                         ui.menu_button("Render", |ui| {});
                         ui.menu_button("Audio", |ui| {});
