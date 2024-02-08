@@ -100,7 +100,7 @@ fn chunks_load(
         let mut n = 0;
         for (chunkpos, chunkptr) in chunk_sys.get_chunks() {
             if !player.chunks_loaded.contains(chunkpos) {
-                if n > 5 {  // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
+                if n > 3 {  // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
                     break;
                 }
                 player.chunks_loaded.insert(*chunkpos);

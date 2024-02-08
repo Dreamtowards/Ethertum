@@ -4,8 +4,7 @@ use crate::util::{current_timestamp, current_timestamp_millis};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
-        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES},
-        ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, ServerEvent,
+        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES}, ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType, ServerEvent
     },
     transport::{NetcodeClientPlugin, NetcodeServerPlugin},
     RenetClientPlugin, RenetServerPlugin,
@@ -56,6 +55,30 @@ pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<V
     NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
 }
 
+fn net_channel_config(max_memory_usage_bytes: usize) -> Vec<ChannelConfig> {
+    vec![
+        ChannelConfig {
+            channel_id: 0,
+            max_memory_usage_bytes,
+            send_type: SendType::Unreliable,
+        },
+        ChannelConfig {
+            channel_id: 1,
+            max_memory_usage_bytes,
+            send_type: SendType::ReliableUnordered {
+                resend_time: Duration::from_millis(300),
+            },
+        },
+        ChannelConfig {
+            channel_id: 2,
+            max_memory_usage_bytes,
+            send_type: SendType::ReliableOrdered {
+                resend_time: Duration::from_millis(300),
+            },
+        },
+    ]
+}
+
 pub struct ServerNetworkPlugin;
 
 impl Plugin for ServerNetworkPlugin {
@@ -65,7 +88,10 @@ impl Plugin for ServerNetworkPlugin {
         app.add_plugins(RenetServerPlugin);
         app.add_plugins(NetcodeServerPlugin);
 
-        app.insert_resource(RenetServer::new(ConnectionConfig::default()));
+        app.insert_resource(RenetServer::new(ConnectionConfig {
+            server_channels_config: net_channel_config(10 * 1024 * 1024),
+            ..default()
+        }));
         app.insert_resource(new_netcode_server_transport(addr, 64));
         info!("Server bind endpoint at {}", addr);
 
