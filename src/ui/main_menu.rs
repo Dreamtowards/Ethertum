@@ -17,7 +17,6 @@ pub fn ui_main_menu(
     mut commands: Commands,
     mut cli: EthertiaClient,
 
-    mut clientinfo: ResMut<ClientInfo>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
@@ -41,7 +40,7 @@ pub fn ui_main_menu(
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
                 // 连接服务器 这两个操作会不会有点松散
                 next_ui.set(CurrentUI::ConnectingServer);
-                cli.connect_server(&mut commands, "127.0.0.1:4000".into(), clientinfo.username.clone());
+                cli.connect_server("127.0.0.1:4000".into());
                 commands.insert_resource(WorldInfo::default());
             }
             if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {

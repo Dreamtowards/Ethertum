@@ -1,4 +1,4 @@
-use std::{f32::consts::{PI, TAU}, time::Duration};
+use std::f32::consts::{PI, TAU};
 
 use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
@@ -6,29 +6,19 @@ use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::Directiona
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin}, 
-    net::{CPacket, ClientNetworkPlugin, RenetClientHelper, SPacket}, ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
 };
 
 use crate::voxel::ClientVoxelPlugin;
 
 pub mod condition {
-    use bevy::ecs::{schedule::{common_conditions::{in_state, resource_added, resource_exists, resource_removed}, Condition, State}, system::{IntoSystem, Local, Res}};
+    use bevy::ecs::{schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
     use crate::ui::CurrentUI;
-
     use super::WorldInfo;
-    
-    // fn is_manipulating() -> impl Condition<()> {
-    //     IntoSystem::into_system(|mut flag: Local<bool>| {
-    //         *flag = !*flag;
-    //         *flag
-    //     })
-    // }
 
     pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
         resource_exists::<WorldInfo>()
@@ -114,27 +104,32 @@ impl Plugin for GamePlugin {
 
 
 #[derive(SystemParam)]
-pub struct EthertiaClient {
+pub struct EthertiaClient<'w,'s> {
 
+    clientinfo: ResMut<'w, ClientInfo>,
+
+    cmds: Commands<'w,'s>,
 }
 
-impl EthertiaClient {
+impl<'w,'s> EthertiaClient<'w,'s> {
 
     /// for Singleplayer
     // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
 
 
-    pub fn connect_server(&mut self, cmds: &mut Commands, server_addr: String, username: String) {
+    pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
-        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(&username), access_token: 123, username });
+        let username = &self.clientinfo.username;
+        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
 
-        cmds.insert_resource(net_client);
-        cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), Some("userData123".to_string().into_bytes())));
+        self.cmds.insert_resource(net_client);
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), Some("userData123".to_string().into_bytes())));
         
-        // todo: clientinfo.disconnected_reason = "none";
+        // clear Disconnect Reason prevents mis-display.
+        self.clientinfo.disconnected_reason.clear();
 
         // let mut cmd = CommandQueue::default();
         // cmd.push(move |world: &mut World| {
@@ -157,13 +152,11 @@ impl EthertiaClient {
 
 fn startup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
     // Logical Player
+    // spawn_player();
     // commands.spawn((
     //     PbrBundle {
     //         mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -280,7 +273,6 @@ fn handle_inputs(
 ) {
     let mut window = window_query.single_mut();
 
-    // Auto set Manipulating Game (grabbing mouse) when UI set. 
     if key.just_pressed(KeyCode::Escape) {
         if worldinfo.is_some() {
             next_ui.set(if *curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None });
@@ -288,6 +280,7 @@ fn handle_inputs(
             next_ui.set(CurrentUI::MainMenu);
         }
     }
+    // Toggle Game-Manipulating (grabbing mouse / character controlling) when UI set. 
     let curr_manipulating = *curr_ui == CurrentUI::None;
     if *last_is_manipulating != curr_manipulating {
         *last_is_manipulating = curr_manipulating;
