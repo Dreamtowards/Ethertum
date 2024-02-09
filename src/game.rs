@@ -151,12 +151,15 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 
 
 fn startup(
-    mut commands: Commands,
+    mut cmds: Commands,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
+    // cli: Res<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
     // Logical Player
-    // spawn_player();
+    // crate::net::spawn_player(Entity::from_raw(1000), true, &cli.username, &mut cmds, &mut meshes, &mut materials);
     // commands.spawn((
     //     PbrBundle {
     //         mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -181,7 +184,7 @@ fn startup(
     // ));
 
     // Camera
-    commands.spawn((
+    cmds.spawn((
         Camera3dBundle {
             projection: Projection::Perspective(PerspectiveProjection { fov: TAU / 4.6, ..default() }),
             camera: Camera { hdr: true, ..default() },
@@ -199,7 +202,7 @@ fn startup(
     // .insert(TemporalAntiAliasBundle::default());
 
     // Sun
-    commands.spawn((
+    cmds.spawn((
         DirectionalLightBundle {
             directional_light: DirectionalLight {
                 shadows_enabled: true,
