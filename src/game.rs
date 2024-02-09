@@ -6,6 +6,7 @@ use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::Directiona
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
+use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
@@ -153,6 +154,7 @@ impl EthertiaClient {
 
 
 
+
 fn startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -162,28 +164,28 @@ fn startup(
     info!("Load World. setup Player, Camera, Sun.");
 
     // Logical Player
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Capsule {
-                radius: 0.3,
-                depth: 1.3,
-                ..default()
-            })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            ..default()
-        },
-        CharacterControllerBundle::new(
-            Collider::capsule(1.3, 0.3),
-            CharacterController {
-                is_flying: true,
-                enable_input: false,
-                ..default()
-            },
-        ),
-        Name::new("Player"),
-        DespawnOnWorldUnload,
-    ));
+    // commands.spawn((
+    //     PbrBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Capsule {
+    //             radius: 0.3,
+    //             depth: 1.3,
+    //             ..default()
+    //         })),
+    //         material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+    //         transform: Transform::from_xyz(0.0, 0.0, 0.0),
+    //         ..default()
+    //     },
+    //     CharacterControllerBundle::new(
+    //         Collider::capsule(1.3, 0.3),
+    //         CharacterController {
+    //             is_flying: true,
+    //             enable_input: false,
+    //             ..default()
+    //         },
+    //     ),
+    //     Name::new("Player"),
+    //     DespawnOnWorldUnload,
+    // ));
 
     // Camera
     commands.spawn((
@@ -293,8 +295,8 @@ fn handle_inputs(
         window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
         window.cursor.visible = !curr_manipulating;
 
-        for mut controller in &mut controller_query {
-            controller.enable_input = curr_manipulating;
+        if let Ok(ctr) = &mut controller_query.get_single_mut() {
+            ctr.enable_input = curr_manipulating;
         }
     }
 
@@ -355,10 +357,13 @@ fn tick_world(
     }
 
     // Send PlayerPos
-    let player_pos = query_player.single().translation;
-    if player_pos.distance_squared(*last_player_pos) > 0.01*0.01 {
-        *last_player_pos = player_pos;
-        net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
+    if let Ok(player_loc) = query_player.get_single() {
+        let player_pos = player_loc.translation;
+
+        if player_pos.distance_squared(*last_player_pos) > 0.01*0.01 {
+            *last_player_pos = player_pos;
+            net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
+        }
     }
 
 

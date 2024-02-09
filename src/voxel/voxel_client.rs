@@ -223,7 +223,7 @@ fn raycast(
     let ray_pos = cam_trans.translation();
     let ray_dir = cam_trans.forward();
 
-    let player_entity = query_player.single();
+    let player_entity = query_player.get_single().unwrap_or(Entity::PLACEHOLDER);
 
     if let Some(hit) = spatial_query.cast_ray(ray_pos, ray_dir, 100.,
         true, SpatialQueryFilter::default().without_entities(vec![player_entity]),

@@ -4,12 +4,10 @@ use std::sync::{Arc, RwLock};
 use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}};
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
-use bevy_xpbd_3d::components::RigidBody;
+use bevy_xpbd_3d::components::{Collider, RigidBody};
 
 use crate::{
-    game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, 
-    ui::CurrentUI, util::current_timestamp_millis,
-    voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
+    character_controller::{CharacterController, CharacterControllerBundle}, game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
 };
 
 use super::{packet::CellData, SPacket};
@@ -76,10 +74,14 @@ pub fn client_sys(
                     curr - server_time
                 );
             }
-            SPacket::LoginSuccess {} => {
+            SPacket::LoginSuccess { player_entity } => {
                 info!("Login Success!");
                 
                 next_ui.set(CurrentUI::None);
+                
+                spawn_player(player_entity.client_entity(), true, &clientinfo.username, &mut cmds, &mut meshes, &mut materials);
+
+
                 // cmds.insert_resource(WorldInfo::default());  // moved to Click Connect. 要在用之前初始化，如果现在标记 那么就来不及初始化 随后就有ChunkNew数据包 要用到资源
             }
             SPacket::Chat { message } => {
@@ -92,36 +94,7 @@ pub fn client_sys(
                 // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
                 // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
 
-                // todo: 封装函数
-                cmds.get_or_spawn(entity_id.client_entity())
-                    .insert((
-                        PbrBundle {
-                            mesh: meshes.add(Mesh::from(shape::Capsule {
-                                radius: 0.3,
-                                depth: 1.3,
-                                ..default()
-                            })),
-                            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                            ..default()
-                        }, 
-                        DespawnOnWorldUnload,
-                    )).with_children(|parent| {
-                        parent.spawn(BillboardTextBundle {
-                            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
-                            text: Text::from_sections([
-                                TextSection {
-                                    value: name.clone(),
-                                    style: TextStyle {
-                                        font_size: 32.0,
-                                        color: Color::WHITE,
-                                        ..default()
-                                    }
-                                },
-                            ]).with_alignment(TextAlignment::Center),
-                            ..default() 
-                        });
-                    });
+                spawn_player(entity_id.client_entity(), false, &name, &mut cmds, &mut meshes, &mut materials);
             }
             SPacket::EntityPos { entity_id, position } => {
                 info!("EntityPos {} -> {}", entity_id.raw(), position);
@@ -184,7 +157,7 @@ pub fn client_sys(
                 info!("ChunkModify: {}", chunkpos);
                 
                 chunk_sys.mark_chunk_remesh(*chunkpos);
-                
+
                 // todo: NonLock
                 let mut chunk = chunk_sys.get_chunk(*chunkpos).unwrap().write().unwrap();
 
@@ -192,5 +165,64 @@ pub fn client_sys(
 
             }
         }
+    }
+}
+
+
+
+
+fn spawn_player(
+    entity: Entity,
+    is_theplayer: bool,
+    name: &String,
+    cmds: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+) {
+    // cmds.add(|world: &mut World| {
+    //     let meshes = world.get_resource_mut::<Assets<Mesh>>().unwrap();
+    //     let materials = world.get_resource_mut::<Assets<StandardMaterial>>().unwrap();
+    // });
+
+    let mut ec = cmds.get_or_spawn(entity);
+    
+    ec.insert((
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Capsule {
+                depth: 1.3,
+                radius: 0.3,
+                ..default()
+            })),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..default()
+        },
+        DespawnOnWorldUnload,
+    )).with_children(|parent| {
+        parent.spawn(BillboardTextBundle {
+            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
+            text: Text::from_sections([
+                TextSection {
+                    value: name.clone(),
+                    style: TextStyle {
+                        font_size: 32.0,
+                        color: Color::WHITE,
+                        ..default()
+                    }
+                },
+            ]).with_alignment(TextAlignment::Center),
+            ..default() 
+        });
+    });
+
+    if is_theplayer {
+        ec.insert(CharacterControllerBundle::new(
+            Collider::capsule(1.3, 0.3),
+            CharacterController {
+                is_flying: true,
+                enable_input: false,
+                ..default()
+            },
+        ));
     }
 }

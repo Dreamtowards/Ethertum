@@ -94,6 +94,7 @@ pub enum SPacket {
     },
     LoginSuccess {
         // uuid, username
+        player_entity: EntityId,
     },
 
     // Play

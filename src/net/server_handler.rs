@@ -87,14 +87,13 @@ pub fn server_sys(
                     // 模拟登录验证
                     std::thread::sleep(Duration::from_millis(800));
 
+                    let entity_id = EntityId::from_server(cmds.spawn(TransformBundle::default()).id());
+
                     // Login Success
-                    server.send_packet(client_id, &SPacket::LoginSuccess {});
+                    server.send_packet(client_id, &SPacket::LoginSuccess { player_entity: entity_id });
 
                     server.broadcast_packet_chat(format!("Player {} joined. ({}/N)", &username, serverinfo.online_players.len()+1));
                     
-
-                    let entity_id = cmds.spawn(TransformBundle::default()).id();
-                    let entity_id = EntityId::from_server(entity_id);
 
                     server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
 
