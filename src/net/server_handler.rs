@@ -5,7 +5,7 @@ use std::{str::FromStr, time::Duration};
 use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent}};
 
-use crate::{game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::ServerChunkSystem};
+use crate::{game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::{ChunkSystem, ServerChunkSystem}};
 
 
 
@@ -142,6 +142,15 @@ pub fn server_sys(
                             let playerlist = serverinfo.online_players.iter()
                                 .map(|e| (e.1.username.clone(), server.network_info(*e.0).unwrap().rtt as u32)).collect();
                             server.send_packet(client_id, &SPacket::PlayerList { playerlist })
+                        }
+                        CPacket::ChunkModify { chunkpos, voxel } => {
+
+                            // todo: NonLock
+                            let mut chunk = chunk_sys.get_chunk(chunkpos).unwrap().write().unwrap();
+
+                            CellData::to_chunk(&voxel, &mut chunk);
+
+                            server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
                         }
                         _ => {
                             warn!("Unknown Packet {:?}", packet);

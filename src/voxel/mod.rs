@@ -212,21 +212,3 @@ pub trait ChunkSystem {
 //     for chunkptr in goingtospawn {
 //         chunk_sys.spawn_chunk(chunkptr);
 //     }
-
-//     // Chunks Detect Unload
-//     for (entity, chunk_comp) in query_chunks.iter() {
-//         let chunkpos = chunk_comp.chunkpos;
-
-//         if (vp.x - chunkpos.x).abs() > vd.x * Chunk::SIZE
-//             || (vp.z - chunkpos.z).abs() > vd.x * Chunk::SIZE
-//             || (vp.y - chunkpos.y).abs() > vd.y * Chunk::SIZE
-//         {
-//             // info!("Unload Chunk: {:?}", chunkpos);
-//             commands.entity(entity).despawn_recursive();
-//             chunk_sys.despawn_chunk(chunkpos);
-//         } else if chunk_sys.dbg_remesh_all_chunks {
-//             chunk_sys.mark_chunk_remesh(chunkpos);
-//         }
-//     }
-//     chunk_sys.dbg_remesh_all_chunks = false;
-// }

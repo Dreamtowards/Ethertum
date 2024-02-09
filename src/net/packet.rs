@@ -12,22 +12,28 @@ use super::EntityId;
 // Compressed Cell data.
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CellData {
-    local_idx: u16,  // 12 bits
-    density: f32, // val = (v / 255.0) - 0.5
-    mtl_id: u16,
+    pub local_idx: u16,  // 12 bits
+    pub density: f32, // val = (v / 255.0) - 0.5
+    pub mtl_id: u16,
 }
 
 impl CellData {
+
+    pub fn from_cell(local_idx: u16, c: &Cell) -> Self {
+        Self {
+            local_idx,
+            mtl_id: c.mtl,
+            density: c.value
+        }
+    }
+
     pub fn from_chunk(chunk: &Chunk) -> Vec<CellData> {
         let mut data = Vec::new();
         for i in 0..Chunk::LOCAL_IDX_CAP {
             let c = chunk.get_cell(Chunk::local_idx_pos(i as i32));
             if !c.is_empty() {
-                data.push(CellData {
-                    local_idx: i as u16,
-                    mtl_id: c.mtl,
-                    density: c.value,  //((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
-                });
+                // dens: ((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
+                data.push(CellData::from_cell(i as u16, c));
             }
         }
         data
@@ -62,10 +68,10 @@ pub enum CPacket {
 
     PlayerList,  // RequestPlayerList
     
-    // ChunkModify {
-    //     chunkpos: IVec3,
-    //     voxel: Vec<CellData>,
-    // }
+    ChunkModify {
+        chunkpos: IVec3,
+        voxel: Vec<CellData>,
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -120,9 +126,9 @@ pub enum SPacket {
     ChunkDel {
         chunkpos: IVec3,
     },
-    // ChunkModify {
-    //     chunkpos: IVec3,
-    //     voxel: Vec<CellData>,
-    // }
+    ChunkModify {
+        chunkpos: IVec3,
+        voxel: Vec<CellData>,
+    }
 
 }

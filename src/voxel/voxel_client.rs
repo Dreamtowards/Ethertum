@@ -1,14 +1,13 @@
 
 
 use bevy::{asset::ReflectAsset, prelude::*, render::render_resource::{AsBindGroup, PrimitiveTopology}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
+use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera}, 
-    game::{condition, ClientInfo, DespawnOnWorldUnload}, 
-    ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerCamera}, game::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
 };
-use super::{meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx};
+use super::{material::mtl, meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx};
 
 
 
@@ -217,6 +216,8 @@ fn raycast(
     mut chunk_sys: ResMut<ClientChunkSystem>,
 
     curr_ui: Res<State<CurrentUI>>,
+
+    mut net_client: ResMut<RenetClient>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -241,32 +242,50 @@ fn raycast(
 
     // ############ Break & Place ############
 
-    // if *curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
-    //     return;
-    // }
-    // let do_break = mouse_btn.just_pressed(MouseButton::Left);
-    // let do_place = mouse_btn.just_pressed(MouseButton::Right);
-    // if hit_result.is_hit && (do_break || do_place) {
-    //     let n = 5;
+    if *curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
+        return;
+    }
 
-    //     iter::iter_aabb(n, n, |lp| {
-    //         let p = hit_result.position.as_ivec3() + *lp;
+    let do_break = mouse_btn.just_pressed(MouseButton::Left);
+    let do_place = mouse_btn.just_pressed(MouseButton::Right);
+    if hit_result.is_hit && (do_break || do_place) {
+        let n = 5;
 
-    //         chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
+        // These code is Horrible
 
-    //         let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
+        let mut map = HashMap::new();
+        iter::iter_aabb(n, n, |lp| {
+            let p = hit_result.position.as_ivec3() + *lp;
+            let chunkpos = Chunk::as_chunkpos(p);
 
-    //         let c = chunk.get_cell_mut(Chunk::as_localpos(p));
+            // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
 
-    //         let dif = (n as f32 - lp.as_vec3().length()).max(0.);
+            let pack = map.entry(chunkpos).or_insert_with(|| Vec::new() );
 
-    //         c.value += if do_break { -dif } else { dif };
+            let chunk = chunk_sys.get_chunk(chunkpos).unwrap().read().unwrap();
 
-    //         if do_place && c.mtl == 0 {
-    //             c.mtl = mtl::STONE;
-    //         }
-    //     });
-    // }
+            let mut c = *chunk.get_cell(Chunk::as_localpos(p));
+
+            let f = (n as f32 - lp.as_vec3().length()).max(0.);
+
+            c.value += if do_break { -f } else { f };
+
+            if do_place && c.mtl == 0 {
+                c.mtl = mtl::STONE;
+            }
+            
+            pack.push(CellData {
+                local_idx: Chunk::local_idx(Chunk::as_localpos(p)) as u16,
+                density: c.value,
+                mtl_id: c.mtl
+            });
+        });
+
+        info!("Modify terrain sent {}", map.len());
+        for e in map {
+            net_client.send_packet(&CPacket::ChunkModify { chunkpos: e.0, voxel: e.1 });
+        }
+    }
 }
 
 

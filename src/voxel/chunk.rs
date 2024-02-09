@@ -175,7 +175,7 @@ impl Chunk {
     pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
 
     // the index range is [0, 16^3 or 4096)
-    fn local_idx(localpos: IVec3) -> usize {
+    pub fn local_idx(localpos: IVec3) -> usize {
         assert!(Chunk::is_localpos(localpos), "localpos = {}", localpos);
         (localpos.x << 8 | localpos.y << 4 | localpos.z) as usize
     }

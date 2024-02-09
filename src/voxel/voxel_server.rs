@@ -99,6 +99,7 @@ fn chunks_load(
     }
 
 
+    // Unload Chunks
     // 野蛮区块卸载检测
     let chunkpos_all =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
     for chunkpos in chunkpos_all {
@@ -126,6 +127,7 @@ fn chunks_load(
     }
 
 
+    // Send Chunk to Players
     // 野蛮的方法 把所有区块发给所有玩家
     for player in server.online_players.values_mut() {
 

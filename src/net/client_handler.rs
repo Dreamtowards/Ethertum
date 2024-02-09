@@ -180,6 +180,17 @@ pub fn client_sys(
                 
                 info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
+            SPacket::ChunkModify { chunkpos, voxel } => {
+                info!("ChunkModify: {}", chunkpos);
+                
+                chunk_sys.mark_chunk_remesh(*chunkpos);
+                
+                // todo: NonLock
+                let mut chunk = chunk_sys.get_chunk(*chunkpos).unwrap().write().unwrap();
+
+                CellData::to_chunk(voxel, &mut chunk);
+
+            }
         }
     }
 }
