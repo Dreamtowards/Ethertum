@@ -14,7 +14,7 @@ use bevy::{
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
-use super::{chunk::*, ChunkPtr};
+use super::{chunk::*, material::mtl_tex, ChunkPtr};
 
 // Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
 
@@ -219,28 +219,43 @@ impl VertexBuffer {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub struct MeshGen {}
 
 impl MeshGen {
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
         Self::sn_contouring(vbuf, chunk);
-        return;
 
-        // for ly in 0..Chunk::SIZE {
-        //     for lz in 0..Chunk::SIZE {
-        //         for lx in 0..Chunk::SIZE {
-        //             let lp = IVec3::new(lx, ly, lz);
+        for ly in 0..Chunk::SIZE {
+            for lz in 0..Chunk::SIZE {
+                for lx in 0..Chunk::SIZE {
+                    let lp = IVec3::new(lx, ly, lz);
 
-        //             let cell = chunk.get_cell(lp);
+                    let c = chunk.get_cell(lp);
 
-        //             if !cell.is_empty() {
+                    if c.tex_id != 0 && c.shape_id == 1 {
 
-        //                 put_cube(vbuf, lp, chunk);
+                        put_cube(vbuf, lp, chunk, c.tex_id);
 
-        //             }
-        //         }
-        //     }
-        // }
+                    }
+                }
+            }
+        }
 
         // vbuf.make_indexed();
     }
@@ -400,16 +415,16 @@ impl MeshGen {
                             let norm = -Self::sn_grad(p, chunk);
 
                             let mut nearest_val = f32::INFINITY;
-                            let mut nearest_mtl = c.mtl;
+                            let mut nearest_tex = c.tex_id;
                             for vert in Self::VERT {
                                 let c = chunk.get_cell_rel(p + vert);
                                 if !c.is_empty() && c.value < nearest_val {
                                     nearest_val = c.value;
-                                    nearest_mtl = c.mtl;
+                                    nearest_tex = c.tex_id;
                                 }
                             }
 
-                            vbuf.push_vertex(p.as_vec3() + fp, vec2(nearest_mtl as f32, 0.), norm);
+                            vbuf.push_vertex(p.as_vec3() + fp, vec2(nearest_tex as f32, -1.), norm);
                         }
                     }
                 }
@@ -449,20 +464,21 @@ static CUBE_NORM: [f32; 6 * 6 * 3] = [
 // static CUBE_IDX: [u32;6*6] = [
 // ];
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
     for face_i in 0..6 {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]); // 18: 3 scalar * 3 vertex * 2 triangle
 
-        if let Some(neib) = chunk.get_cell_neighbor(lp + face_dir.as_ivec3()) {
-            if !neib.is_empty() {
-                continue;
-            }
+        // skip the face if there's Obaque
+        if chunk.get_cell_rel(lp + face_dir.as_ivec3()).is_obaque_cube() {
+            continue;
         }
 
         for vert_i in 0..6 {
+            // let uv = Vec2::from_slice(&CUBE_UV[face_i * 12 + vert_i * 2..]);
+
             vbuf.push_vertex(
                 Vec3::from_slice(&CUBE_POS[face_i * 18 + vert_i * 3..]) + lp.as_vec3(),
-                Vec2::from_slice(&CUBE_UV[face_i * 12 + vert_i * 2..]),
+                Vec2::new(tex_id as f32, -1.),
                 Vec3::from_slice(&CUBE_NORM[face_i * 18 + vert_i * 3..]),
             );
         }

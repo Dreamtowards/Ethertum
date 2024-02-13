@@ -35,7 +35,7 @@ impl WorldGen {
                         val = 0.1;
                         mtl = mtl::WATER;
                     }
-                    chunk.set_cell(lp, &Cell::new(val, mtl));
+                    chunk.set_cell(lp, &Cell::new(val, mtl, 0));
                 }
             }
         }
@@ -62,8 +62,8 @@ impl WorldGen {
                         air_dist += 1;
                     }
 
-                    if c.mtl == mtl::STONE {
-                        let mut replace = c.mtl;
+                    if c.tex_id == mtl::STONE {
+                        let mut replace = c.tex_id;
                         if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
                             replace = mtl::SAND;
                         } else if air_dist <= 1 {
@@ -71,7 +71,7 @@ impl WorldGen {
                         } else if air_dist < 3 {
                             replace = mtl::DIRT;
                         }
-                        c.mtl = replace;
+                        c.tex_id = replace;
                     }
 
                     chunk.set_cell(lp, &c);

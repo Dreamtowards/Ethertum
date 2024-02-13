@@ -4,6 +4,25 @@ use bevy::{math::ivec3, prelude::*};
 
 // Voxel System
 
+enum CellMtl {
+    // Smooth / Metaball / Isosurface
+    Isosurface {
+        val: f32,
+        tex_id: u16,
+    },
+
+    // Shape / Silhouette
+    Shape {
+        shape_id: u16,
+        tex_id: u16,
+    }, 
+
+    Mesh {
+        mesh_id: u16,
+        tex_id: u16,
+    },
+}
+
 #[derive(Clone, Copy)]
 pub struct Cell {
     /// SDF value, used for Isosurface Extraction.
@@ -11,7 +30,8 @@ pub struct Cell {
     pub value: f32,
 
     /// Material Id
-    pub mtl: u16,
+    pub shape_id: u16,
+    pub tex_id: u16,
 
     /// Cached FeaturePoint
     pub cached_fp: Vec3,
@@ -22,7 +42,8 @@ impl Default for Cell {
     fn default() -> Self {
         Cell {
             value: 0.,
-            mtl: 0,
+            shape_id: 0,
+            tex_id: 0,
             cached_fp: Vec3::INFINITY,
             cached_norm: Vec3::INFINITY,
         }
@@ -30,16 +51,16 @@ impl Default for Cell {
 }
 
 impl Cell {
-    pub fn new(value: f32, mtl: u16) -> Self {
-        Self { value, mtl, ..default() }
+    pub fn new(value: f32, tex_id: u16, shape_id: u16) -> Self {
+        Self { value, tex_id, shape_id, ..default() }
     }
 
     pub fn is_empty(&self) -> bool {
         self.value <= 0.
     }
 
-    pub fn is_solid(&self) -> bool {
-        self.value > 0.
+    pub fn is_obaque_cube(&self) -> bool {
+        self.shape_id == 1 && self.tex_id != 0
     }
 }
 
@@ -117,7 +138,7 @@ impl Chunk {
     }
 
     pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
-        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(f32::INFINITY, 0))
+        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(f32::INFINITY, 0, 0))
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {

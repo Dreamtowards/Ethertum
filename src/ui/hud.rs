@@ -196,11 +196,12 @@ pub fn hud_chat(
 
 pub fn hud_hotbar(
     mut ctx: EguiContexts,
+    cli: Res<ClientInfo>,
 ) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_BOTTOM, [0., -16.])
+        .anchor(Align2::CENTER_BOTTOM, [0., -cli.hud_padding])
         // .frame(Frame::default().fill(Color32::from_black_alpha(180)))
         .show(ctx.ctx_mut(), |ui| {
             let s = 50.;
@@ -219,7 +220,7 @@ pub fn hud_playerlist(
     mut ctx: EguiContexts,
     input_key: Res<Input<KeyCode>>,
     
-    clientinfo: Res<ClientInfo>,
+    cli: Res<ClientInfo>,
     mut net_client: ResMut<RenetClient>,
 ) {
     if !input_key.pressed(KeyCode::Tab) {
@@ -233,10 +234,10 @@ pub fn hud_playerlist(
     egui::Window::new("PlayerList")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_TOP, [0., 28.])
+        .anchor(Align2::CENTER_TOP, [0., cli.hud_padding])
         .show(ctx.ctx_mut(), |ui| {
 
-            for player in &clientinfo.playerlist {
+            for player in &cli.playerlist {
                 
                 ui.horizontal(|ui| {
                     ui.set_width(280.);

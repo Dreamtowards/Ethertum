@@ -128,9 +128,15 @@ fn fragment(
     let mtls = round(in.mtls / in.bary);
     let bary = in.bary;
 
+    // uv.v == -1: Triplanar Isosurface. otherwise: Custom UV
+    // if mtls.x != -1.0 {
+
+    // }
+
     var blend_triplanar = pow(abs(worldnorm), vec3<f32>(ubo.triplanar_blend_pow));  // pow: [4-12], 12=sharper
     // blend_triplanar = max(blend_triplanar - vec3<f32>(triplanar_blend_sharpness), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
+
 
 #ifdef BLEND 
 

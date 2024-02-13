@@ -213,6 +213,15 @@ fn spawn_player(
             ]).with_alignment(TextAlignment::Center),
             ..default() 
         });
+        parent.spawn(SpotLightBundle {
+            spot_light: SpotLight { 
+                color: Color::YELLOW,
+                intensity: 3200., 
+                ..default()
+            },
+            transform: Transform::from_xyz(0., 0.3, 0.3),
+            ..default()
+        });
     });
 
     if is_theplayer {

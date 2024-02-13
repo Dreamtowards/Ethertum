@@ -482,6 +482,12 @@ pub struct ClientInfo {
 
     // as same as SPacket::PlayerList. username, ping.
     pub playerlist: Vec<(String, u32)>,
+
+    pub hud_padding: f32,
+
+    pub brush_size: f32,
+    pub brush_strength: f32,
+    pub brush_shape: u16,
 }
 
 impl Default for ClientInfo {
@@ -495,6 +501,12 @@ impl Default for ClientInfo {
             dbg_text: false,
             dbg_menubar: true,
             dbg_gizmo_all_loaded_chunks: false,
+
+            hud_padding: 32.,
+
+            brush_size: 4.,
+            brush_strength: 0.8,
+            brush_shape: 0,
         }
     }
 }

@@ -35,7 +35,8 @@ pub fn ui_settings(
     mut settings_panel: Local<SettingsPanel>, 
     mut next_ui: ResMut<NextState<CurrentUI>>, 
 
-    mut clientinfo: ResMut<ClientInfo>,
+    mut cli: ResMut<ClientInfo>,
+
     mut query_cam: Query<&CharacterController>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
 ) {
@@ -85,15 +86,27 @@ pub fn ui_settings(
                         });
                     }
 
-                    ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut clientinfo.username));
+                    ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cli.username));
 
 
                     ui.label("General:");
 
-                    ui_setting_line(ui, "FOV", egui::Slider::new(&mut clientinfo.fov, 10.0..=170.0));
+                    ui_setting_line(ui, "FOV", egui::Slider::new(&mut cli.fov, 10.0..=170.0));
                    
+                    ui.label("Voxel:");
+
                     ui_setting_line(ui, "Chunks Meshing Max Concurrency", egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50));
+
+                    ui_setting_line(ui, "Brush Size", egui::Slider::new(&mut cli.brush_size, 0.0..=20.0));
             
+                    ui_setting_line(ui, "Brush Indensity", egui::Slider::new(&mut cli.brush_strength, 0.0..=2.0));
+                    
+                    ui_setting_line(ui, "Brush Shape", egui::Slider::new(&mut cli.brush_shape, 0..=5));
+            
+                    ui.label("UI:");
+
+                    ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cli.hud_padding, 0.0..=48.0));
+
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));
 

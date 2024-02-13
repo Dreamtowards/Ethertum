@@ -14,7 +14,8 @@ use super::EntityId;
 pub struct CellData {
     pub local_idx: u16,  // 12 bits
     pub density: f32, // val = (v / 255.0) - 0.5
-    pub mtl_id: u16,
+    pub tex_id: u16,
+    pub shape_id: u16,
 }
 
 impl CellData {
@@ -22,7 +23,8 @@ impl CellData {
     pub fn from_cell(local_idx: u16, c: &Cell) -> Self {
         Self {
             local_idx,
-            mtl_id: c.mtl,
+            tex_id: c.tex_id,
+            shape_id: c.shape_id,
             density: c.value
         }
     }
@@ -31,7 +33,7 @@ impl CellData {
         let mut data = Vec::new();
         for i in 0..Chunk::LOCAL_IDX_CAP {
             let c = chunk.get_cell(Chunk::local_idx_pos(i as i32));
-            if !c.is_empty() {
+            if c.value > -0.5 {
                 // dens: ((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
                 data.push(CellData::from_cell(i as u16, c));
             }
@@ -42,7 +44,7 @@ impl CellData {
         for c in data {
             chunk.set_cell(
                 Chunk::local_idx_pos(c.local_idx as i32), 
-                &Cell::new(c.density, c.mtl_id)  //c.density as f32 / 255.0 - 0.5
+                &Cell::new(c.density, c.tex_id, c.shape_id)  //c.density as f32 / 255.0 - 0.5
             );
         }
     }

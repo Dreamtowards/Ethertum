@@ -134,7 +134,7 @@ fn chunks_remesh_enqueue(
                 // let dbg_time = Instant::now() - dbg_time;
 
                 // vbuf.compute_flat_normals();
-                vbuf.compute_smooth_normals();
+                // vbuf.compute_smooth_normals();
 
                 // let nv = vbuf.vertices.len();
                 // vbuf.compute_indexed();  // save 70%+ vertex data space!
@@ -218,6 +218,8 @@ fn raycast(
     curr_ui: Res<State<CurrentUI>>,
 
     mut net_client: ResMut<RenetClient>,
+
+    cli: Res<ClientInfo>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -249,13 +251,15 @@ fn raycast(
     let do_break = mouse_btn.just_pressed(MouseButton::Left);
     let do_place = mouse_btn.just_pressed(MouseButton::Right);
     if hit_result.is_hit && (do_break || do_place) {
-        let n = 5;
+        let n = cli.brush_size as i32;
 
         // These code is Horrible
 
         let mut map = HashMap::new();
         iter::iter_aabb(n, n, |lp| {
-            let p = hit_result.position.as_ivec3() + *lp;
+            // +0.01*norm: for placing cube like MC.
+            
+            let p = (hit_result.position + if do_place {1.} else {-1.} * 0.01 * hit_result.normal).floor().as_ivec3() + *lp;
             let chunkpos = Chunk::as_chunkpos(p);
 
             // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
@@ -266,19 +270,25 @@ fn raycast(
 
             let mut c = *chunk.get_cell(Chunk::as_localpos(p));
 
-            let f = (n as f32 - lp.as_vec3().length()).max(0.);
+            let f = (n as f32 - lp.as_vec3().length()).max(0.) * cli.brush_strength;
 
             c.value += if do_break { -f } else { f };
 
-            if do_place && c.mtl == 0 {
-                c.mtl = mtl::STONE;
+            if do_place {// && c.tex_id == 0 {
+                c.tex_id = mtl::STONE;
+                c.shape_id = cli.brush_shape;
             }
             
-            pack.push(CellData {
-                local_idx: Chunk::local_idx(Chunk::as_localpos(p)) as u16,
-                density: c.value,
-                mtl_id: c.mtl
-            });
+            // placing Block
+            if cli.brush_shape == 1 {  
+                c.value = -0.3;  // no Isosurface
+                
+                if !do_place {
+                    c.tex_id = 0;
+                }
+            }
+
+            pack.push(CellData::from_cell(Chunk::local_idx(Chunk::as_localpos(p)) as u16, &c));
         });
 
         info!("Modify terrain sent {}", map.len());
@@ -515,3 +525,6 @@ impl Material for TerrainMaterial {
         AlphaMode::Opaque
     }
 }
+
+
+

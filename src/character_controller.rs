@@ -326,12 +326,15 @@ fn sync_camera(
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
 
+    input_key: Res<Input<KeyCode>>,
     cli: Res<ClientInfo>,
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
-            // BUG: 3rd person camera 不同步
-            cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
+            // // stop rotate Tracker when hold alt. thus can free view the Tracker.
+            // if !input_key.pressed(KeyCode::AltLeft) {
+                cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
+            // }
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
