@@ -615,6 +615,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_common_assets"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "966fc90b0126ee62bb7b93e4273da38a4fce7d1c48a1f6e94a8f558798be2543"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "bevy_core"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2265,6 +2278,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_atmosphere",
+ "bevy_common_assets",
  "bevy_editor_pls",
  "bevy_egui",
  "bevy_mod_billboard",
@@ -2285,6 +2299,7 @@ dependencies = [
  "noise",
  "once_cell",
  "serde",
+ "serde_json",
  "sysinfo",
  "thread_local",
 ]

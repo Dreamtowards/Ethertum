@@ -14,8 +14,8 @@ use egui_extras::{Size, StripBuilder};
 use crate::{
     game::{condition, ClientInfo},
 };
-use self::hud::ChatHistory;
-
+use self::{hud::ChatHistory, serverlist::{setup_serverlist, ServerList}};
+use bevy_common_assets::json::JsonAssetPlugin;
 
 mod serverlist;
 mod main_menu;
@@ -79,6 +79,9 @@ impl Plugin for UiPlugin {
             .before(debug::ui_menu_panel)
         );
 
+        // Settings file
+        app.add_plugins(JsonAssetPlugin::<ServerList>::new(&["serverlist.json"]));
+        app.add_systems(Startup, setup_serverlist);
 
 
     }
