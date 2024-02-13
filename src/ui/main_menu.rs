@@ -47,7 +47,6 @@ pub fn ui_main_menu(
                 // 连接服务器 这两个操作会不会有点松散
                 next_ui.set(CurrentUI::ConnectingServer);
                 cli.connect_server(dbg_server_addr.clone());
-                commands.insert_resource(WorldInfo::default());
             }
             if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
                 // 临时的单人版方法 直接进入世界而不管网络

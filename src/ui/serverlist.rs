@@ -5,32 +5,12 @@ use bevy::ecs::schedule::NextState;
 use bevy_egui::{egui::{self, Align2, Color32, Layout, Ui, Widget}, EguiContexts};
 use bevy_renet::renet::RenetClient;
 use bevy::reflect::TypePath;
-use crate::game::ClientInfo;
+use crate::game::{ClientInfo, EthertiaClient, ServerListItem};
 
 use super::{ui_lr_panel, CurrentUI};
 
 use super::new_egui_window;
 
-// 后面可能单独拿出来作为一个plugin, 负责文件读取
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
-struct ServerInfo {
-    name: String,
-    address: String
-}
-#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
-pub struct ServerList{
-    list: Vec<ServerInfo>,
-    input_name: String,
-    input_addr: String
-}
-
-#[derive(Resource)]
-pub struct ServerListHandle(Handle<ServerList>);
-
-pub fn setup_serverlist(mut commands: Commands, asset_server: Res<AssetServer>) { 
-    // load serverlist json
-    commands.insert_resource(ServerListHandle(asset_server.load("client.serverlist.json")));
-}
 
 
 pub fn ui_connecting_server(
@@ -79,10 +59,11 @@ pub fn ui_disconnected_reason(
         let h = ui.available_height();
 
         ui.vertical_centered(|ui| {
-            ui.add_space(h * 0.3);
+            ui.add_space(h * 0.2);
 
             ui.label("Disconnected:");
             ui.colored_label(Color32::WHITE, clientinfo.disconnected_reason.as_str());
+
             if let Some(reason) = net_client.disconnect_reason() {
                 ui.label(reason.to_string());
             }
@@ -94,20 +75,56 @@ pub fn ui_disconnected_reason(
                 net_client.disconnect();
                 next_ui.set(CurrentUI::MainMenu);
             }
-
         });
 
     });
 }
 
-fn ui_input_server_line(ui: &mut Ui, widget: impl Widget) {
-    ui.horizontal(|ui| {
-        let end_width = 100.;
-        let end_margin = 1.;
+// pub fn ui_panel_info(
+// ) {
+// }
 
-        ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
-            ui.add_space(end_margin);
-            ui.add_sized([end_width, 10.], widget);
+// fn ui_input_server_line(ui: &mut Ui, widget: impl Widget) {
+//     ui.horizontal(|ui| {
+//         let end_width = 100.;
+//         let end_margin = 1.;
+
+//         ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+//             ui.add_space(end_margin);
+//             ui.add_sized([end_width, 10.], widget);
+//         });
+//     });
+// }
+
+pub fn ui_serverlist_add(
+    mut ctx: EguiContexts, 
+    mut next_ui: ResMut<NextState<CurrentUI>>,
+    mut cli: ResMut<ClientInfo>,
+
+    mut _name: Local<String>,
+    mut _addr: Local<String>,
+) {
+    new_egui_window("ServerList ItemEdit").show(ctx.ctx_mut(), |ui| {
+
+        ui.vertical_centered(|ui| {
+
+            ui.text_edit_singleline(&mut *_name);
+            
+            ui.text_edit_singleline(&mut *_addr);
+
+            ui.set_enabled(!_name.is_empty() && !_addr.is_empty());
+            let save = ui.button("Save").clicked();
+            if save {
+                cli.cfg.serverlist.push(ServerListItem { name: _name.clone(), addr: _addr.clone() });
+            }
+            ui.set_enabled(true);
+
+            if save || ui.button("Cancel").clicked() {
+                
+                _name.clear();
+                _addr.clear();
+                next_ui.set(CurrentUI::WtfServerList);
+            }
         });
     });
 }
@@ -115,65 +132,70 @@ fn ui_input_server_line(ui: &mut Ui, widget: impl Widget) {
 pub fn ui_serverlist(
     mut ctx: EguiContexts, 
     mut next_ui: ResMut<NextState<CurrentUI>>,
-    server_list_handle: Res<ServerListHandle>,
-    mut server_list: ResMut<Assets<ServerList>>,
+    mut cli: EthertiaClient,
 ) { 
-    if let Some(server_list) = server_list.get_mut(server_list_handle.0.id()) {
-        let servers = Arc::new(Mutex::new(server_list));
-        new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
-            ui_lr_panel(ui, false, |ui| {
-                let mut add_server = servers.lock().unwrap();
-                ui_input_server_line(ui, egui::TextEdit::singleline(&mut add_server.input_name).hint_text("name"));
-                ui_input_server_line(ui, egui::TextEdit::singleline(&mut add_server.input_addr).hint_text("address"));
-                let add_name = add_server.input_name.clone();
-                let add_address = add_server.input_addr.clone();
-                if ui.selectable_label(false, "Add Server").clicked() {
-                    add_server.list.push(ServerInfo {
-                        name: add_name, 
-                        address: add_address
-                   });
-                   let _ = std::fs::write("./assets/client.serverlist.json", serde_json::to_string(&add_server.clone()).unwrap());
-                }
-                if ui.selectable_label(false, "Direct Connect").clicked() {
-                    
-                }
-                if ui.selectable_label(false, "Refresh").clicked() {
-                    
-                }
-            }, &mut next_ui, |ui| {
-                let mut del_server = servers.lock().unwrap();
-                let mut del_i = None;
-                for i in 0..del_server.list.len() {
-                    let server_info = &mut del_server.list[i];
-                    ui.group(|ui| {
-                        ui.horizontal(|ui| {
-                            ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.name).hint_text("name"));
-                                ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.address).hint_text("address"));
-                            // ui.colored_label(Color32::WHITE, server_info.name.clone()).on_hover_text(server_info.address.clone());
-                            ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                ui.label("21ms 12/64");
-                            });
-                        });
-                        ui.horizontal(|ui| {
-                        ui.label("A Dedicated Server");
-                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                            if ui.button("Del").clicked() {
-                                del_i = Some(i);
-                            }
-                            if ui.button("Join").clicked() {
+    new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
+        let mut next_ui_1 = CurrentUI::None;  // mut at 2 closure.
+        let mut join_addr = None;
 
-                            }
-                            });
+        ui_lr_panel(ui, false, |ui| {
+            if ui.selectable_label(false, "Add Server").clicked() {
+                next_ui_1 =  CurrentUI::ServerListItemAdd;
+            }
+            if ui.selectable_label(false, "Direct Connect").clicked() {
+                
+            }
+            if ui.selectable_label(false, "Refresh").clicked() {
+                
+            }
+        }, &mut next_ui, |ui| {
+
+            let serverlist = &mut cli.data().cfg.serverlist;
+            let mut del_i = None;
+            
+            for (idx, server_item) in serverlist.iter().enumerate() {
+                ui.group(|ui| {
+                    ui.horizontal(|ui| {
+                        // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.name).hint_text("name"));
+                        // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.address).hint_text("address"));
+                        ui.colored_label(Color32::WHITE, server_item.name.clone()).on_hover_text(server_item.addr.clone());
+
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            ui.label("21ms 12/64");
                         });
                     });
-                }
-                if let Some(del_i) = del_i {
-                    del_server.list.remove(del_i);
-                let _ = std::fs::write("./assets/client.serverlist.json", serde_json::to_string(&del_server.clone()).unwrap());
-                }
-            });
+                    ui.horizontal(|ui| {
+
+                        ui.label("A Dedicated Server");
+
+                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                            if ui.button("Del").clicked() {
+                                del_i = Some(idx);
+                            }
+                            if ui.button("Edit").clicked() {
+                            }
+                            if ui.button("Join").clicked() {
+                                join_addr = Some(server_item.addr.clone());
+                            }
+                        });
+                    });
+                });
+            }
+            
+            if let Some(del_i) = del_i {
+                serverlist.remove(del_i);
+            }
         });
-    }
+
+        if let Some(join_addr) = join_addr {
+            // 连接服务器 这两个操作会不会有点松散
+            next_ui_1 = CurrentUI::ConnectingServer;
+            cli.connect_server(join_addr);
+        }
+        if next_ui_1 != CurrentUI::None {
+            next_ui.set(next_ui_1);
+        }
+    });
 }
 
 

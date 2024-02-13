@@ -116,6 +116,9 @@ impl<'w,'s> EthertiaClient<'w,'s> {
     /// for Singleplayer
     // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
 
+    pub fn data(&mut self) -> &mut ClientInfo {
+        self.clientinfo.as_mut()
+    }
 
     pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
@@ -130,6 +133,9 @@ impl<'w,'s> EthertiaClient<'w,'s> {
         
         // clear Disconnect Reason prevents mis-display.
         self.clientinfo.disconnected_reason.clear();
+
+        // 提前初始化世界 以防用资源时 发现没有被初始化
+        self.cmds.insert_resource(WorldInfo::default());
 
         // let mut cmd = CommandQueue::default();
         // cmd.push(move |world: &mut World| {
@@ -152,11 +158,14 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 
 fn startup(
     mut cmds: Commands,
+    asset_server: Res<AssetServer>,
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<StandardMaterial>>,
-    // cli: Res<ClientInfo>,
+    mut cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
+
+    cli.cfg_handle = asset_server.load("client.settings.json");
 
     // Logical Player
     // crate::net::spawn_player(Entity::from_raw(1000), true, &cli.username, &mut cmds, &mut meshes, &mut materials);
@@ -460,10 +469,35 @@ impl Default for WorldInfo {
     }
 }
 
-// struct ClientSettings {
-//     fov: f32,
-//     server_list: Vec<>,
-// }
+
+// #[derive(Resource)]
+// pub struct ServerListHandle(Handle<ServerList>);
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+pub struct ServerListItem {
+    pub name: String,
+    pub addr: String,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
+pub struct ClientSettings {
+    // Name, Addr
+    pub serverlist: Vec<ServerListItem>,
+    pub fov: f32,
+    pub username: String,
+    pub hud_padding: f32,
+}
+
+impl Default for ClientSettings {
+    fn default() -> Self {
+        Self {
+            serverlist: Vec::default(),
+            fov: 75.,
+            username: "Stein".into(),
+            hud_padding: 32.,
+        }
+    }
+}
 
 #[derive(Resource)]
 pub struct ClientInfo {
@@ -483,11 +517,12 @@ pub struct ClientInfo {
     // as same as SPacket::PlayerList. username, ping.
     pub playerlist: Vec<(String, u32)>,
 
-    pub hud_padding: f32,
-
     pub brush_size: f32,
     pub brush_strength: f32,
     pub brush_shape: u16,
+
+    pub cfg_handle: Handle<ClientSettings>,
+    pub cfg: ClientSettings,
 }
 
 impl Default for ClientInfo {
@@ -502,11 +537,12 @@ impl Default for ClientInfo {
             dbg_menubar: true,
             dbg_gizmo_all_loaded_chunks: false,
 
-            hud_padding: 32.,
-
             brush_size: 4.,
             brush_strength: 0.8,
             brush_shape: 0,
+
+            cfg_handle: Handle::default(),
+            cfg: ClientSettings::default(),
         }
     }
 }

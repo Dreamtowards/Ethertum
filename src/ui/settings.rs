@@ -105,7 +105,7 @@ pub fn ui_settings(
             
                     ui.label("UI:");
 
-                    ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cli.hud_padding, 0.0..=48.0));
+                    ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cli.cfg.hud_padding, 0.0..=48.0));
 
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));

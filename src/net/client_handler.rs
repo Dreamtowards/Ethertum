@@ -145,13 +145,13 @@ pub fn client_sys(
                 info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
             SPacket::ChunkDel { chunkpos } => {
+                info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
 
                 if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
-
-                    cmds.entity(chunkptr.read().unwrap().entity).despawn_recursive();
+                    let entity = chunkptr.read().unwrap().entity;
+                    
+                    cmds.entity(entity).despawn_recursive();
                 }
-                
-                info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
             SPacket::ChunkModify { chunkpos, voxel } => {
                 info!("ChunkModify: {}", chunkpos);

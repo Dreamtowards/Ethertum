@@ -201,7 +201,7 @@ pub fn hud_hotbar(
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_BOTTOM, [0., -cli.hud_padding])
+        .anchor(Align2::CENTER_BOTTOM, [0., -cli.cfg.hud_padding])
         // .frame(Frame::default().fill(Color32::from_black_alpha(180)))
         .show(ctx.ctx_mut(), |ui| {
             let s = 50.;
@@ -234,7 +234,7 @@ pub fn hud_playerlist(
     egui::Window::new("PlayerList")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_TOP, [0., cli.hud_padding])
+        .anchor(Align2::CENTER_TOP, [0., cli.cfg.hud_padding])
         .show(ctx.ctx_mut(), |ui| {
 
             for player in &cli.playerlist {

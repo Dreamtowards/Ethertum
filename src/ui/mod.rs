@@ -14,7 +14,7 @@ use egui_extras::{Size, StripBuilder};
 use crate::{
     game::{condition, ClientInfo},
 };
-use self::{hud::ChatHistory, serverlist::{setup_serverlist, ServerList}};
+use self::{hud::ChatHistory};
 use bevy_common_assets::json::JsonAssetPlugin;
 
 mod serverlist;
@@ -71,6 +71,7 @@ impl Plugin for UiPlugin {
                 serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
 
                 serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
+                serverlist::ui_serverlist_add.run_if(in_state(CurrentUI::ServerListItemAdd)),
                 serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
                 serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
 
@@ -78,10 +79,6 @@ impl Plugin for UiPlugin {
             .chain()
             .before(debug::ui_menu_panel)
         );
-
-        // Settings file
-        app.add_plugins(JsonAssetPlugin::<ServerList>::new(&["serverlist.json"]));
-        app.add_systems(Startup, setup_serverlist);
 
 
     }
@@ -96,6 +93,7 @@ pub enum CurrentUI {
     PauseMenu,
     WtfSettings,
     WtfServerList,
+    ServerListItemAdd,
     ConnectingServer,
     DisconnectedReason,
     ChatInput,
@@ -183,9 +181,9 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 pub fn ui_lr_panel(
     ui: &mut Ui,
     separator: bool,
-    add_nav: impl FnOnce(&mut Ui),
+    mut add_nav: impl FnMut(&mut Ui),
     next_ui: &mut ResMut<NextState<CurrentUI>>,
-    add_main: impl FnOnce(&mut Ui),
+    mut add_main: impl FnMut(&mut Ui),
 ) {
     
     let mut builder = StripBuilder::new(ui)
