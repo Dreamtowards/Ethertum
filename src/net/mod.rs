@@ -1,6 +1,6 @@
 use std::{net::{SocketAddr, UdpSocket}, time::Duration};
 
-use crate::util::{current_timestamp, current_timestamp_millis};
+use crate::{game_server::ServerInfo, util::{current_timestamp, current_timestamp_millis}};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
@@ -83,7 +83,6 @@ pub struct ServerNetworkPlugin;
 
 impl Plugin for ServerNetworkPlugin {
     fn build(&self, app: &mut App) {
-        let addr = "0.0.0.0:4000".parse().unwrap();
 
         app.add_plugins(RenetServerPlugin);
         app.add_plugins(NetcodeServerPlugin);
@@ -92,13 +91,22 @@ impl Plugin for ServerNetworkPlugin {
             server_channels_config: net_channel_config(10 * 1024 * 1024),
             ..default()
         }));
-        app.insert_resource(new_netcode_server_transport(addr, 64));
-        info!("Server bind endpoint at {}", addr);
 
+        app.add_systems(Startup, bind_endpoint);
         app.add_systems(Update, server_handler::server_sys);
 
         // app.add_systems(Update, ui_server_net);
     }
+}
+
+fn bind_endpoint(
+    mut cmds: Commands,
+    serv: Res<ServerInfo>,
+) {
+    let addr = serv.cfg.addr.parse().unwrap();
+
+    cmds.insert_resource(new_netcode_server_transport(addr, 64));
+    info!("Server bind endpoint at {}", addr);
 }
 
 pub struct ClientNetworkPlugin;

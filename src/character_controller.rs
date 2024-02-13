@@ -80,6 +80,7 @@ pub struct CharacterController {
     pub jump_impulse: f32,
     pub acceleration: f32,
     pub max_slope_angle: f32,
+    pub unfly_on_ground: bool,
 
     // 3rd person camera distance.
     pub cam_distance: f32,
@@ -117,6 +118,7 @@ impl Default for CharacterController {
             acceleration: 50.,
             max_slope_angle: PI * 0.25,
             cam_distance: 0.,
+            unfly_on_ground: true,
         }
     }
 }
@@ -249,7 +251,7 @@ fn input_move(
                     LAST_FLY_JUMP = time_now;
                 }
             }
-            if ctl.is_grounded && ctl.is_flying {
+            if ctl.unfly_on_ground && ctl.is_grounded && ctl.is_flying {
                 ctl.is_flying = false;
             }
 
@@ -338,7 +340,7 @@ fn sync_camera(
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
-            fov_val.target = if ctl.is_sprinting { cli.fov + 20. } else { cli.fov };
+            fov_val.target = if ctl.is_sprinting { cli.cfg.fov + 20. } else { cli.cfg.fov };
             fov_val.update(time.delta_seconds() * 16.);
 
             if let Projection::Perspective(pp) = proj.as_mut() {

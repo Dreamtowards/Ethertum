@@ -37,7 +37,7 @@ pub fn ui_settings(
 
     mut cli: ResMut<ClientInfo>,
 
-    mut query_cam: Query<&CharacterController>,
+    mut query_cam: Query<&mut CharacterController>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
@@ -86,12 +86,16 @@ pub fn ui_settings(
                         });
                     }
 
-                    ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cli.username));
+                    ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cli.cfg.username));
 
 
                     ui.label("General:");
 
-                    ui_setting_line(ui, "FOV", egui::Slider::new(&mut cli.fov, 10.0..=170.0));
+                    ui_setting_line(ui, "FOV", egui::Slider::new(&mut cli.cfg.fov, 10.0..=170.0));
+                    
+                    if let Ok(mut ctl) = query_cam.get_single_mut() {
+                        ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, "Auto Unfly"));
+                    }
                    
                     ui.label("Voxel:");
 

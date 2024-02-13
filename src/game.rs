@@ -1,6 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{app::AppExit, ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 
 #[cfg(feature = "target_native_os")]
@@ -94,6 +94,9 @@ impl Plugin for GamePlugin {
 
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
+        app.add_systems(PreStartup, on_init);
+        app.add_systems(Last, on_exit);
+
         // Network Client
         app.add_plugins(ClientNetworkPlugin);
 
@@ -101,7 +104,28 @@ impl Plugin for GamePlugin {
     }
 }
 
+fn on_init(
+    mut cli: ResMut<ClientInfo>,
+) {
+    info!("Loading client settings from {CLIENT_SETTINGS_FILE}");
+    if let Ok(str) = std::fs::read_to_string(CLIENT_SETTINGS_FILE) {
+        if let Ok(val) = serde_json::from_str(&str) {
+            cli.cfg = val;
+        }
+    }
+}
 
+fn on_exit(
+    mut exit_events: EventReader<AppExit>,
+    cli: Res<ClientInfo>,
+) {
+    for _ in exit_events.read() {
+        info!("Terminate. AppExit Event.");
+        
+        info!("Saving client settings to {CLIENT_SETTINGS_FILE}");
+        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();   
+    }
+}
 
 #[derive(SystemParam)]
 pub struct EthertiaClient<'w,'s> {
@@ -125,7 +149,7 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
-        let username = &self.clientinfo.username;
+        let username = &self.clientinfo.cfg.username;
         net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
 
         self.cmds.insert_resource(net_client);
@@ -154,8 +178,6 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 }
 
 
-
-
 fn startup(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
@@ -165,7 +187,6 @@ fn startup(
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
-    cli.cfg_handle = asset_server.load("client.settings.json");
 
     // Logical Player
     // crate::net::spawn_player(Entity::from_raw(1000), true, &cli.username, &mut cmds, &mut meshes, &mut materials);
@@ -479,6 +500,8 @@ pub struct ServerListItem {
     pub addr: String,
 }
 
+const CLIENT_SETTINGS_FILE: &str = "./client.settings.json";
+
 #[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ClientSettings {
     // Name, Addr
@@ -492,9 +515,9 @@ impl Default for ClientSettings {
     fn default() -> Self {
         Self {
             serverlist: Vec::default(),
-            fov: 75.,
-            username: "Stein".into(),
-            hud_padding: 32.,
+            fov: 85.,
+            username: "Steven".into(),
+            hud_padding: 24.,
         }
     }
 }
@@ -503,10 +526,6 @@ impl Default for ClientSettings {
 pub struct ClientInfo {
     pub disconnected_reason: String,  // todo: Clean at Connect. prevents re-show old reason.
 
-    pub fov: f32,
-
-    pub username: String,
-    
     pub dbg_text: bool,
     pub dbg_menubar: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
@@ -521,7 +540,6 @@ pub struct ClientInfo {
     pub brush_strength: f32,
     pub brush_shape: u16,
 
-    pub cfg_handle: Handle<ClientSettings>,
     pub cfg: ClientSettings,
 }
 
@@ -529,9 +547,7 @@ impl Default for ClientInfo {
     fn default() -> Self {
         Self {
             disconnected_reason: "none".into(),
-            username: "User1".into(),
             ping: (0,0,0,0),
-            fov: 85.,
             playerlist: Vec::new(),
             dbg_text: false,
             dbg_menubar: true,
@@ -541,7 +557,6 @@ impl Default for ClientInfo {
             brush_strength: 0.8,
             brush_shape: 0,
 
-            cfg_handle: Handle::default(),
             cfg: ClientSettings::default(),
         }
     }

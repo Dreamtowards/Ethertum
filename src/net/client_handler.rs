@@ -79,7 +79,7 @@ pub fn client_sys(
                 
                 next_ui.set(CurrentUI::None);
                 
-                spawn_player(player_entity.client_entity(), true, &clientinfo.username, &mut cmds, &mut meshes, &mut materials);
+                spawn_player(player_entity.client_entity(), true, &clientinfo.cfg.username, &mut cmds, &mut meshes, &mut materials);
 
 
                 // cmds.insert_resource(WorldInfo::default());  // moved to Click Connect. 要在用之前初始化，如果现在标记 那么就来不及初始化 随后就有ChunkNew数据包 要用到资源
