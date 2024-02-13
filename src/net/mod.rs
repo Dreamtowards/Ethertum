@@ -35,7 +35,7 @@ pub fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize)
 
 pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<Vec<u8>>) -> NetcodeClientTransport {
     // let server_addr = "127.0.0.1:5000".parse().unwrap();
-    let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let current_time = current_timestamp();
     let client_id = current_time.as_millis() as u64;
     
@@ -83,7 +83,7 @@ pub struct ServerNetworkPlugin;
 
 impl Plugin for ServerNetworkPlugin {
     fn build(&self, app: &mut App) {
-        let addr = "127.0.0.1:4000".parse().unwrap();
+        let addr = "0.0.0.0:4000".parse().unwrap();
 
         app.add_plugins(RenetServerPlugin);
         app.add_plugins(NetcodeServerPlugin);

@@ -18,6 +18,8 @@ pub fn ui_main_menu(
     mut cli: EthertiaClient,
 
     mut next_ui: ResMut<NextState<CurrentUI>>,
+
+    mut dbg_server_addr: Local<String>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -34,13 +36,17 @@ pub fn ui_main_menu(
             ui.add_space(h * 0.2);
 
             let siz = [240., 24.];
+
+            if dbg_server_addr.is_empty() {
+                *dbg_server_addr = "127.0.0.1:4000".into();
+            }
             
-            // ui.text_edit_singleline(&mut clientinfo.username);
+            ui.text_edit_singleline(&mut *dbg_server_addr);
 
             if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
                 // 连接服务器 这两个操作会不会有点松散
                 next_ui.set(CurrentUI::ConnectingServer);
-                cli.connect_server("127.0.0.1:4000".into());
+                cli.connect_server(dbg_server_addr.clone());
                 commands.insert_resource(WorldInfo::default());
             }
             if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {

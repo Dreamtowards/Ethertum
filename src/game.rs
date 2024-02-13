@@ -126,7 +126,7 @@ impl<'w,'s> EthertiaClient<'w,'s> {
         net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
 
         self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap(), Some("userData123".to_string().into_bytes())));
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.trim().parse().unwrap(), Some("userData123".to_string().into_bytes())));
         
         // clear Disconnect Reason prevents mis-display.
         self.clientinfo.disconnected_reason.clear();

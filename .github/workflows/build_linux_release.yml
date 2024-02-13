@@ -49,8 +49,7 @@ jobs:
         with:
           name: linux-artifacts
           path: |
-            # ./linux-x86_64.zip
-            ./target/release/${APP_NAME}
+            ./target/release/ethertia
             ./target/release/dedicated_server
 
       # - name: Upload Artifacts
