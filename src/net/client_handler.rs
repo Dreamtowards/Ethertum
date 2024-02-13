@@ -103,6 +103,7 @@ pub fn client_sys(
                     .insert(Transform::from_translation(*position));
             }
             SPacket::EntityDel { entity_id } => {
+                info!("DeSpawn EntityDel {}", entity_id.raw());
 
                 cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
             }

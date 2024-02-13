@@ -167,8 +167,6 @@ fn chunks_remesh_enqueue(
     }
 
     while let Ok((chunkpos, mesh, collider, entity, mesh_handle)) = rx_chunks_meshing.try_recv() {
-        // chunk_sys.chunks_meshing.remove(&chunkpos);
-        // todo: .remove
 
         // Update Mesh Asset
         *meshes.get_mut(mesh_handle).unwrap() = mesh;
@@ -176,8 +174,8 @@ fn chunks_remesh_enqueue(
         // Update Phys Collider TriMesh
         if let Some(collider) = collider {
             if let Some(mut cmds) = commands.get_entity(entity) {
-                // the entity may be already unloaded ?
-                cmds.remove::<Collider>().insert(collider).insert(Visibility::Visible);
+                // note: use try_insert cuz the entity may already been unloaded when executing the cmds (?)
+                cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
             }
         }
     }
