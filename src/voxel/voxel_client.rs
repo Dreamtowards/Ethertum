@@ -279,7 +279,7 @@ fn raycast(
             
             // placing Block
             if cli.brush_shape == 1 {  
-                c.value = if do_break {-0.3} else {0.3};  // no Isosurface
+                c.value = 0.0;//if do_break {-0.3} else {0.3};  // no Isosurface
                 
                 if !do_place {
                     c.tex_id = 0;

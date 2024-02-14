@@ -36,6 +36,7 @@ pub fn ui_settings(
     mut next_ui: ResMut<NextState<CurrentUI>>, 
 
     mut cli: ResMut<ClientInfo>,
+    mut worldinfo: Option<ResMut<WorldInfo>>,
 
     mut query_cam: Query<&mut CharacterController>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
@@ -109,9 +110,18 @@ pub fn ui_settings(
                     
                     ui_setting_line(ui, "Brush Tex", egui::Slider::new(&mut cli.brush_tex, 0..=25));
             
-                    ui.label("UI:");
+                    ui.label("UI");
 
                     ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cli.cfg.hud_padding, 0.0..=48.0));
+
+                    ui.label("World");
+
+                    if let Some(worldinfo) = &mut worldinfo {
+
+                        ui_setting_line(ui, "Day Time", egui::Slider::new(&mut worldinfo.daytime, 0.0..=1.0));
+                        
+                        ui_setting_line(ui, "Day Time Length", egui::Slider::new(&mut worldinfo.daytime_length, 0.0..=60.0*24.0));
+                    }
 
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));
