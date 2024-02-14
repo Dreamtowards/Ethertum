@@ -326,6 +326,11 @@ fn handle_inputs(
         }
     }
 
+    // Temporary F4 Debug Settings
+    if key.just_pressed(KeyCode::F4) {
+        next_ui.set(CurrentUI::WtfSettings);
+    }
+
     // Toggle F3 Debug TextInfo
     if key.just_pressed(KeyCode::F3) {
         clientinfo.dbg_text = !clientinfo.dbg_text;
@@ -539,6 +544,7 @@ pub struct ClientInfo {
     pub brush_size: f32,
     pub brush_strength: f32,
     pub brush_shape: u16,
+    pub brush_tex: u16,
 
     pub cfg: ClientSettings,
 }
@@ -556,6 +562,7 @@ impl Default for ClientInfo {
             brush_size: 4.,
             brush_strength: 0.8,
             brush_shape: 0,
+            brush_tex: 21,
 
             cfg: ClientSettings::default(),
         }

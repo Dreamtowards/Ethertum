@@ -133,14 +133,21 @@ pub fn ui_serverlist(
     mut ctx: EguiContexts, 
     mut next_ui: ResMut<NextState<CurrentUI>>,
     mut cli: EthertiaClient,
+    mut edit_i: Local<Option<usize>>,
 ) { 
     new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
-        let mut next_ui_1 = CurrentUI::None;  // mut at 2 closure.
+        let serverlist = &mut cli.data().cfg.serverlist;
+
+        let mut do_new_server = false;
+
         let mut join_addr = None;
+        let mut del_i = None;
+        
 
         ui_lr_panel(ui, false, |ui| {
             if ui.selectable_label(false, "Add Server").clicked() {
-                next_ui_1 =  CurrentUI::ServerListItemAdd;
+                // next_ui_1 =  CurrentUI::ServerListItemAdd;
+                do_new_server = true;
             }
             if ui.selectable_label(false, "Direct Connect").clicked() {
                 
@@ -149,52 +156,73 @@ pub fn ui_serverlist(
                 
             }
         }, &mut next_ui, |ui| {
-
-            let serverlist = &mut cli.data().cfg.serverlist;
-            let mut del_i = None;
             
-            for (idx, server_item) in serverlist.iter().enumerate() {
+            for (idx, server_item) in serverlist.iter_mut().enumerate() {
+                let editing = edit_i.is_some_and(|i| i == idx);
+                
                 ui.group(|ui| {
                     ui.horizontal(|ui| {
                         // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.name).hint_text("name"));
                         // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.address).hint_text("address"));
-                        ui.colored_label(Color32::WHITE, server_item.name.clone()).on_hover_text(server_item.addr.clone());
-
-                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                            ui.label("21ms 12/64");
-                        });
+                        if editing {
+                            ui.text_edit_singleline(&mut server_item.name);
+                        } else {
+                            ui.colored_label(Color32::WHITE, server_item.name.clone()).on_hover_text(server_item.addr.clone());
+                            
+                            ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                                ui.label("21ms 12/64");
+                            });
+                        }
                     });
                     ui.horizontal(|ui| {
-
-                        ui.label("A Dedicated Server");
+                        if editing {
+                            ui.text_edit_singleline(&mut server_item.addr);
+                        } else {
+                            ui.label("A Dedicated Server");
+                        }
 
                         ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                            if ui.button("Del").clicked() {
-                                del_i = Some(idx);
-                            }
-                            if ui.button("Edit").clicked() {
-                            }
-                            if ui.button("Join").clicked() {
-                                join_addr = Some(server_item.addr.clone());
+                            if editing {
+                                if ui.button("Done").clicked() {
+                                    *edit_i = None;
+                                }
+                            } else {
+                                if ui.button("🗑").on_hover_text("Delete").clicked() {
+                                    del_i = Some(idx);
+                                }
+                                if ui.button("🔧").on_hover_text("Edit").clicked() {
+                                    *edit_i = Some(idx);
+                                }
+                                if ui.button("⟲").on_hover_text("Refresh Status").clicked() {
+                                    
+                                }
+                                if ui.button("Join").clicked() {
+                                    join_addr = Some(server_item.addr.clone());
+                                }
                             }
                         });
                     });
                 });
             }
             
-            if let Some(del_i) = del_i {
-                serverlist.remove(del_i);
-            }
         });
+
+        if do_new_server {
+            
+            serverlist.push(ServerListItem { name: "Server Name".into(), addr: "0.0.0.0:4000".into() });
+        }
+        if let Some(del_i) = del_i {
+            serverlist.remove(del_i);
+        }
 
         if let Some(join_addr) = join_addr {
             // 连接服务器 这两个操作会不会有点松散
-            next_ui_1 = CurrentUI::ConnectingServer;
+            next_ui.set(CurrentUI::ConnectingServer);
             cli.connect_server(join_addr);
         }
-        if next_ui_1 != CurrentUI::None {
-            next_ui.set(next_ui_1);
-        }
+        // if next_ui_1 != CurrentUI::None {
+        //     next_ui.set(next_ui_1);
+        // }
     });
 }
 

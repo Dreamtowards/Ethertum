@@ -1,7 +1,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}};
+use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}, utils::HashMap};
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::components::{Collider, RigidBody};
@@ -29,6 +29,8 @@ pub fn client_sys(
     mut materials: ResMut<Assets<StandardMaterial>>,
 
     mut chunk_sys: ResMut<ClientChunkSystem>,
+
+    mut entity_s2c: Local<HashMap<Entity, Entity>>,
 ) {
     if *last_connected != 1 && client.is_connecting() {
         *last_connected = 1;

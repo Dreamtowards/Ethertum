@@ -41,9 +41,9 @@ pub fn ui_main_menu(
                 *dbg_server_addr = "127.0.0.1:4000".into();
             }
             
-            ui.text_edit_singleline(&mut *dbg_server_addr);
+            ui.add_sized(siz, egui::TextEdit::singleline(&mut *dbg_server_addr));
 
-            if ui.add_sized(siz, egui::Button::new("Connect to Debug Server")).clicked() {
+            if ui.add_sized(siz, egui::Button::new("Connect to Server")).clicked() {
                 // 连接服务器 这两个操作会不会有点松散
                 next_ui.set(CurrentUI::ConnectingServer);
                 cli.connect_server(dbg_server_addr.clone());

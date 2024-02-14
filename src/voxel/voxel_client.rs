@@ -273,13 +273,13 @@ fn raycast(
             c.value += if do_break { -f } else { f };
 
             if do_place {// && c.tex_id == 0 {
-                c.tex_id = mtl::STONE;
+                c.tex_id = cli.brush_tex;
                 c.shape_id = cli.brush_shape;
             }
             
             // placing Block
             if cli.brush_shape == 1 {  
-                c.value = -0.3;  // no Isosurface
+                c.value = if do_break {-0.3} else {0.3};  // no Isosurface
                 
                 if !do_place {
                     c.tex_id = 0;
