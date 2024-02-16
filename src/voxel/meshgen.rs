@@ -274,6 +274,8 @@ impl MeshGen {
             if c.tex_id != 0 {
                 if c.shape_id == 2 {
                     put_leaves(vbuf, lp.as_vec3(), c.tex_id);
+                } else if c.shape_id == 3 {
+                    put_grass(vbuf, lp.as_vec3(), c.tex_id);
                 }
             }
         });
@@ -475,30 +477,32 @@ impl MeshGen {
 
 #[rustfmt::skip]
 static CUBE_POS: [f32; 6 * 6 * 3] = [
-    0., 0., 1., 0., 1., 1., 0., 1., 0., // Left -X
-    0., 0., 1., 0., 1., 0., 0., 0., 0., 1., 0., 0., 1., 1., 0., 1., 1., 1., // Right +X
-    1., 0., 0., 1., 1., 1., 1., 0., 1., 0., 0., 1., 0., 0., 0., 1., 0., 0., // Bottom -Y
-    0., 0., 1., 1., 0., 0., 1., 0., 1., 0., 1., 1., 1., 1., 1., 1., 1., 0., // Bottom +Y
-    0., 1., 1., 1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 1., 1., 0., // Front -Z
-    0., 0., 0., 1., 1., 0., 1., 0., 0., 1., 0., 1., 1., 1., 1., 0., 1., 1., // Back +Z
-    1., 0., 1., 0., 1., 1., 0., 0., 1.,
+    0., 0., 1., 0., 1., 1., 0., 1., 0.,   0., 0., 1., 0., 1., 0., 0., 0., 0., // Left -X
+    1., 0., 0., 1., 1., 0., 1., 1., 1.,   1., 0., 0., 1., 1., 1., 1., 0., 1., // Right +X
+    0., 0., 1., 0., 0., 0., 1., 0., 0.,   0., 0., 1., 1., 0., 0., 1., 0., 1., // Bottom -Y
+    0., 1., 1., 1., 1., 1., 1., 1., 0.,   0., 1., 1., 1., 1., 0., 0., 1., 0., // Bottom +Y
+    0., 0., 0., 0., 1., 0., 1., 1., 0.,   0., 0., 0., 1., 1., 0., 1., 0., 0., // Front -Z
+    1., 0., 1., 1., 1., 1., 0., 1., 1.,   1., 0., 1., 0., 1., 1., 0., 0., 1., // Back +Z
 ];
 
 #[rustfmt::skip]
 static CUBE_UV: [f32; 6 * 6 * 2] = [
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., // One Face.
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0., 1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
-    1., 0., 1., 1., 0., 1., 1., 0., 0., 1., 0., 0.,
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., // One Face.
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., 
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., 
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
 ];
 
 #[rustfmt::skip]
 static CUBE_NORM: [f32; 6 * 6 * 3] = [
-    -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1.,
-    0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0.,
-    0., -1., 0., 0., -1., 0., 0., -1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
-    0., 0., 1., 0., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1., 0., 0., -1.,
-    0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
+    -1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0., 
+     1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 
+     0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 
+     0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 
+     0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1.,
+     0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
 ];
 
 // static CUBE_IDX: [u32;6*6] = [
@@ -525,7 +529,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
     }
 }
 
-// for foliages.
+// put a -X face in middle of pos. for foliages.
 fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: Vec2) {
     // -X Face
     for i in 0..6 {  // 6 verts
@@ -542,14 +546,31 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
     }
 }
 
+// fn hash(i: i32) -> f32 {
+//     let i = (i << 13) ^ i;
+//     (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
+// }
+// fn hash3(v: IVec3) -> Vec3 {
+//     Vec3::new(hash(v.x), hash(v.y), hash(v.z))
+// }
+
 fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let deg45 = PI / 4.;
     let siz = 1.0;
 
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Z, deg45), vec2(1.0, 1.4)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Z, -deg45), vec2(1.0, 1.4)*siz);
+}
+
+fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
+    let ang = PI / 3.0;
+    let siz = 1.2;
+
+    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang), Vec2::ONE*siz);
+    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang*2.), Vec2::ONE*siz);
+    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang*3.), Vec2::ONE*siz);
 }
 
 // fn mat_model(pos: Vec3, rot: Mat3, scale: Vec3) {

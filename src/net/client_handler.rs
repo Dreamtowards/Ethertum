@@ -148,7 +148,7 @@ pub fn client_sys(
                                     material: materials.add(StandardMaterial {
                                         base_color_texture: Some(asset_server.load("cache/atlas_diff_foli.png")),
                                         // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
-                                        // double_sided: true,
+                                        double_sided: true,
                                         alpha_mode: AlphaMode::Mask(0.5),
                                         cull_mode: None,
                                         ..default()

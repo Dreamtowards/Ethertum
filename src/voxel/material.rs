@@ -49,6 +49,7 @@ pub mod mtl_tex {
 
     pub fn map_uv(uv: Vec2, tex_id: u16) -> Vec2 {
         const TEX_CAP: f32 = 24.;
-        Vec2::new(uv.x / TEX_CAP + tex_id as f32 / TEX_CAP, uv.y)
+        let tex = tex_id - 1;  // -1: offset the 0 Nil
+        Vec2::new(uv.x / TEX_CAP + tex as f32 / TEX_CAP, uv.y)
     }
 }
