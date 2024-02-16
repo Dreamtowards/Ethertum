@@ -161,6 +161,14 @@ pub fn client_sys(
                 
                 chunk_sys.mark_chunk_remesh(*chunkpos);
 
+                for data in voxel {
+                    let lp = Chunk::local_idx_pos(data.local_idx as i32);
+                    let neib = Chunk::at_boundary_naive(lp);
+                    if neib != -1 {
+                        chunk_sys.mark_chunk_remesh(*chunkpos + Chunk::NEIGHBOR_DIR[neib as usize] * Chunk::SIZE);
+                    }
+                }
+
                 // todo: NonLock
                 let mut chunk = chunk_sys.get_chunk(*chunkpos).unwrap().write().unwrap();
 

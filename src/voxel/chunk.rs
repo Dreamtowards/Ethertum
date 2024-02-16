@@ -206,6 +206,19 @@ impl Chunk {
         IVec3::new((idx >> 8) & 15, (idx >> 4) & 15, idx & 15)
     }
 
+    pub fn at_boundary_naive(localpos: IVec3) -> i32 {
+        if localpos.x == 0  { return 0; }
+        if localpos.x == 15 { return 1; }
+        if localpos.y == 0  { return 2; }
+        if localpos.y == 15 { return 3; }
+        if localpos.z == 0  { return 4; }
+        if localpos.z == 15 { return 5; }
+        -1
+        // localpos.x == 0 || localpos.x == 15 ||
+        // localpos.y == 0 || localpos.y == 15 ||
+        // localpos.z == 0 || localpos.z == 15
+    }
+
 
 
     #[rustfmt::skip]
@@ -242,6 +255,7 @@ impl Chunk {
     ];
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
+        assert!(!Chunk::is_localpos(relpos));
         (0..Chunk::NEIGHBOR_DIR.len()).find(|&i| Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::SIZE)))
     }
 
