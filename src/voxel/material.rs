@@ -32,11 +32,12 @@ impl Default for Material {
 }
 
 pub mod mtl {
-    pub const STONE: u16 = 21;
-    pub const DIRT: u16 = 0;
-    pub const GRASS: u16 = 11; // 7 11
-    pub const WATER: u16 = 23;
-    pub const SAND: u16 = 18;
+    pub const NIL: u16 = 0;
+    pub const STONE: u16 = 22;
+    pub const DIRT: u16 = 1;
+    pub const GRASS: u16 = 12; // 7 11
+    pub const WATER: u16 = 24;
+    pub const SAND: u16 = 19;
 }
 
 // use crate::util::registry::*;

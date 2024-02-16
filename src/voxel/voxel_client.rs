@@ -281,7 +281,7 @@ fn raycast(
                     if cli.brush_shape != 0 {  
                         c.set_isovalue(0.0);
                     }
-                } else {
+                } else if c.is_isoval_empty() {
                     c.tex_id = 0;
                 }
                 

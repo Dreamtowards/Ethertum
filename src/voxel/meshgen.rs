@@ -450,6 +450,7 @@ impl MeshGen {
                                 if !c.is_isoval_empty() && c.isovalue() < nearest_val {
                                     nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
+                                    // assert(!c.is_tex_empty());  the nearest_tex shouldn't be Nil
                                 }
                             }
 

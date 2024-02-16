@@ -125,8 +125,12 @@ fn fragment(
 ) -> @location(0) vec4<f32> {
     let worldpos  = in.world_position.xyz;
     let worldnorm = in.world_normal;
-    let mtls = round(in.mtls / in.bary);
+    let mtls = round(in.mtls / in.bary) - vec3<f32>(1.0);
     let bary = in.bary;
+
+    if mtls.x == -1.0 || mtls.y == -1.0 || mtls.z == -1.0 {
+        return vec4<f32>(1.0, 0.0, 0.0, 1.0);
+    }
 
     // uv.v == -1: Triplanar Isosurface. otherwise: Custom UV
     // if mtls.x != -1.0 {

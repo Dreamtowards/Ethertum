@@ -13,9 +13,9 @@ use super::EntityId;
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CellData {
     pub local_idx: u16,  // 12 bits
-    pub density: f32, // val = (v / 255.0) - 0.5
     pub tex_id: u16,
     pub shape_id: u16,
+    pub isoval: u8, 
 }
 
 impl CellData {
@@ -25,7 +25,7 @@ impl CellData {
             local_idx,
             tex_id: c.tex_id,
             shape_id: c.shape_id,
-            density: c.isovalue()
+            isoval: c.isoval
         }
     }
 
@@ -42,9 +42,11 @@ impl CellData {
     }
     pub fn to_chunk(data: &Vec<CellData>, chunk: &mut Chunk) {
         for c in data {
+            let mut a = Cell::new(c.tex_id, c.shape_id, 0.0);
+            a.isoval = c.isoval;
             chunk.set_cell(
                 Chunk::local_idx_pos(c.local_idx as i32), 
-                &Cell::new(c.tex_id, c.shape_id, c.density, ) 
+                &a
             );
         }
     }

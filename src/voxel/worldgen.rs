@@ -30,7 +30,7 @@ impl WorldGen {
 
                     let mut val = f_terr - (p.y as f32) / 12. + f_3d * 2.5;
 
-                    let mut tex = mtl::STONE; //(p.x / 2 % 24).abs() as u16;
+                    let mut tex = mtl::NIL; //(p.x / 2 % 24).abs() as u16;
                     if val > 0.0 {
                         tex = mtl::STONE;
                     } else if p.y < 0 && val < 0. {
