@@ -270,7 +270,7 @@ fn raycast(
 
             let f = (n as f32 - lp.as_vec3().length()).max(0.) * cli.brush_strength;
 
-            c.value += if do_break { -f } else { f };
+            c.set_isovalue(c.isovalue() + if do_break { -f } else { f });
 
             if f > 0.0 || (n == 0 && f == 0.0) {  // placing single 
                 if do_place {// && c.tex_id == 0 {
@@ -279,7 +279,7 @@ fn raycast(
 
                     // placing Block
                     if cli.brush_shape != 0 {  
-                        c.value = 0.0;
+                        c.set_isovalue(0.0);
                     }
                 } else {
                     c.tex_id = 0;
@@ -326,7 +326,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo
     if clientinfo.dbg_gizmo_all_loaded_chunks {
         for cp in chunk_sys.get_chunks().keys() {
             gizmos.cuboid(
-                Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
                 Color::DARK_GRAY,
             );
         }
@@ -335,7 +335,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo
     // chunks remesh
     for cp in chunk_sys.chunks_remesh.iter() {
         gizmos.cuboid(
-            Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+            Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
             Color::ORANGE,
         );
     }

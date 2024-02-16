@@ -30,12 +30,14 @@ impl WorldGen {
 
                     let mut val = f_terr - (p.y as f32) / 12. + f_3d * 2.5;
 
-                    let mut mtl = mtl::STONE; //(p.x / 2 % 24).abs() as u16;
-                    if p.y < 0 && val < 0. {
+                    let mut tex = mtl::STONE; //(p.x / 2 % 24).abs() as u16;
+                    if val > 0.0 {
+                        tex = mtl::STONE;
+                    } else if p.y < 0 && val < 0. {
                         val = 0.1;
-                        mtl = mtl::WATER;
+                        tex = mtl::WATER;
                     }
-                    chunk.set_cell(lp, &Cell::new(val, mtl, 0));
+                    chunk.set_cell(lp, &Cell::new(tex, 0, val));
                 }
             }
         }
@@ -56,7 +58,7 @@ impl WorldGen {
 
                     let mut c = *chunk.get_cell(lp);
 
-                    if c.is_empty() {
+                    if c.is_tex_empty() {
                         air_dist = 0;
                     } else {
                         air_dist += 1;

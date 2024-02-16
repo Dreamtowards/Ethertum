@@ -4,63 +4,78 @@ use bevy::{math::ivec3, prelude::*};
 
 // Voxel System
 
-enum CellMtl {
-    // Smooth / Metaball / Isosurface
-    Isosurface {
-        val: f32,
-        tex_id: u16,
-    },
 
-    // Shape / Silhouette
-    Shape {
-        shape_id: u16,
-        tex_id: u16,
-    }, 
-
-    Mesh {
-        mesh_id: u16,
-        tex_id: u16,
-    },
+enum CellShape {
+    Isosurface,
+    Cube,
+    Leaves,
+    Grass,
+    // CustomMesh {
+    //     mesh_id: u16,
+    // }
 }
 
 #[derive(Clone, Copy)]
 pub struct Cell {
-    /// SDF value, used for Isosurface Extraction.
-    /// 0 -> surface, +0 positive -> void, -0 negative -> solid.
-    pub value: f32,
-
-    /// Material Id
-    pub shape_id: u16,
+    
     pub tex_id: u16,
 
-    /// Cached FeaturePoint
-    pub cached_fp: Vec3,
-    pub cached_norm: Vec3,
+    pub shape_id: u16,
+
+    /// SDF value, used for Isosurface Extraction.
+    /// 0 -> surface, +0 positive -> void, -0 negative -> solid.
+    pub isoval: u8,
+
+    // Cached FeaturePoint
+    // pub cached_fp: Vec3,
+    // pub cached_norm: Vec3,
 }
 
 impl Default for Cell {
     fn default() -> Self {
         Cell {
-            value: 0.,
             shape_id: 0,
             tex_id: 0,
-            cached_fp: Vec3::INFINITY,
-            cached_norm: Vec3::INFINITY,
+            isoval: isoval_f32_u8(0.0),
+            // cached_fp: Vec3::INFINITY,
+            // cached_norm: Vec3::INFINITY,
         }
     }
 }
 
+fn isoval_f32_u8(f: f32) -> u8 {
+    // f
+    ((f.clamp(-1.0, 1.0) + 1.0) / 2.0 * 255.0) as u8
+}
+
+fn isoval_u8_f32(u: u8) -> f32 {
+    // u
+    u as f32 / 255.0 * 2.0 - 1.0
+}
+
+
 impl Cell {
-    pub fn new(value: f32, tex_id: u16, shape_id: u16) -> Self {
-        Self { value, tex_id, shape_id, ..default() }
+    pub fn new(tex_id: u16, shape_id: u16, isovalue: f32) -> Self {
+        Self { tex_id, shape_id, isoval: isoval_f32_u8(isovalue), ..default() }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.value <= 0.
+    pub fn isovalue(&self) -> f32 {
+        isoval_u8_f32(self.isoval)
+    }
+    pub fn set_isovalue(&mut self, val: f32) {
+        self.isoval = isoval_f32_u8(val);
+    }
+
+    pub fn is_tex_empty(&self) -> bool {
+        self.tex_id == 0
+    }
+
+    pub fn is_isoval_empty(&self) -> bool {
+        self.isovalue() <= 0.0
     }
 
     pub fn is_obaque_cube(&self) -> bool {
-        self.shape_id == 1 && self.tex_id != 0
+        self.shape_id == 1 && !self.is_tex_empty()
     }
 }
 
@@ -101,20 +116,6 @@ impl Chunk {
             Some(*self.get_cell(relpos))
         } else {
             /*
-            if let Some(neib_idx) = Chunk::neighbor_idx(relpos) {
-                if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
-                    if let Some(neib_chunkptr) = neib_weak.upgrade() {
-                        let neib_chunk = neib_chunkptr.read().unwrap();
-                        // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
-
-                        return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
-                    }
-                }
-            }
-            None
-            */
-
-            /*
             let neib_idx = Chunk::neighbor_idx(relpos)?;
             self.neighbor_chunks[neib_idx].as_ref()
                 .and_then(|neib_weak| neib_weak.upgrade())
@@ -138,7 +139,7 @@ impl Chunk {
     }
 
     pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
-        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(f32::INFINITY, 0, 0))
+        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(0, 0, 0.0))
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {

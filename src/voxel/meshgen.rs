@@ -356,7 +356,7 @@ impl MeshGen {
     ];
 
     fn sn_signchanged(c0: &Cell, c1: &Cell) -> bool {
-        (c0.value > 0.) != (c1.value > 0.) // use .is_empty() ?
+        (c0.isovalue() > 0.) != (c1.isovalue() > 0.) // use .is_empty() ?
     }
 
     // Naive SurfaceNets Method of Evaluate FeaturePoint.
@@ -374,7 +374,7 @@ impl MeshGen {
 
             if Self::sn_signchanged(&c0, &c1) {
                 // t maybe -INF if accessing a Nil Cell.
-                if let Some(t) = inverse_lerp(c0.value..=c1.value, 0.0) {
+                if let Some(t) = inverse_lerp(c0.isovalue()..=c1.isovalue(), 0.0) {
                     if !t.is_finite() {
                         continue;
                     }
@@ -403,11 +403,11 @@ impl MeshGen {
     // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
-        let val = chunk.get_cell_rel(lp).value;
+        let val = chunk.get_cell_rel(lp).isovalue();
         vec3(
-            chunk.get_cell_rel(lp + IVec3::X).value - val,
-            chunk.get_cell_rel(lp + IVec3::Y).value - val,
-            chunk.get_cell_rel(lp + IVec3::Z).value - val,
+            chunk.get_cell_rel(lp + IVec3::X).isovalue() - val,
+            chunk.get_cell_rel(lp + IVec3::Y).isovalue() - val,
+            chunk.get_cell_rel(lp + IVec3::Z).isovalue() - val,
             // chunk.get_cell_rel(lp + IVec3::X).value - chunk.get_cell_rel(lp - IVec3::X).value,
             // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
@@ -424,17 +424,16 @@ impl MeshGen {
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
-                        // !OutBound
-                        let c1 = chunk.get_cell_rel(lp + Self::AXES[axis_i]);
-
-                        if !c1.value.is_finite() {
-                            continue;
-                        }
+                        
+                        let c1 = match chunk.get_cell_neighbor(lp + Self::AXES[axis_i]) {
+                            None => continue,   // do not generate face if it's a Nil Cell (non-loaded)
+                            Some(c1) => c1
+                        };
                         if !Self::sn_signchanged(c0, &c1) {
                             continue;
                         }
 
-                        let winding_flip = c0.is_empty();
+                        let winding_flip = c0.is_isoval_empty();
 
                         for quadvert_i in 0..6 {
                             let winded_vi = if winding_flip { 5 - quadvert_i } else { quadvert_i };
@@ -449,8 +448,8 @@ impl MeshGen {
                             let mut nearest_tex = c.tex_id;
                             for vert in Self::VERT {
                                 let c = chunk.get_cell_rel(p + vert);
-                                if !c.is_empty() && c.value < nearest_val {
-                                    nearest_val = c.value;
+                                if !c.is_isoval_empty() && c.isovalue() < nearest_val {
+                                    nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
                                 }
                             }
@@ -538,8 +537,6 @@ fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let siz = 1.5;
 
     info!("put leaves");
-    put_face(vbuf,tex_id,pos,Quat::IDENTITY,Vec2::ONE);
-
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.5,1.0)*siz);
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.5,1.0)*siz);
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.5,1.0)*siz);
