@@ -333,12 +333,12 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo
     }
 
     // chunks remesh
-    for cp in chunk_sys.chunks_remesh.iter() {
-        gizmos.cuboid(
-            Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
-            Color::ORANGE,
-        );
-    }
+    // for cp in chunk_sys.chunks_remesh.iter() {
+    //     gizmos.cuboid(
+    //         Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+    //         Color::ORANGE,
+    //     );
+    // }
 
     // chunks meshing
     // for cp in chunk_sys.chunks_meshing.keys() {
@@ -389,7 +389,7 @@ impl ClientChunkSystem {
 
             shader_terrain: Handle::default(),
             entity: Entity::PLACEHOLDER,
-            max_concurrent_meshing: 16,
+            max_concurrent_meshing: 8,
         }
     }
     
