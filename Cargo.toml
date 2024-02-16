@@ -32,9 +32,10 @@ bevy-inspector-egui = "0.22"
 bevy_editor_pls = "0.7"
 
 bevy_common_assets = { version = "0.9", features = ["json"] }
+bevy_obj = "0.12"
 
 egui_extras = { version = "0.24", default-features = false, features = []}
-egui-notify = "0.12"
+egui-notify = "0.13"
 
 
 noise = "0.8"

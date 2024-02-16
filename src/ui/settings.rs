@@ -9,9 +9,10 @@ use bevy_egui::{
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
+use bevy_xpbd_3d::components::{AsyncCollider, ComputedCollider, RigidBody};
 
 use crate::{
-    character_controller::CharacterController, game::{condition, ClientInfo, EthertiaClient, WorldInfo}, voxel::{ClientChunkSystem, HitResult}
+    character_controller::CharacterController, game::{condition, ClientInfo, DespawnOnWorldUnload, EthertiaClient, WorldInfo}, voxel::{ClientChunkSystem, HitResult}
 };
 
 use super::{new_egui_window, ui_lr_panel, CurrentUI};
@@ -40,6 +41,12 @@ pub fn ui_settings(
 
     mut query_cam: Query<&mut CharacterController>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
+    
+    
+    mut query_campos: Query<&Transform, With<CharacterController>>,
+    mut cmds: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
 
@@ -122,6 +129,44 @@ pub fn ui_settings(
                         
                         ui_setting_line(ui, "Day Time Length", egui::Slider::new(&mut worldinfo.daytime_length, 0.0..=60.0*24.0));
                     }
+
+                    
+    fn load_obj(cmds: &mut Commands, asset_server: &Res<AssetServer>, materials: &mut ResMut<Assets<StandardMaterial>>, name: &str, has_norm: bool, pos: Vec3) {
+
+        cmds.spawn((
+            PbrBundle {
+                mesh: asset_server.load(format!("models/{name}/mesh.obj")),
+                material: materials.add(StandardMaterial {
+                    base_color_texture: Some(asset_server.load(format!("models/{name}/diff.png"))),
+                    normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
+                    // double_sided: true,
+                    alpha_mode: AlphaMode::Mask(0.5),
+                    cull_mode: None,
+                    ..default()
+                }),
+                transform: Transform::from_translation(pos),
+                ..default()
+            },
+            // AsyncCollider(ComputedCollider::ConvexHull),
+            // RigidBody::Static,
+            DespawnOnWorldUnload,
+        ));
+    }
+
+    ui.horizontal(|ui| {
+
+        static mut _Path_LoadModel: String = String::new();
+        ui.text_edit_singleline(unsafe {&mut _Path_LoadModel});
+
+        if ui.button("Load").clicked() {
+            load_obj(&mut cmds, &asset_server, &mut materials, unsafe{_Path_LoadModel.as_str()}, false, query_campos.single().translation);
+        }
+        
+    });
+
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bucket", true, vec3(0., 0., -5.*1.));
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bench", false, vec3(0., 0., -5.*2.));
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bookcase", false, vec3(0., 0., -5.*3.));
 
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.x).speed(1.));
                     //     ui.add(egui::DragValue::new(&mut chunk_sys.view_distance.y).speed(1.));

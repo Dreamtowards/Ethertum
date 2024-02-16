@@ -6,6 +6,7 @@ use bevy::{app::AppExit, ecs::system::{CommandQueue, SystemParam}, math::vec3, p
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
+use bevy_obj::ObjPlugin;
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
@@ -65,6 +66,8 @@ impl Plugin for GamePlugin {
             // app.add_plugins(TemporalAntiAliasPlugin);
             // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
         }
+        // .obj model loader.
+        app.add_plugins(ObjPlugin);
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
@@ -75,13 +78,14 @@ impl Plugin for GamePlugin {
         // UI
         app.add_plugins(crate::ui::UiPlugin);
 
-        // ChunkSystem
+        // Voxel
         app.add_plugins(ClientVoxelPlugin);
+
+        // Network Client
+        app.add_plugins(ClientNetworkPlugin);
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
-
-        // WorldInfo
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
@@ -96,9 +100,6 @@ impl Plugin for GamePlugin {
 
         app.add_systems(PreStartup, on_init);
         app.add_systems(Last, on_exit);
-
-        // Network Client
-        app.add_plugins(ClientNetworkPlugin);
 
 
     }
@@ -181,8 +182,8 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 fn startup(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     // mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
     mut cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
@@ -244,6 +245,7 @@ fn startup(
         Name::new("Sun"),
         DespawnOnWorldUnload,
     ));
+
 
     // commands.spawn((
     //     SceneBundle {

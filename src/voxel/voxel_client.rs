@@ -272,19 +272,21 @@ fn raycast(
 
             c.value += if do_break { -f } else { f };
 
-            if do_place {// && c.tex_id == 0 {
-                c.tex_id = cli.brush_tex;
-                c.shape_id = cli.brush_shape;
-            }
-            
-            // placing Block
-            if cli.brush_shape == 1 {  
-                c.value = 0.0;//if do_break {-0.3} else {0.3};  // no Isosurface
-                
-                if !do_place {
+            if f > 0.0 || (n == 0 && f == 0.0) {  // placing single 
+                if do_place {// && c.tex_id == 0 {
+                    c.tex_id = cli.brush_tex;
+                    c.shape_id = cli.brush_shape;
+
+                    // placing Block
+                    if cli.brush_shape != 0 {  
+                        c.value = 0.0;
+                    }
+                } else {
                     c.tex_id = 0;
                 }
+                
             }
+            
 
             pack.push(CellData::from_cell(Chunk::local_idx(Chunk::as_localpos(p)) as u16, &c));
         });

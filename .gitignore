@@ -2,3 +2,5 @@
 
 build/wasm/*.js
 build/wasm/*.wasm
+
+/assets/models/
