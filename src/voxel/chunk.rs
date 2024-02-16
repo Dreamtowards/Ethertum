@@ -88,7 +88,6 @@ pub struct Chunk {
     pub chunkpos: IVec3,
 
     pub entity: Entity,
-    pub entity_foliage: Entity,  // for set Visibility, which is pretty Meanless
     pub mesh_handle: Handle<Mesh>,  // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
 
@@ -106,7 +105,6 @@ impl Chunk {
             chunkpos,
             neighbor_chunks: Default::default(),
             entity: Entity::PLACEHOLDER,
-            entity_foliage: Entity::PLACEHOLDER,
             mesh_handle: Handle::default(),
             mesh_handle_foliage: Handle::default(),
         }

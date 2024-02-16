@@ -535,22 +535,21 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
         let n = Vec3::from_slice(&CUBE_NORM[i*3..]);
         let n = rot * n;
 
-        // let uv = Vec2::from_slice(&CUBE_UV[i*2..]);
-        // let uv = Tex::map_uv(uv);
+        let uv = Vec2::from_slice(&CUBE_UV[i*2..]);
+        let uv = mtl_tex::map_uv(uv, tex_id);
         
-        vbuf.push_vertex(p, vec2(tex_id as f32, -1.0), n);
+        vbuf.push_vertex(p, uv, n);
     }
 }
 
 fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let deg45 = PI / 4.;
-    let siz = 1.5;
+    let siz = 1.0;
 
-    info!("put leaves");
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.5,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.5,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.5,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.5,1.0)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
+    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::X, PI/2.) * Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
 }
 
 // fn mat_model(pos: Vec3, rot: Mat3, scale: Vec3) {

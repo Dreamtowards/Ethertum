@@ -80,7 +80,7 @@ fn startup(
 
 
 
-type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Entity, Mesh, Handle<Mesh>);
+type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>);
 
 use once_cell::sync::Lazy;
 use thread_local::ThreadLocal;
@@ -122,7 +122,6 @@ fn chunks_remesh_enqueue(
                 
                 // let dbg_time = Instant::now();
                 let entity;
-                let entity_foliage;
                 let mesh_handle;
                 let mesh_handle_foliage;
                 {
@@ -134,7 +133,6 @@ fn chunks_remesh_enqueue(
                     MeshGen::generate_chunk_mesh_foliage(&mut _vbuf.1, &chunk);
 
                     entity = chunk.entity;
-                    entity_foliage = chunk.entity_foliage;
                     mesh_handle = chunk.mesh_handle.clone();
                     mesh_handle_foliage = chunk.mesh_handle_foliage.clone();
                 }
@@ -173,7 +171,7 @@ fn chunks_remesh_enqueue(
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                tx.send((chunkpos, entity, mesh, mesh_handle, collider, entity_foliage, mesh_foliage, mesh_handle_foliage)).unwrap();
+                tx.send((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)).unwrap();
             });
 
             task.detach();
@@ -182,7 +180,7 @@ fn chunks_remesh_enqueue(
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    while let Ok((chunkpos, entity, mesh, mesh_handle, collider, entity_foliage, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
+    while let Ok((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
 
         // Update Mesh Asset
         *meshes.get_mut(mesh_handle).unwrap() = mesh;
@@ -196,10 +194,6 @@ fn chunks_remesh_enqueue(
                 cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
             }
         }
-
-        // if let Some(mut cmds) = commands.get_entity(entity_foliage) {
-            // cmds.try_insert(Visibility::Visible);
-        // }
     }
 }
 

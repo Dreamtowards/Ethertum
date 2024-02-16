@@ -142,11 +142,11 @@ pub fn client_sys(
                             RigidBody::Static,
                         ))
                         .with_children(|parent| {
-                            chunk.entity_foliage = parent.spawn((
+                             parent.spawn((
                                 MaterialMeshBundle {
                                     mesh: chunk.mesh_handle_foliage.clone(),
                                     material: materials.add(StandardMaterial {
-                                        base_color_texture: Some(asset_server.load("cache/atlas_diff.png")),
+                                        base_color_texture: Some(asset_server.load("cache/atlas_diff_foli.png")),
                                         // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
                                         // double_sided: true,
                                         alpha_mode: AlphaMode::Mask(0.5),
@@ -157,7 +157,7 @@ pub fn client_sys(
                                     ..default()
                                 },
                                 aabb,
-                            )).id();
+                            ));
                         })
                         .set_parent(chunk_sys.entity)
                         .id();
