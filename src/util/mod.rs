@@ -32,6 +32,23 @@ pub mod iter {
     }
 }
 
+
+use bevy::prelude::*;
+
+pub fn hash(i: i32) -> f32 {
+    let i = (i << 13) ^ i;
+    // (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
+    // wrapping_mul: avoid overflow
+    let i = i.wrapping_mul(i).wrapping_mul(15731).wrapping_add(789221).wrapping_mul(i).wrapping_add(1376312589);
+    (i as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
+}
+pub fn hash3(v: IVec3) -> Vec3 {
+    Vec3::new(hash(v.x), hash(v.y), hash(v.z))
+}
+
+
+
+
 pub fn current_timestamp() -> Duration {
     SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
 }

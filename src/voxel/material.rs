@@ -38,6 +38,10 @@ pub mod mtl {
     pub const GRASS: u16 = 12; // 7 11
     pub const WATER: u16 = 24;
     pub const SAND: u16 = 19;
+    pub const LOG: u16 = 13;
+
+    pub const FERN: u16 = 16;
+    pub const LEAVES: u16 = 23;
 }
 
 // use crate::util::registry::*;

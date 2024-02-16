@@ -546,14 +546,6 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
     }
 }
 
-// fn hash(i: i32) -> f32 {
-//     let i = (i << 13) ^ i;
-//     (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
-// }
-// fn hash3(v: IVec3) -> Vec3 {
-//     Vec3::new(hash(v.x), hash(v.y), hash(v.z))
-// }
-
 fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let deg45 = PI / 4.;
     let siz = 1.0;
