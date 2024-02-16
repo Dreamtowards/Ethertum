@@ -373,11 +373,10 @@ impl MeshGen {
             let c1 = chunk.get_cell_rel(lp + v1);
 
             if Self::sn_signchanged(&c0, &c1) {
-                // t maybe -INF if accessing a Nil Cell.
                 if let Some(t) = inverse_lerp(c0.isovalue()..=c1.isovalue(), 0.0) {
-                    if !t.is_finite() {
-                        continue;
-                    }
+                    // if !t.is_finite() {
+                    //     continue;
+                    // }
                     assert!(t.is_finite(), "t = {}", t);
 
                     let p = t * (v1 - v0).as_vec3() + v0.as_vec3(); // (v1-v0) must > 0. since every edge vert are min-to-max
@@ -400,7 +399,6 @@ impl MeshGen {
 
     // Evaluate Normal of a Cell FeaturePoint
     // via Approxiate Differental Gradient
-    // DEL: WARN: may produce NaN Normal Value if the Cell's value is NaN (Nil Cell in the Context)
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
         let val = chunk.get_cell_rel(lp).isovalue();
@@ -412,7 +410,8 @@ impl MeshGen {
             // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
         )
-        .normalize()
+        // Normalize may fail since Isovalue may non-differenced e.g. all water isoval == 0.1
+        .try_normalize().unwrap_or(Vec3::NEG_Y)  // NEG_Y will be Y after grad-to-normal flip.
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
