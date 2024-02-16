@@ -19,6 +19,17 @@ pub mod iter {
             }
         }
     }
+
+    pub fn iter_xzy(n: i32, mut func: impl FnMut(IVec3)) {
+        assert!(n > 0);
+        for ly in 0..n {
+            for lz in 0..n {
+                for lx in 0..n {
+                    func(IVec3::new(lx, ly, lz));
+                }
+            }
+        }
+    }
 }
 
 pub fn current_timestamp() -> Duration {

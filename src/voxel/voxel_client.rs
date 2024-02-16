@@ -80,14 +80,14 @@ fn startup(
 
 
 
-type ChunkRemeshData = (IVec3, Mesh, Option<Collider>, Entity, Handle<Mesh>);
+type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Entity, Mesh, Handle<Mesh>);
 
 use once_cell::sync::Lazy;
 use thread_local::ThreadLocal;
 use std::{cell::RefCell, sync::Arc};
 use crate::voxel::meshgen::VertexBuffer;
 
-static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<VertexBuffer>>> = Lazy::new(ThreadLocal::default);
+static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
 
 fn chunks_remesh_enqueue(
     mut commands: Commands,
@@ -117,19 +117,26 @@ fn chunks_remesh_enqueue(
             let tx = tx_chunks_meshing.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
-                let mut vbuf = THREAD_LOCAL_VERTEX_BUFFERS.get_or(|| RefCell::new(VertexBuffer::default())).borrow_mut();
-
+                let mut _vbuf = THREAD_LOCAL_VERTEX_BUFFERS.get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default()))).borrow_mut();
+                // 0: vbuf_terrain, 1: vbuf_foliage
+                
                 // let dbg_time = Instant::now();
                 let entity;
+                let entity_foliage;
                 let mesh_handle;
+                let mesh_handle_foliage;
                 {
                     let chunk = chunkptr.read().unwrap();
 
                     // Generate Mesh
-                    MeshGen::generate_chunk_mesh(&mut vbuf, &chunk);
+                    MeshGen::generate_chunk_mesh(&mut _vbuf.0, &chunk);
+
+                    MeshGen::generate_chunk_mesh_foliage(&mut _vbuf.1, &chunk);
 
                     entity = chunk.entity;
+                    entity_foliage = chunk.entity_foliage;
                     mesh_handle = chunk.mesh_handle.clone();
+                    mesh_handle_foliage = chunk.mesh_handle_foliage.clone();
                 }
                 // let dbg_time = Instant::now() - dbg_time;
 
@@ -143,7 +150,7 @@ fn chunks_remesh_enqueue(
                 //   #extension GL_EXT_fragment_shader_barycentric : enable
                 //   layout(location = 2) pervertexEXT in int in_MtlIds[];  gl_BaryCoordEXT
                 // would fix the problem in vulkan.
-                vbuf.compute_indexed_naive();
+                _vbuf.0.compute_indexed_naive();
 
                 // if nv != 0 {
                 //     info!("Generated ReMesh verts: {} before: {} after {}, saved: {}%",
@@ -151,13 +158,22 @@ fn chunks_remesh_enqueue(
                 // }
 
                 let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                vbuf.to_mesh(&mut mesh);
-                vbuf.clear();
+                _vbuf.0.to_mesh(&mut mesh);
+                _vbuf.0.clear();
+
+
+                // Foliage
+                _vbuf.1.compute_indexed_naive();
+
+                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList);
+                _vbuf.1.to_mesh(&mut mesh_foliage);
+                _vbuf.1.clear();
+
 
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                tx.send((chunkpos, mesh, collider, entity, mesh_handle)).unwrap();
+                tx.send((chunkpos, entity, mesh, mesh_handle, collider, entity_foliage, mesh_foliage, mesh_handle_foliage)).unwrap();
             });
 
             task.detach();
@@ -166,10 +182,12 @@ fn chunks_remesh_enqueue(
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    while let Ok((chunkpos, mesh, collider, entity, mesh_handle)) = rx_chunks_meshing.try_recv() {
+    while let Ok((chunkpos, entity, mesh, mesh_handle, collider, entity_foliage, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
 
         // Update Mesh Asset
         *meshes.get_mut(mesh_handle).unwrap() = mesh;
+        
+        *meshes.get_mut(mesh_handle_foliage).unwrap() = mesh_foliage;
 
         // Update Phys Collider TriMesh
         if let Some(collider) = collider {
@@ -178,6 +196,10 @@ fn chunks_remesh_enqueue(
                 cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
             }
         }
+
+        // if let Some(mut cmds) = commands.get_entity(entity_foliage) {
+            // cmds.try_insert(Visibility::Visible);
+        // }
     }
 }
 

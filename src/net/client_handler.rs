@@ -27,6 +27,7 @@ pub fn client_sys(
     // 临时测试 待移除:
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 
     mut chunk_sys: ResMut<ClientChunkSystem>,
 
@@ -122,7 +123,10 @@ pub fn client_sys(
                 
                 // todo 封装函数
                 {
+                    let aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
+
                     chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
     
                     chunk.entity = cmds
                         .spawn((
@@ -131,12 +135,30 @@ pub fn client_sys(
                                 mesh: chunk.mesh_handle.clone(),
                                 material: chunk_sys.shader_terrain.clone(),
                                 transform: Transform::from_translation(chunkpos.as_vec3()),
-                                visibility: Visibility::Hidden, // Hidden is required since Mesh is empty.
+                                visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
                                 ..default()
                             },
-                            Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32)),
+                            aabb,
                             RigidBody::Static,
                         ))
+                        .with_children(|parent| {
+                            chunk.entity_foliage = parent.spawn((
+                                MaterialMeshBundle {
+                                    mesh: chunk.mesh_handle_foliage.clone(),
+                                    material: materials.add(StandardMaterial {
+                                        base_color_texture: Some(asset_server.load("cache/atlas_diff.png")),
+                                        // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
+                                        // double_sided: true,
+                                        alpha_mode: AlphaMode::Mask(0.5),
+                                        cull_mode: None,
+                                        ..default()
+                                    }),
+                                    // visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
+                                    ..default()
+                                },
+                                aabb,
+                            )).id();
+                        })
                         .set_parent(chunk_sys.entity)
                         .id();
                 }
@@ -161,6 +183,7 @@ pub fn client_sys(
                 
                 chunk_sys.mark_chunk_remesh(*chunkpos);
 
+                // 这不全面。如果修改了edge 那么应该更新3个区块。然而这里只会更新一个区块
                 for data in voxel {
                     let lp = Chunk::local_idx_pos(data.local_idx as i32);
                     let neib = Chunk::at_boundary_naive(lp);

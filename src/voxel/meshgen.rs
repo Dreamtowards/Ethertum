@@ -14,6 +14,8 @@ use bevy::{
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
+use crate::util::iter;
+
 use super::{chunk::*, material::mtl_tex, ChunkPtr};
 
 // Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
@@ -238,6 +240,7 @@ impl VertexBuffer {
 pub struct MeshGen {}
 
 impl MeshGen {
+
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
         Self::sn_contouring(vbuf, chunk);
 
@@ -254,19 +257,26 @@ impl MeshGen {
                             
                             put_cube(vbuf, lp, chunk, c.tex_id);
 
-                        } else if c.shape_id == 2 {
-
-                            put_leaves(vbuf, lp.as_vec3(), c.tex_id);
-
-                        }
-
-
+                        } 
                     }
                 }
             }
         }
+    }
 
-        // vbuf.make_indexed();
+    
+    pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+        
+        iter::iter_xzy(Chunk::SIZE as i32, |lp| {
+
+            let c = chunk.get_cell(lp);
+
+            if c.tex_id != 0 {
+                if c.shape_id == 2 {
+                    put_leaves(vbuf, lp.as_vec3(), c.tex_id);
+                }
+            }
+        });
     }
 
 
