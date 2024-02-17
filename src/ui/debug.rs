@@ -132,8 +132,10 @@ pub fn ui_menu_panel(
                                 }
                             }
                             ui.separator();
-                            ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Gizmo All Chunks");
-                            ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Gizmo Curr Chunk");
+                            ui.label("Gizmos:");
+                            ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
+                            ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Curr Chunk");
+                            ui.toggle_value(&mut clientinfo.dbg_gizmo_remesh_chunks, "ReMesh Chunks");
                             ui.separator();
 
                             if ui.button("Gen Tree").clicked() {

@@ -1,6 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{app::AppExit, ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{app::AppExit, ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 
 #[cfg(feature = "target_native_os")]
@@ -222,8 +222,8 @@ fn startup(
             ..default()
         },
 
-        // #[cfg(feature = "target_native_os")]
-        // AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+        #[cfg(feature = "target_native_os")]
+        AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
 
         FogSettings {
             // color: Color::rgba(0.0, 113.0 / 255.0,185.0 / 255.0, 1.0),
@@ -258,18 +258,18 @@ fn startup(
         DespawnOnWorldUnload,
     ));
 
-    // sky
-    cmds.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Box::default())),
-        material: materials.add(StandardMaterial {
-            base_color: Color::hex("888888").unwrap(),
-            unlit: true,
-            cull_mode: None,
-            ..default()
-        }),
-        transform: Transform::from_scale(Vec3::splat(1_000_000.0)),
-        ..default()
-    });
+    // // sky
+    // cmds.spawn(PbrBundle {
+    //     mesh: meshes.add(Mesh::from(shape::Box::default())),
+    //     material: materials.add(StandardMaterial {
+    //         base_color: Color::hex("888888").unwrap(),
+    //         unlit: true,
+    //         cull_mode: None,
+    //         ..default()
+    //     }),
+    //     transform: Transform::from_scale(Vec3::splat(1_000_000.0)),
+    //     ..default()
+    // });
 
     // commands.spawn((
     //     SceneBundle {
@@ -378,8 +378,8 @@ fn handle_inputs(
 }
 
 fn tick_world(
-    // #[cfg(feature = "target_native_os")]
-    // mut atmosphere: AtmosphereMut<Nishita>,
+    #[cfg(feature = "target_native_os")]
+    mut atmosphere: AtmosphereMut<Nishita>,
 
     mut query_sun: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
@@ -427,10 +427,10 @@ fn tick_world(
     // Sun Pos
     let sun_angle = worldinfo.daytime * PI * 2.;
     
-    // #[cfg(feature = "target_native_os")]
-    // {
-    //     atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
-    // }
+    #[cfg(feature = "target_native_os")]
+    {
+        atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
+    }
 
     if let Some((mut light_trans, mut directional)) = query_sun.single_mut().into() {
         directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * 100000.0;
@@ -561,6 +561,7 @@ pub struct ClientInfo {
     pub dbg_menubar: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
     pub dbg_gizmo_curr_chunk: bool,
+    pub dbg_gizmo_remesh_chunks: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -573,24 +574,29 @@ pub struct ClientInfo {
     pub brush_shape: u16,
     pub brush_tex: u16,
 
+    pub chunks_meshing: HashSet<IVec3>,
+
     pub cfg: ClientSettings,
 }
 
 impl Default for ClientInfo {
     fn default() -> Self {
         Self {
-            disconnected_reason: "none".into(),
+            disconnected_reason: String::new(),
             ping: (0,0,0,0),
             playerlist: Vec::new(),
             dbg_text: false,
             dbg_menubar: true,
             dbg_gizmo_all_loaded_chunks: false,
             dbg_gizmo_curr_chunk: false,
+            dbg_gizmo_remesh_chunks: false,
 
             brush_size: 4.,
             brush_strength: 0.8,
             brush_shape: 0,
             brush_tex: 21,
+
+            chunks_meshing: HashSet::default(),
 
             cfg: ClientSettings::default(),
         }

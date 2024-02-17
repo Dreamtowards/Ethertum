@@ -110,7 +110,7 @@ pub fn server_sys(
                         entity_id,
                         position: Vec3::ZERO,
                         chunks_loaded: HashSet::default(),
-                        chunks_load_distance: IVec2::new(5, 3),
+                        chunks_load_distance: IVec2::new(4, 2),
                     });
                 }
                 // Play Stage:

@@ -97,6 +97,7 @@ fn chunks_remesh_enqueue(
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 
+    mut cli: ResMut<ClientInfo>,
     tx_chunks_meshing: Res<MpscTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<MpscRx<ChunkRemeshData>>,
 ) {
@@ -107,13 +108,17 @@ fn chunks_remesh_enqueue(
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::utils::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
-        if tx_chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
+        if cli.chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
             break;
+        }
+        if cli.chunks_meshing.contains(&chunkpos) {
+            continue;
         }
 
         if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
-            let chunkptr = chunkptr.clone();
+            cli.chunks_meshing.insert(chunkpos);
 
+            let chunkptr = chunkptr.clone();
             let tx = tx_chunks_meshing.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
@@ -176,7 +181,9 @@ fn chunks_remesh_enqueue(
 
             task.detach();
             // chunk_sys.chunks_meshing.insert(chunkpos, ());
-        }
+
+            info!("ReMesh enqueued {} {}", chunkpos, chunk_sys.chunks_remesh.len());
+        } 
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
@@ -194,6 +201,9 @@ fn chunks_remesh_enqueue(
                 cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
             }
         }
+
+        cli.chunks_meshing.remove(&chunkpos);
+        info!("ReMesh Finished {}", chunk_sys.chunks_remesh.len());
     }
 }
 
@@ -332,7 +342,7 @@ fn raycast(
 fn draw_gizmos(
     mut gizmos: Gizmos, 
     chunk_sys: Res<ClientChunkSystem>, 
-    clientinfo: Res<ClientInfo>,
+    cli: Res<ClientInfo>,
     query_cam: Query<&Transform, With<CharacterController>>,
 ) {
     // // chunks loading
@@ -344,7 +354,7 @@ fn draw_gizmos(
     // }
 
     // all loaded chunks
-    if clientinfo.dbg_gizmo_all_loaded_chunks {
+    if cli.dbg_gizmo_all_loaded_chunks {
         for cp in chunk_sys.get_chunks().keys() {
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
@@ -353,7 +363,7 @@ fn draw_gizmos(
         }
     }
 
-    if clientinfo.dbg_gizmo_curr_chunk {
+    if cli.dbg_gizmo_curr_chunk {
         if let Ok(trans) = query_cam.get_single() {
             let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
             gizmos.cuboid(
@@ -362,21 +372,25 @@ fn draw_gizmos(
             );
         }
     }
-    // chunks remesh
-    // for cp in chunk_sys.chunks_remesh.iter() {
-    //     gizmos.cuboid(
-    //         Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
-    //         Color::ORANGE,
-    //     );
-    // }
 
-    // chunks meshing
-    // for cp in chunk_sys.chunks_meshing.keys() {
-    //     gizmos.cuboid(
-    //         Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
-    //         Color::RED,
-    //     );
-    // }
+    if cli.dbg_gizmo_remesh_chunks {
+        // chunks remesh
+        for cp in chunk_sys.chunks_remesh.iter() {
+            gizmos.cuboid(
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Color::ORANGE,
+            );
+        }
+        
+        // chunks meshing
+        for cp in cli.chunks_meshing.iter() {
+            gizmos.cuboid(
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Color::RED,
+            );
+        }
+    }
+
 }
 
 
@@ -434,7 +448,7 @@ impl ClientChunkSystem {
             let mut chunk = chunkptr.write().unwrap();
             chunkpos = chunk.chunkpos;
 
-            let mut load = Vec::new();
+            let mut neighbors_nearby_completed = Vec::new();
 
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
@@ -452,7 +466,7 @@ impl ClientChunkSystem {
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
                         if neib_chunk.is_neighbors_complete() {
-                            load.push(neib_chunk.chunkpos);
+                            neighbors_nearby_completed.push(neib_chunk.chunkpos);
                         }
                         
 
@@ -463,10 +477,10 @@ impl ClientChunkSystem {
                 }
             }
 
-            if chunk.is_neighbors_complete() {
+            // if chunk.is_neighbors_complete() {
                 self.mark_chunk_remesh(chunkpos);
-            }
-            for cp in load {
+            // }
+            for cp in neighbors_nearby_completed {
                 self.mark_chunk_remesh(cp);
             }
         }
