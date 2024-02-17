@@ -91,7 +91,8 @@ impl WorldGen {
 
                 // Grass
                 // hash(x * z * 100) < 0.23
-                if perlin.get([x as f64 / 18., z as f64 / 18.]) > 0.3 {
+                let g = perlin.get([x as f64 / 18., z as f64 / 18.]);
+                if g > 0.0 {
                     for ly in 0..Chunk::SIZE-1 {
                         let lp = ivec3(lx,ly,lz);
 
@@ -99,7 +100,15 @@ impl WorldGen {
                            chunk.get_cell(lp + IVec3::Y).tex_id == 0 {
 
                             let c = chunk.get_cell_mut(lp + IVec3::Y);
-                            c.tex_id = mtl::FERN;
+                            c.tex_id = if g > 0.94 {
+                                mtl::ROSE
+                            } else if g > 0.8 {
+                                mtl::FERN
+                            } else if g > 0.24 {
+                                mtl::BUSH
+                            } else {
+                                mtl::SHORTGRASS
+                            };
                             c.shape_id = 3;
                             break;
                         }
@@ -107,14 +116,14 @@ impl WorldGen {
                 }
 
                 // Vines
-                if hash(x ^ z * 7384) < (24.0 / 256.0) {
+                if hash(x ^ z * 7384) < (18.0 / 256.0) {
                     for ly in 0..Chunk::SIZE-1 {
                         let lp = ivec3(lx,ly,lz);
 
                         if chunk.get_cell(lp).tex_id == 0 && 
                            chunk.get_cell(lp + IVec3::Y).tex_id == mtl::STONE {
 
-                            for i in 0..(12.0 * hash(x*z*5321)) as i32 {
+                            for i in 0..(12.0 * hash(x ^ z*121)) as i32 {
                                 let lp = lp + IVec3::NEG_Y * i;
                                 if lp.y < 0 {
                                     break;
@@ -134,17 +143,14 @@ impl WorldGen {
                 
                 // Trees
                 if hash(x ^ z * 9572) < (3.0 / 256.0) {
-                    
                     for ly in 0..Chunk::SIZE {
                         let lp = ivec3(lx,ly,lz);
 
                         if chunk.get_cell(lp).tex_id != mtl::GRASS {
                             continue;
                         }
-                        
                         let siz = hash(x ^ ly ^ z);
-
-                        gen_tree(chunk, lp, siz * 0.8);
+                        gen_tree(chunk, lp, siz);
                     }
                 }
             }
@@ -159,20 +165,6 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
     let leaves_rad = 2 + (siz * 5.0) as i32;
 
     // Leaves
-    // let n = leaves_rad;
-    // for rx in -n..=n {
-    //     for ry in -n..=n {
-    //         for rz in -n..=n {
-    //             let rp = IVec3::new(rx, ry, rz);
-    //             let p = lp + IVec3::Y * trunk_height + rp;
-    //             if Chunk::is_localpos(p) {
-    //                 let c = chunk.get_cell_mut(p);
-    //                 c.tex_id = mtl::LEAVES;
-    //                 c.shape_id = 1;
-    //             }
-    //         }
-    //     }
-    // }
     iter::iter_aabb(leaves_rad, leaves_rad, |rp| {
         if rp.length_squared() >= leaves_rad*leaves_rad {
             return;
@@ -184,14 +176,6 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         let c = chunk.get_cell_mut(lp);
         c.tex_id = mtl::LEAVES;
         c.shape_id = 2;
-        // if rp.length_squared() < leaves_rad*leaves_rad {
-            // let lp = lp + rp;//IVec3::Y * trunk_height + rp;
-            // if Chunk::is_localpos(lp) {
-            //     let c = chunk.get_cell_mut(lp);
-            //     c.tex_id = mtl::LEAVES;
-            //     c.shape_id = 2;
-            // }
-        // }
     });
 
     // Trunk

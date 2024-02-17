@@ -40,6 +40,9 @@ pub mod mtl {
     pub const SAND: u16 = 19;
     pub const LOG: u16 = 13;
 
+    pub const SHORTGRASS: u16 = 13;
+    pub const BUSH: u16 = 14;
+    pub const ROSE: u16 = 15;
     pub const FERN: u16 = 16;
     pub const LEAVES: u16 = 23;
 }
