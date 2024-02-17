@@ -362,7 +362,6 @@ fn draw_gizmos(
             );
         }
     }
-
     // chunks remesh
     // for cp in chunk_sys.chunks_remesh.iter() {
     //     gizmos.cuboid(

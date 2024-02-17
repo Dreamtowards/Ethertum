@@ -12,7 +12,7 @@ pub use voxel_client::{ClientVoxelPlugin, ClientChunkSystem, HitResult};
 
 mod material;
 mod meshgen;
-mod worldgen;
+pub mod worldgen;
 pub use worldgen::WorldGen;
 
 use std::sync::{Arc, RwLock};

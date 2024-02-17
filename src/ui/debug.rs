@@ -11,8 +11,7 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    game::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, 
-    voxel::{ChunkSystem, ClientChunkSystem, HitResult}
+    character_controller::CharacterControllerCamera, game::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
 };
 
 
@@ -21,6 +20,7 @@ pub fn ui_menu_panel(
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut clientinfo: ResMut<ClientInfo>,
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 
     net_client: Option<Res<RenetClient>>,
     net_transport: Option<Res<NetcodeClientTransport>>,
@@ -131,8 +131,17 @@ pub fn ui_menu_panel(
                                     chunk_sys.mark_chunk_remesh(chunkpos);
                                 }
                             }
+                            ui.separator();
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Gizmo All Chunks");
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Gizmo Curr Chunk");
+                            ui.separator();
+
+                            if ui.button("Gen Tree").clicked() {
+                                let p = query_cam.single().translation.as_ivec3();
+                                let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
+
+                                worldgen::gen_tree(&mut chunk, Chunk::as_localpos(p), 0.8);
+                            }
                         });
                         ui.menu_button("Render", |ui| {});
                         ui.menu_button("Audio", |ui| {});

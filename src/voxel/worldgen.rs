@@ -130,15 +130,8 @@ impl WorldGen {
                         }
                     }
                 }
-            }
-        }
 
-        
-        for lx in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
-                let x = chunkpos.x + lx;
-                let z = chunkpos.z + lz;
-
+                
                 // Trees
                 if hash(x ^ z * 9572) < (3.0 / 256.0) {
                     
@@ -148,59 +141,10 @@ impl WorldGen {
                         if chunk.get_cell(lp).tex_id != mtl::GRASS {
                             continue;
                         }
-
+                        
                         let siz = hash(x ^ ly ^ z);
-                        let trunk_height = 3 + (siz * 6.0) as i32;
-                        let leaves_rad = 2 + (siz * 5.0) as i32;
 
-                        // Leaves
-                        let n = leaves_rad;
-                        for rx in -n..=n {
-                            for ry in -n..=n {
-                                for rz in -n..=n {
-                                    let rp = IVec3::new(rx, ry, rz);
-                                    let p = lp + IVec3::Y * trunk_height + rp;
-                                    if Chunk::is_localpos(p) {
-                                        let c = chunk.get_cell_mut(p);
-                                        c.tex_id = mtl::LEAVES;
-                                        c.shape_id = 1;
-                                    }
-                                }
-                            }
-                        }
-                        // iter::iter_aabb(leaves_rad, leaves_rad, |rp| {
-                        //     if rp.length_squared() > leaves_rad*leaves_rad {
-                        //         return;
-                        //     }
-                        //     let lp = lp + IVec3::Y * trunk_height + rp;
-                        //     if !Chunk::is_localpos(lp) {
-                        //         return;
-                        //     }
-                        //     let c = chunk.get_cell_mut(lp);
-                        //     c.tex_id = mtl::LEAVES;
-                        //     c.shape_id = 1;
-                        //     // if rp.length_squared() < leaves_rad*leaves_rad {
-                        //         // let lp = lp + rp;//IVec3::Y * trunk_height + rp;
-                        //         // if Chunk::is_localpos(lp) {
-                        //         //     let c = chunk.get_cell_mut(lp);
-                        //         //     c.tex_id = mtl::LEAVES;
-                        //         //     c.shape_id = 2;
-                        //         // }
-                        //     // }
-                        // });
-
-                        // Trunk
-                        for i in 0..trunk_height {
-                            if i + lp.y > 15 {
-                                break;
-                            }
-                            let c = chunk.get_cell_mut(lp + IVec3::Y * i);
-                            c.tex_id = mtl::LOG;
-                            c.shape_id = 0;
-                            c.set_isovalue(2.0 * (1.2 - i as f32 / trunk_height as f32));
-                        }
-
-                        break;
+                        gen_tree(chunk, lp, siz * 0.8);
                     }
                 }
             }
@@ -209,46 +153,46 @@ impl WorldGen {
 }
 
 
-fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
+pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
     
     let trunk_height = 3 + (siz * 6.0) as i32;
     let leaves_rad = 2 + (siz * 5.0) as i32;
 
     // Leaves
-    let n = leaves_rad;
-    for rx in -n..=n {
-        for ry in -n..=n {
-            for rz in -n..=n {
-                let rp = IVec3::new(rx, ry, rz);
-                let p = lp + IVec3::Y * trunk_height + rp;
-                if Chunk::is_localpos(p) {
-                    let c = chunk.get_cell_mut(p);
-                    c.tex_id = mtl::LEAVES;
-                    c.shape_id = 1;
-                }
-            }
+    // let n = leaves_rad;
+    // for rx in -n..=n {
+    //     for ry in -n..=n {
+    //         for rz in -n..=n {
+    //             let rp = IVec3::new(rx, ry, rz);
+    //             let p = lp + IVec3::Y * trunk_height + rp;
+    //             if Chunk::is_localpos(p) {
+    //                 let c = chunk.get_cell_mut(p);
+    //                 c.tex_id = mtl::LEAVES;
+    //                 c.shape_id = 1;
+    //             }
+    //         }
+    //     }
+    // }
+    iter::iter_aabb(leaves_rad, leaves_rad, |rp| {
+        if rp.length_squared() >= leaves_rad*leaves_rad {
+            return;
         }
-    }
-    // iter::iter_aabb(leaves_rad, leaves_rad, |rp| {
-    //     if rp.length_squared() > leaves_rad*leaves_rad {
-    //         return;
-    //     }
-    //     let lp = lp + IVec3::Y * trunk_height + rp;
-    //     if !Chunk::is_localpos(lp) {
-    //         return;
-    //     }
-    //     let c = chunk.get_cell_mut(lp);
-    //     c.tex_id = mtl::LEAVES;
-    //     c.shape_id = 1;
-    //     // if rp.length_squared() < leaves_rad*leaves_rad {
-    //         // let lp = lp + rp;//IVec3::Y * trunk_height + rp;
-    //         // if Chunk::is_localpos(lp) {
-    //         //     let c = chunk.get_cell_mut(lp);
-    //         //     c.tex_id = mtl::LEAVES;
-    //         //     c.shape_id = 2;
-    //         // }
-    //     // }
-    // });
+        let lp = lp + IVec3::Y * trunk_height + rp;
+        if !Chunk::is_localpos(lp) {
+            return;
+        }
+        let c = chunk.get_cell_mut(lp);
+        c.tex_id = mtl::LEAVES;
+        c.shape_id = 2;
+        // if rp.length_squared() < leaves_rad*leaves_rad {
+            // let lp = lp + rp;//IVec3::Y * trunk_height + rp;
+            // if Chunk::is_localpos(lp) {
+            //     let c = chunk.get_cell_mut(lp);
+            //     c.tex_id = mtl::LEAVES;
+            //     c.shape_id = 2;
+            // }
+        // }
+    });
 
     // Trunk
     for i in 0..trunk_height {
