@@ -53,8 +53,8 @@ fn chunks_load(
         let vd = player.chunks_load_distance;
         let cp = Chunk::as_chunkpos(player.position.as_ivec3());
 
-        iter::iter_aabb(vd.x, vd.y, |p| {
-            let chunkpos = *p * Chunk::SIZE + cp;
+        iter::iter_aabb(vd.x, vd.y, |rp| {
+            let chunkpos = rp * Chunk::SIZE + cp;
 
             if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
                 return;

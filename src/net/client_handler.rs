@@ -175,7 +175,11 @@ pub fn client_sys(
                 if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
                     let entity = chunkptr.read().unwrap().entity;
                     
-                    cmds.entity(entity).despawn_recursive();
+                    // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
+                    // why the entity may not exists even if it in the chunk_sys?
+                    if let Some(cmds) = cmds.get_entity(entity) {
+                        cmds.despawn_recursive();
+                    }
                 }
             }
             SPacket::ChunkModify { chunkpos, voxel } => {

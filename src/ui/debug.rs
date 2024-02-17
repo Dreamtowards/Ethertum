@@ -132,6 +132,7 @@ pub fn ui_menu_panel(
                                 }
                             }
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Gizmo All Chunks");
+                            ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Gizmo Curr Chunk");
                         });
                         ui.menu_button("Render", |ui| {});
                         ui.menu_button("Audio", |ui| {});
@@ -250,11 +251,20 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
                 hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel
             );
         }
+        
+        let mut cam_cell_str = "none".into();
+        if let Some(c) = chunk_sys.get_cell(cam_pos.as_ivec3()) {
+            cam_cell_str = format!(
+                "tex: {}, shape: {}, isoval: {}",
+                c.tex_id, c.shape_id, c.isovalue()
+            );
+        }
 
         str_world = format!(
 "
 Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph.
 Hit: {hit_str},
+CamCell: {cam_cell_str}
 World: '{}', daytime: {}. inhabited: {}, seed: {}
 Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
 cam_pos.x, cam_pos.y, cam_pos.z, cam_pos_spd, cam_pos_spd * 3.6,

@@ -273,7 +273,7 @@ fn raycast(
         iter::iter_aabb(n, n, |lp| {
             // +0.01*norm: for placing cube like MC.
             
-            let p = (hit_result.position + if do_place {1.} else {-1.} * 0.01 * hit_result.normal).floor().as_ivec3() + *lp;
+            let p = (hit_result.position + if do_place {1.} else {-1.} * 0.01 * hit_result.normal).floor().as_ivec3() + lp;
             let chunkpos = Chunk::as_chunkpos(p);
 
             // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
@@ -329,7 +329,12 @@ fn raycast(
 
 
 
-fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo: Res<ClientInfo>) {
+fn draw_gizmos(
+    mut gizmos: Gizmos, 
+    chunk_sys: Res<ClientChunkSystem>, 
+    clientinfo: Res<ClientInfo>,
+    query_cam: Query<&Transform, With<CharacterController>>,
+) {
     // // chunks loading
     // for cp in chunk_sys.chunks_loading.keys() {
     //     gizmos.cuboid(
@@ -344,6 +349,16 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, clientinfo
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
                 Color::DARK_GRAY,
+            );
+        }
+    }
+
+    if clientinfo.dbg_gizmo_curr_chunk {
+        if let Ok(trans) = query_cam.get_single() {
+            let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
+            gizmos.cuboid(
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Color::GRAY,
             );
         }
     }

@@ -536,6 +536,7 @@ pub struct ClientInfo {
     pub dbg_text: bool,
     pub dbg_menubar: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
+    pub dbg_gizmo_curr_chunk: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -560,6 +561,7 @@ impl Default for ClientInfo {
             dbg_text: false,
             dbg_menubar: true,
             dbg_gizmo_all_loaded_chunks: false,
+            dbg_gizmo_curr_chunk: false,
 
             brush_size: 4.,
             brush_strength: 0.8,

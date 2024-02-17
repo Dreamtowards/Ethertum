@@ -194,7 +194,9 @@ impl Chunk {
     }
     // [0, 16)
     pub fn is_localpos(p: IVec3) -> bool {
-        p.x >= 0 && p.x < 16 && p.y >= 0 && p.y < 16 && p.z >= 0 && p.z < 16
+        p.x >= 0 && p.x < 16 && 
+        p.y >= 0 && p.y < 16 && 
+        p.z >= 0 && p.z < 16
     }
 
     pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)

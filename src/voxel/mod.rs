@@ -61,6 +61,12 @@ pub trait ChunkSystem {
         self.get_chunks().len() 
     }
 
+    fn get_cell(&self, p: IVec3) -> Option<Cell> {
+        let chunkptr = self.get_chunk(Chunk::as_chunkpos(p))?;
+
+        Some(*chunkptr.read().unwrap().get_cell(Chunk::as_localpos(p)))
+    }
+
 }
 
 
