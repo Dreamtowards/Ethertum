@@ -198,6 +198,8 @@ fn fragment(
     // pbr_in.occlusion = vec3<f32>(occlusion);
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
+
+    pbr_in.material.flags |= pbr_types::STANDARD_MATERIAL_FLAGS_FOG_ENABLED_BIT;  // enable fog
     color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
     
     // var color = base_color;

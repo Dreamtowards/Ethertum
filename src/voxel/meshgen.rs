@@ -548,7 +548,7 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
 
 fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let deg45 = PI / 4.;
-    let siz = 1.0;
+    let siz = 1.4;
 
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
     put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
@@ -558,7 +558,7 @@ fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
 
 fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let ang = PI / 3.0;
-    let siz = 1.2;
+    let siz = 1.4;
 
     put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang), Vec2::ONE*siz);
     put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang*2.), Vec2::ONE*siz);

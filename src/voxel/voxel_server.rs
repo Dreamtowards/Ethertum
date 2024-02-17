@@ -56,6 +56,9 @@ fn chunks_load(
         iter::iter_aabb(vd.x, vd.y, |rp| {
             let chunkpos = rp * Chunk::SIZE + cp;
 
+            if chunks_loading.len() > 8 {  // max_concurrent_loading_chunks
+                return;
+            }
             if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
                 return;
             }

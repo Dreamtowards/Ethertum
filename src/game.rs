@@ -183,7 +183,7 @@ fn startup(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     mut cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
@@ -222,8 +222,20 @@ fn startup(
             ..default()
         },
 
-        #[cfg(feature = "target_native_os")]
-        AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+        // #[cfg(feature = "target_native_os")]
+        // AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+
+        FogSettings {
+            // color: Color::rgba(0.0, 113.0 / 255.0,185.0 / 255.0, 1.0),
+            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
+            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+            directional_light_exponent: 30.0,
+            falloff: FogFalloff::from_visibility_colors(
+                320.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+            ),
+        },
 
         CharacterControllerCamera,
         Name::new("Camera"),
@@ -246,6 +258,18 @@ fn startup(
         DespawnOnWorldUnload,
     ));
 
+    // sky
+    cmds.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Box::default())),
+        material: materials.add(StandardMaterial {
+            base_color: Color::hex("888888").unwrap(),
+            unlit: true,
+            cull_mode: None,
+            ..default()
+        }),
+        transform: Transform::from_scale(Vec3::splat(1_000_000.0)),
+        ..default()
+    });
 
     // commands.spawn((
     //     SceneBundle {
@@ -354,8 +378,8 @@ fn handle_inputs(
 }
 
 fn tick_world(
-    #[cfg(feature = "target_native_os")]
-    mut atmosphere: AtmosphereMut<Nishita>,
+    // #[cfg(feature = "target_native_os")]
+    // mut atmosphere: AtmosphereMut<Nishita>,
 
     mut query_sun: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
@@ -403,10 +427,10 @@ fn tick_world(
     // Sun Pos
     let sun_angle = worldinfo.daytime * PI * 2.;
     
-    #[cfg(feature = "target_native_os")]
-    {
-        atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
-    }
+    // #[cfg(feature = "target_native_os")]
+    // {
+    //     atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
+    // }
 
     if let Some((mut light_trans, mut directional)) = query_sun.single_mut().into() {
         directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * 100000.0;
