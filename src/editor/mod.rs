@@ -15,7 +15,6 @@ pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin);
 
         // Editor
         use bevy_editor_pls::prelude::*;
@@ -31,11 +30,6 @@ impl Plugin for EditorPlugin {
         app.add_systems(Startup, setup_editor_camera_controls);
         // app.add_systems(Update, handle_inputs);
 
-        app.add_plugins((
-            FrameTimeDiagnosticsPlugin,
-            EntityCountDiagnosticsPlugin,
-            //SystemInformationDiagnosticsPlugin
-        ));
     }
 }
 

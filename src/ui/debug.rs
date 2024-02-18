@@ -153,7 +153,8 @@ pub fn ui_menu_panel(
                             ui.button("Save Screenshot");
 
                             ui.separator();
-                            ui.toggle_value(&mut clientinfo.dbg_text, "Debug Info");
+                            ui.toggle_value(&mut clientinfo.dbg_text, "Debug Text");
+                            ui.toggle_value(&mut clientinfo.dbg_inspector, "Inspector");
 
                         });
                     });

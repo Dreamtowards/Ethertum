@@ -1,6 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{app::AppExit, ecs::system::{CommandQueue, SystemParam}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 
 #[cfg(feature = "target_native_os")]
@@ -86,6 +86,7 @@ impl Plugin for GamePlugin {
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
+        app.register_type::<ClientInfo>();
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
@@ -93,8 +94,15 @@ impl Plugin for GamePlugin {
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
 
-        // Debug Draw Basis
-        app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+        // Debug
+        {
+            // Debug Draw Basis
+            app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+            
+            // Debug World Inspector
+            app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
+        }
+
 
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
@@ -227,14 +235,21 @@ fn startup(
 
         FogSettings {
             // color: Color::rgba(0.0, 113.0 / 255.0,185.0 / 255.0, 1.0),
-            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
-            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            directional_light_exponent: 30.0,
+            // color: Color::rgba(0.235, 0.557, 0.8, 1.0),
+            color: Color::rgba(0.0, 0.666, 1.0, 1.0),
+            // falloff: FogFalloff::ExponentialSquared {
+            //     density: 0.007
+            // },
             falloff: FogFalloff::from_visibility_colors(
-                320.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                420.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
                 Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+                
+                // 110.0 / 255.0, 240.0 / 255.0, 1.0
+                Color::rgb(0.7, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
             ),
+            // directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+            // directional_light_exponent: 30.0,
+            ..default()
         },
 
         CharacterControllerCamera,
@@ -357,6 +372,11 @@ fn handle_inputs(
         next_ui.set(CurrentUI::WtfSettings);
     }
 
+    // Temporary Toggle F9 Debug Inspector
+    if key.just_pressed(KeyCode::F9) {
+        clientinfo.dbg_inspector = !clientinfo.dbg_inspector;
+    }
+
     // Toggle F3 Debug TextInfo
     if key.just_pressed(KeyCode::F3) {
         clientinfo.dbg_text = !clientinfo.dbg_text;
@@ -388,6 +408,9 @@ fn tick_world(
     query_player: Query<&Transform, (With<CharacterController>, Without<Sun>)>,
     mut net_client: ResMut<RenetClient>,
     mut last_player_pos: Local<Vec3>,
+
+    mut query_fog: Query<&mut FogSettings>,
+    cli: Res<ClientInfo>,
 ) {
     // worldinfo.tick_timer.tick(time.delta());
     // if !worldinfo.tick_timer.just_finished() {
@@ -423,6 +446,8 @@ fn tick_world(
         }
     }
 
+    let mut fog = query_fog.single_mut();
+    fog.falloff = FogFalloff::from_visibility_colors(cli.sky_fog_visibility, cli.sky_extinction_color, cli.sky_inscattering_color);
 
     // Sun Pos
     let sun_angle = worldinfo.daytime * PI * 2.;
@@ -553,15 +578,18 @@ impl Default for ClientSettings {
     }
 }
 
-#[derive(Resource)]
+
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct ClientInfo {
     pub disconnected_reason: String,  // todo: Clean at Connect. prevents re-show old reason.
 
     pub dbg_text: bool,
     pub dbg_menubar: bool,
-    pub dbg_gizmo_all_loaded_chunks: bool,
-    pub dbg_gizmo_curr_chunk: bool,
+    pub dbg_inspector: bool,
     pub dbg_gizmo_remesh_chunks: bool,
+    pub dbg_gizmo_curr_chunk: bool,
+    pub dbg_gizmo_all_loaded_chunks: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -576,6 +604,11 @@ pub struct ClientInfo {
 
     pub chunks_meshing: HashSet<IVec3>,
 
+    pub sky_inscattering_color: Color,
+    pub sky_extinction_color: Color,
+    pub sky_fog_visibility: f32,
+
+    #[reflect(ignore)]
     pub cfg: ClientSettings,
 }
 
@@ -585,11 +618,13 @@ impl Default for ClientInfo {
             disconnected_reason: String::new(),
             ping: (0,0,0,0),
             playerlist: Vec::new(),
-            dbg_text: false,
+
+            dbg_text: true,
             dbg_menubar: true,
-            dbg_gizmo_all_loaded_chunks: false,
+            dbg_inspector: true,
+            dbg_gizmo_remesh_chunks: true,
             dbg_gizmo_curr_chunk: false,
-            dbg_gizmo_remesh_chunks: false,
+            dbg_gizmo_all_loaded_chunks: false,
 
             brush_size: 4.,
             brush_strength: 0.8,
@@ -597,6 +632,10 @@ impl Default for ClientInfo {
             brush_tex: 21,
 
             chunks_meshing: HashSet::default(),
+
+            sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
+            sky_inscattering_color: Color::rgb(0.7, 0.844, 1.0),
+            sky_fog_visibility: 420.0,
 
             cfg: ClientSettings::default(),
         }
