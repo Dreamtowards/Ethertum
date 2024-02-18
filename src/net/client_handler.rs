@@ -237,20 +237,22 @@ fn spawn_player(
         },
         DespawnOnWorldUnload,
     )).with_children(|parent| {
-        parent.spawn(BillboardTextBundle {
-            transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
-            text: Text::from_sections([
-                TextSection {
-                    value: name.clone(),
-                    style: TextStyle {
-                        font_size: 32.0,
-                        color: Color::WHITE,
-                        ..default()
-                    }
-                },
-            ]).with_alignment(TextAlignment::Center),
-            ..default() 
-        });
+        if !is_theplayer {
+            parent.spawn(BillboardTextBundle {
+                transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
+                text: Text::from_sections([
+                    TextSection {
+                        value: name.clone(),
+                        style: TextStyle {
+                            font_size: 32.0,
+                            color: Color::WHITE,
+                            ..default()
+                        }
+                    },
+                ]).with_alignment(TextAlignment::Center),
+                ..default() 
+            });
+        }
         parent.spawn(SpotLightBundle {
             spot_light: SpotLight { 
                 color: Color::YELLOW,

@@ -340,7 +340,9 @@ fn sync_camera(
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
-            fov_val.target = if ctl.is_sprinting { cli.cfg.fov + 20. } else { cli.cfg.fov };
+            fov_val.target = if input_key.pressed(KeyCode::C) {24.} else {
+                if ctl.is_sprinting { cli.cfg.fov + 20. } else { cli.cfg.fov }
+            };
             fov_val.update(time.delta_seconds() * 16.);
 
             if let Projection::Perspective(pp) = proj.as_mut() {

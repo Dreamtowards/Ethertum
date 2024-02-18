@@ -234,21 +234,8 @@ fn startup(
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
 
         FogSettings {
-            // color: Color::rgba(0.0, 113.0 / 255.0,185.0 / 255.0, 1.0),
-            // color: Color::rgba(0.235, 0.557, 0.8, 1.0),
-            color: Color::rgba(0.0, 0.666, 1.0, 1.0),
-            // falloff: FogFalloff::ExponentialSquared {
-            //     density: 0.007
-            // },
-            falloff: FogFalloff::from_visibility_colors(
-                420.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
-                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                
-                // 110.0 / 255.0, 240.0 / 255.0, 1.0
-                Color::rgb(0.7, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
-            ),
-            // directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            // directional_light_exponent: 30.0,
+            // color, falloff shoud be set in ClientInfo.sky_fog_visibility, etc. due to dynamic debug reason.
+            // falloff: FogFalloff::Atmospheric { extinction: Vec3::ZERO, inscattering:  Vec3::ZERO },  // mark as Atmospheric. value will be re-set by ClientInfo.sky_fog...
             ..default()
         },
 
@@ -447,7 +434,12 @@ fn tick_world(
     }
 
     let mut fog = query_fog.single_mut();
-    fog.falloff = FogFalloff::from_visibility_colors(cli.sky_fog_visibility, cli.sky_extinction_color, cli.sky_inscattering_color);
+    fog.color = cli.sky_fog_color;
+    if cli.sky_fog_is_atomspheric {  // let FogFalloff::Atmospheric { .. } = fog.falloff {
+        fog.falloff = FogFalloff::from_visibility_colors(cli.sky_fog_visibility, cli.sky_extinction_color, cli.sky_inscattering_color);
+    } else {
+        fog.falloff = FogFalloff::from_visibility_squared(cli.sky_fog_visibility / 4.0);
+    }
 
     // Sun Pos
     let sun_angle = worldinfo.daytime * PI * 2.;
@@ -604,9 +596,11 @@ pub struct ClientInfo {
 
     pub chunks_meshing: HashSet<IVec3>,
 
+    pub sky_fog_color: Color,
+    pub sky_fog_visibility: f32,  
     pub sky_inscattering_color: Color,
     pub sky_extinction_color: Color,
-    pub sky_fog_visibility: f32,
+    pub sky_fog_is_atomspheric: bool,
 
     #[reflect(ignore)]
     pub cfg: ClientSettings,
@@ -633,9 +627,11 @@ impl Default for ClientInfo {
 
             chunks_meshing: HashSet::default(),
 
+            sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
+            sky_fog_visibility: 1200.0,  // 280 for ExpSq, 1200 for Atmo
+            sky_fog_is_atomspheric: true,
+            sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0),  // bevy demo: Color::rgb(0.7, 0.844, 1.0),
             sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
-            sky_inscattering_color: Color::rgb(0.7, 0.844, 1.0),
-            sky_fog_visibility: 420.0,
 
             cfg: ClientSettings::default(),
         }
