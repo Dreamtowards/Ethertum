@@ -57,7 +57,7 @@ fn on_exit(
 
 const SERVER_SETTINGS_FILE: &str = "./server.json";
 
-#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
+#[derive(Deserialize, Serialize, Asset, TypePath, Clone)]
 pub struct ServerSettings {
     
     pub addr: String,

@@ -82,4 +82,10 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 
 
+<br>
+Special thanks to the contributors, including but not limited to, people below:
+<a href="https://github.com/cleverraven/cataclysm-dda/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Dreamtowards/Ethertum" />
+</a>
+
 [![Stargazers over time](https://starchart.cc/Dreamtowards/Ethertum.svg?variant=adaptive)](https://starchart.cc/Dreamtowards/Ethertum)

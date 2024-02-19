@@ -11,7 +11,6 @@ fn main() {
                 present_mode: bevy::window::PresentMode::AutoNoVsync,
                 resolution: bevy::window::WindowResolution::new(1280., 720.),
                 title: "Ethertia 0.2.5 2024.02d Foliage".into(),
-                fit_canvas_to_parent: true,  // web: full-window
                 prevent_default_event_handling: true,  // web: avoid twice esc to pause problem.
                 ..default()
             }),
