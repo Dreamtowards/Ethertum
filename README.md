@@ -78,7 +78,7 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 - [Cuppar]()  -->
 
 #### Resources
-- [OpenGameArt.org](OpenGameArt.org): 3D Models
+- [OpenGameArt.org](https://opengameart.org/): 3D Models
 
 
 
