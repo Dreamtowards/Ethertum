@@ -24,8 +24,8 @@ impl Plugin for GameServerPlugin {
         // app.add_plugins(PhysicsPlugins::default());
 
         
-        app.add_systems(PreStartup, on_init);
-        app.add_systems(Last, on_exit);
+        app.add_systems(PreStartup, on_init);  // load settings.
+        app.add_systems(Last, on_exit);  // save settings.
         
     }
 }

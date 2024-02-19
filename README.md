@@ -79,3 +79,7 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 #### Resources
 - [OpenGameArt.org](OpenGameArt.org): 3D Models
+
+
+
+[![Stargazers over time](https://starchart.cc/Dreamtowards/Ethertum.svg?variant=adaptive)](https://starchart.cc/Dreamtowards/Ethertum)

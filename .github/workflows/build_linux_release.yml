@@ -1,8 +1,9 @@
 name: Linux
 
 on:
-  push:
-    branches: [ "main" ]
+  create:
+  # push:
+  #   branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
