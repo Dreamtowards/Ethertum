@@ -1,6 +1,6 @@
 
 
-use bevy::{asset::ReflectAsset, prelude::*, render::render_resource::{AsBindGroup, PrimitiveTopology}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
+use bevy::{asset::ReflectAsset, prelude::*, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, PrimitiveTopology}}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
@@ -31,7 +31,7 @@ impl Plugin for ClientVoxelPlugin {
         }
 
         // Startup Init
-        app.add_systems(First, startup.run_if(condition::load_world()));
+        app.add_systems(First, startup.run_if(condition::load_world));
 
         app.insert_resource(HitResult::default());
         app.add_systems(Update,
@@ -41,7 +41,7 @@ impl Plugin for ClientVoxelPlugin {
                 draw_gizmos,
             )
             .chain()
-            .run_if(condition::in_world()),
+            .run_if(condition::in_world),
         );
     }
 }
@@ -160,7 +160,7 @@ fn chunks_remesh_enqueue(
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
                 _vbuf.0.to_mesh(&mut mesh);
                 _vbuf.0.clear();
 
@@ -168,7 +168,7 @@ fn chunks_remesh_enqueue(
                 // Foliage
                 _vbuf.1.compute_indexed_naive();
 
-                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList);
+                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
                 _vbuf.1.to_mesh(&mut mesh_foliage);
                 _vbuf.1.clear();
 
@@ -235,7 +235,7 @@ fn raycast(
 
     mut hit_result: ResMut<HitResult>,
 
-    mouse_btn: Res<Input<MouseButton>>,
+    mouse_btn: Res<ButtonInput<MouseButton>>,
 
     mut chunk_sys: ResMut<ClientChunkSystem>,
 

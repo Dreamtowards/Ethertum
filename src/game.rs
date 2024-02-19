@@ -1,6 +1,12 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{
+    app::AppExit, 
+    ecs::{reflect, system::{CommandQueue, SystemParam}}, math::vec3, 
+    pbr::DirectionalLightShadowMap, prelude::*, 
+    utils::HashSet, 
+    window::{CursorGrabMode, PrimaryWindow, WindowMode},
+    input::ButtonInput,
 };
 
 #[cfg(feature = "target_native_os")]
@@ -17,21 +23,21 @@ use crate::{
 use crate::voxel::ClientVoxelPlugin;
 
 pub mod condition {
-    use bevy::ecs::{schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
+    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
     use crate::ui::CurrentUI;
     use super::WorldInfo;
 
-    pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_exists::<WorldInfo>()
+    pub fn in_world(res: Option<Res<WorldInfo>>) -> bool {
+        res.is_some()
     }
-    pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_added::<WorldInfo>()
+    pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
+        res.is_some_and(|r|r.is_added())
     }
     pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
         resource_removed::<WorldInfo>()
     }
-    pub fn manipulating() -> impl FnMut(Res<State<CurrentUI>>) -> bool + Clone {
-        |curr_ui: Res<State<CurrentUI>>| *curr_ui == CurrentUI::None
+    pub fn manipulating(curr_ui: Res<State<CurrentUI>>) -> bool {
+        *curr_ui == CurrentUI::None
     }
 }
 
@@ -67,7 +73,7 @@ impl Plugin for GamePlugin {
             // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
         }
         // .obj model loader.
-        app.add_plugins(ObjPlugin);
+        // app.add_plugins(ObjPlugin);
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
@@ -90,14 +96,14 @@ impl Plugin for GamePlugin {
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
-        app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
+        app.add_systems(First, startup.run_if(condition::load_world));  // Camera, Player, Sun
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
-        app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
+        app.add_systems(Update, tick_world.run_if(condition::in_world));  // Sun, World Timing.
 
         // Debug
         {
             // Debug Draw Basis
-            app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+            app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world));
             
             // Debug World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
@@ -321,7 +327,7 @@ fn cleanup(
 }
 
 fn handle_inputs(
-    key: Res<Input<KeyCode>>,
+    key: Res<ButtonInput<KeyCode>>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
     mut controller_query: Query<&mut CharacterController>,
 
@@ -457,8 +463,8 @@ fn tick_world(
     }
 }
 
-fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
-    gizmo_config.depth_bias = -1.; // always in front
+fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfigStore>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
+    gizmo_config.config_mut().0.depth_bias = -1.; // always in front
 
     // World Basis Axes
     let n = 5;

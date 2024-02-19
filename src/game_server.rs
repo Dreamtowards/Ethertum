@@ -2,6 +2,7 @@
 use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_renet::renet::ClientId;
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
+use serde::{Deserialize, Serialize};
 
 use crate::{net::{EntityId, ServerNetworkPlugin}, voxel::ServerVoxelPlugin};
 

@@ -16,7 +16,7 @@ impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CharacterController>();
 
-        app.add_systems(Update, input_move.run_if(condition::in_world()));
+        app.add_systems(Update, input_move.run_if(condition::in_world));
 
         app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
     }
@@ -328,7 +328,7 @@ fn sync_camera(
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
 
-    input_key: Res<Input<KeyCode>>,
+    input_key: Res<ButtonInput<KeyCode>>,
     cli: Res<ClientInfo>,
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {

@@ -1,7 +1,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}, utils::HashMap};
+use bevy::{prelude::*, render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}, utils::HashMap};
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::components::{Collider, RigidBody};
@@ -125,8 +125,9 @@ pub fn client_sys(
                 {
                     let aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
 
-                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
-                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+                    // todo refac: Why Re-Create?
+                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD));
+                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD));
     
                     chunk.entity = cmds
                         .spawn((
@@ -249,7 +250,7 @@ fn spawn_player(
                             ..default()
                         }
                     },
-                ]).with_alignment(TextAlignment::Center),
+                ]).with_alignment(JustifyText::Center),
                 ..default() 
             });
         }
