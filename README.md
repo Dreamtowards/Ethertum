@@ -72,14 +72,44 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 ## Credits
 
 
-#### Contributors
+### Contributors
 
-<!-- - [Thaumstrial]() - Director
+<!-- - [Dreamtowards]()
+- [Thaumstrial]() - Director
+- [LittleMao](), [Pi]()
 - [Cuppar]()  -->
 
-#### Resources
-- [OpenGameArt.org](OpenGameArt.org): 3D Models
+
+### Resources
+
+- [voxel.wiki](//voxel.wiki), [voxelgamedev.com](//voxelgamedev.com): A rabbit hole of Voxel Game Dev
+- [The Art of Unix Programming]()
+
+<!-- - [OpenGameArt.org](//OpenGameArt.org): 3D Models -->
+
+### Relevant links
+
+Smooth Voxel Games:  
+[RisingWorld](https://www.rising-world.net/), 
+[Upvoid](https://upvoid.com/), 
+[VoxelFarm](https://procworld.blogspot.com/2010/11/from-voxels-to-polygons.html),   
+[No Man's Sky](https://www.nomanssky.com/), 
+[Enshrouded](https://enshrouded.com/), 
+[Eco](https://play.eco/),
+[Astroneer](https://store.steampowered.com/app/361420/ASTRONEER/),
+[7 Days to Die](https://7daystodie.com/)
+
+Rust/Bevy Games:   
+[Veloren](https://github.com/veloren/veloren/blob/v0.8.0/voxygen/src/audio/music.rs), 
+[Hytopia](https://creators.hytopia.com/docs/about-hytopia), 
+[Phira](https://phira.moe/),  
+[Settletopia](https://www.youtube.com/watch?v=BGX6olxzjyA)
 
 
+<br>
+Special thanks to the contributors, including but not limited to, people below:
+<a href="https://github.com/cleverraven/cataclysm-dda/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Dreamtowards/Ethertum" />
+</a>
 
 [![Stargazers over time](https://starchart.cc/Dreamtowards/Ethertum.svg?variant=adaptive)](https://starchart.cc/Dreamtowards/Ethertum)

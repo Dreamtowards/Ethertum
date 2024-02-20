@@ -14,8 +14,8 @@ use serde::{Deserialize, Serialize};
 mod packet;
 pub use packet::{CPacket, SPacket, CellData};
 
-mod client_handler;
-mod server_handler;
+mod netproc_client;
+mod netproc_server;
 
 
 const PROTOCOL_ID: u64 = 1;
@@ -93,7 +93,7 @@ impl Plugin for ServerNetworkPlugin {
         }));
 
         app.add_systems(Startup, bind_endpoint);
-        app.add_systems(Update, server_handler::server_sys);
+        app.add_systems(Update, netproc_server::server_sys);
 
         // app.add_systems(Update, ui_server_net);
     }
@@ -119,7 +119,7 @@ impl Plugin for ClientNetworkPlugin {
 
         app.insert_resource(RenetClient::new(ConnectionConfig::default()));
 
-        app.add_systems(Update, client_handler::client_sys);
+        app.add_systems(Update, netproc_client::client_sys);
 
         
         // app.add_systems(Update, ui_client_net);
