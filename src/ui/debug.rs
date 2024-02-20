@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_egui::{
     egui::{
-        self, Align2, Color32, FontId, Frame, Layout, Widget,
+        self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget
     },
     EguiContexts,
 };
@@ -24,6 +24,8 @@ pub fn ui_menu_panel(
 
     net_client: Option<Res<RenetClient>>,
     net_transport: Option<Res<NetcodeClientTransport>>,
+    
+    mut app_exit_events: EventWriter<AppExit>,
 ) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
@@ -122,7 +124,9 @@ pub fn ui_menu_panel(
                             ui.button("Controls");
                             ui.button("About");
                             ui.separator();
-                            ui.button("Terminate");
+                            if ui.button("Terminate").clicked() {
+                                app_exit_events.send(AppExit);
+                            }
                         });
                         ui.menu_button("World", |ui| {
                             if ui.button("ReMesh All Chunks").clicked() {
@@ -150,7 +154,9 @@ pub fn ui_menu_panel(
                         ui.menu_button("View", |ui| {
                             ui.toggle_value(&mut true, "HUD");
                             ui.toggle_value(&mut false, "Fullscreen");
-                            ui.button("Save Screenshot");
+                            if ui.button("Save Screenshot").clicked() {
+                                todo!();
+                            }
 
                             ui.separator();
                             ui.toggle_value(&mut clientinfo.dbg_text, "Debug Text");
@@ -298,7 +304,7 @@ entity vis: {cam_visible_entities_num} / all {num_entity}.
 "
     );
 
-    ctx.ctx_mut().debug_painter().text(
+    ctx.ctx_mut().layer_painter(LayerId::new(egui::Order::Middle, Id::NULL)).text(
         [0., 48.].into(),
         Align2::LEFT_TOP,
         str,

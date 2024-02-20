@@ -11,7 +11,7 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, item::ItemPlugin, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
 };
 
 use crate::voxel::ClientVoxelPlugin;
@@ -69,17 +69,20 @@ impl Plugin for GamePlugin {
         // .obj model loader.
         app.add_plugins(ObjPlugin);
 
+        // UI
+        app.add_plugins(crate::ui::UiPlugin);
+
         // Physics
         app.add_plugins(PhysicsPlugins::default());
 
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
 
-        // UI
-        app.add_plugins(crate::ui::UiPlugin);
-
         // Voxel
         app.add_plugins(ClientVoxelPlugin);
+
+        // Items
+        app.add_plugins(ItemPlugin);
 
         // Network Client
         app.add_plugins(ClientNetworkPlugin);
@@ -93,6 +96,12 @@ impl Plugin for GamePlugin {
         app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
+        
+        app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
+
+        app.add_systems(PreStartup, on_init);  // load settings
+        app.add_systems(Last, on_exit);  // save settings
+
 
         // Debug
         {
@@ -102,13 +111,6 @@ impl Plugin for GamePlugin {
             // Debug World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
-
-
-        app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
-
-        app.add_systems(PreStartup, on_init);
-        app.add_systems(Last, on_exit);
-
 
     }
 }
@@ -615,7 +617,7 @@ impl Default for ClientInfo {
 
             dbg_text: true,
             dbg_menubar: true,
-            dbg_inspector: true,
+            dbg_inspector: false,
             dbg_gizmo_remesh_chunks: true,
             dbg_gizmo_curr_chunk: false,
             dbg_gizmo_all_loaded_chunks: false,

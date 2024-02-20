@@ -84,30 +84,34 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 - [voxel.wiki](//voxel.wiki), [voxelgamedev.com](//voxelgamedev.com): A rabbit hole of Voxel Game Dev
 - [The Art of Unix Programming]()
+- [Scratchapixel](https://www.scratchapixel.com/)
+- [0fps.net](https://0fps.net/)
 
 <!-- - [OpenGameArt.org](//OpenGameArt.org): 3D Models -->
 
 ### Relevant links
 
-Smooth Voxel Games:  
+> Smooth Voxel Games:  
 [RisingWorld](https://www.rising-world.net/), 
 [Upvoid](https://upvoid.com/), 
-[VoxelFarm](https://procworld.blogspot.com/2010/11/from-voxels-to-polygons.html),   
+[VoxelFarm](https://procworld.blogspot.com/2010/11/from-voxels-to-polygons.html), 
 [No Man's Sky](https://www.nomanssky.com/), 
 [Enshrouded](https://enshrouded.com/), 
 [Eco](https://play.eco/),
 [Astroneer](https://store.steampowered.com/app/361420/ASTRONEER/),
-[7 Days to Die](https://7daystodie.com/)
+[7 Days to Die](https://7daystodie.com/)  
 
-Rust/Bevy Games:   
+> Related Games:  
 [Veloren](https://github.com/veloren/veloren/blob/v0.8.0/voxygen/src/audio/music.rs), 
 [Hytopia](https://creators.hytopia.com/docs/about-hytopia), 
-[Phira](https://phira.moe/),  
-[Settletopia](https://www.youtube.com/watch?v=BGX6olxzjyA)
-
+[Phira](https://phira.moe/), 
+[Settletopia](https://www.youtube.com/watch?v=BGX6olxzjyA), 
+[Chunk Stories](https://web.archive.org/web/20201107224030/http://chunkstories.xyz/blog/a-note-on-descriptor-indexing/),
+[Better than Adventure]()
 
 <br>
-Special thanks to the contributors, including but not limited to, people below:
+Special thanks to the contributors, including but not limited to, people below:   
+<br>
 <a href="https://github.com/cleverraven/cataclysm-dda/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Dreamtowards/Ethertum" />
 </a>

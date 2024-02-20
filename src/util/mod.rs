@@ -2,7 +2,7 @@
 mod macros;
 pub use macros::hashmap;
 
-// pub mod registry;
+pub mod registry;
 
 use std::time::{Duration, SystemTime};
 

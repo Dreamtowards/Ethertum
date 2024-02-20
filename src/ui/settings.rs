@@ -155,11 +155,11 @@ pub fn ui_settings(
 
     ui.horizontal(|ui| {
 
-        static mut _Path_LoadModel: String = String::new();
-        ui.text_edit_singleline(unsafe {&mut _Path_LoadModel});
+        static mut PATH: String = String::new();
+        ui.text_edit_singleline(unsafe {&mut PATH});
 
         if ui.button("Load").clicked() {
-            load_obj(&mut cmds, &asset_server, &mut materials, unsafe{_Path_LoadModel.as_str()}, false, query_campos.single().translation);
+            load_obj(&mut cmds, &asset_server, &mut materials, unsafe{PATH.as_str()}, false, query_campos.single().translation);
         }
         
     });

@@ -37,7 +37,7 @@ impl Plugin for UiPlugin {
         // Debug UI
         {
             app.add_systems(Update, debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar)); // Debug MenuBar. before CentralPanel
-            app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text));
+            app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel));
     
             app.add_plugins((
                 FrameTimeDiagnosticsPlugin,
