@@ -27,8 +27,8 @@ bevy_renet = "0.0"
 bevy_atmosphere = { version = "0.8", optional = true }
 bevy_mod_billboard = "0.5"
 
-bevy_egui = "0.24"
-bevy-inspector-egui = "0.22"
+bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix" }
+bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
 bevy_editor_pls = "0.7"
 
 bevy_common_assets = { version = "0.9", features = ["json"] }
