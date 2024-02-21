@@ -3,6 +3,8 @@
 pub mod game;
 pub mod ui;
 pub mod character_controller;
+
+#[cfg(feature = "target_native_os")]
 pub mod editor;
 
 pub mod util;

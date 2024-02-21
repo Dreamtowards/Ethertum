@@ -19,7 +19,10 @@ use bevy_common_assets::json::JsonAssetPlugin;
 
 mod serverlist;
 mod main_menu;
+
+#[cfg(feature = "target_native_os")]
 mod debug;
+
 mod settings;
 pub mod hud;
 
@@ -35,6 +38,7 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         // Debug UI
+        #[cfg(feature = "target_native_os")]
         {
             app.add_systems(Update, debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar)); // Debug MenuBar. before CentralPanel
             app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel));
@@ -76,8 +80,8 @@ impl Plugin for UiPlugin {
                 serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
 
             )
-            .chain()
-            .before(debug::ui_menu_panel)
+            //.chain()
+            //.before(debug::ui_menu_panel)
         );
 
 
