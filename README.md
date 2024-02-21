@@ -59,11 +59,11 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 ## Useful links
 
-[Sign up](ethertia.com) - Here you can create an official account for Ethertia. (servers may requires official authentication to play)
+[Sign up](https://ethertia.com) - Here you can create an official account for Ethertia. (servers may requires official authentication to play)
 
-[Wiki](wiki.ethertia.com) - Ethertia Wikipedia of Gameplay.
+[Wiki](https://wiki.ethertia.com) - Ethertia Wikipedia of Gameplay.
 
-[Documentations](docs.ethertia.com) Docs for Developers.
+[Documentations](https://docs.ethertia.com) Docs for Developers.
 
 [Roadmap]()
 
@@ -82,7 +82,7 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 ### Resources
 
-- [voxel.wiki](//voxel.wiki), [voxelgamedev.com](//voxelgamedev.com): A rabbit hole of Voxel Game Dev
+- [voxel.wiki](https://voxel.wiki), [voxelgamedev.com](https://voxelgamedev.com): A rabbit hole of Voxel Game Dev
 - [The Art of Unix Programming]()
 - [Scratchapixel](https://www.scratchapixel.com/)
 - [0fps.net](https://0fps.net/)
