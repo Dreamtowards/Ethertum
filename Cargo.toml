@@ -3,16 +3,14 @@ name = "ethertia"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["rlib", "cdylib"]
-
-[[bin]]
-name = "ethertia"
-path = "src/main.rs"
+# Android: Additional work is required here, using the workspace
+#[lib]
+#name = "ethertia"
+#crate-type = ["staticlib", "cdylib"]
 
 [features]
 default = ["target_native_os"]
-target_native_os = ["dep:bevy_atmosphere", "dep:native-dialog", "dep:memory-stats", "dep:sysinfo"]
+target_native_os = ["dep:bevy_atmosphere", "dep:bevy_editor_pls", "dep:native-dialog", "dep:memory-stats", "dep:sysinfo"]
 target_web = []
 experimental_channel = []
 
@@ -35,7 +33,7 @@ bevy_mod_billboard = "0.5"
 
 bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
 bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-#bevy_editor_pls = "0.7"
+bevy_editor_pls = { version = "0.7", optional = true }
 
 bevy_common_assets = { version = "0.9", features = ["json"] }
 bevy_obj = "0.12"
@@ -51,7 +49,7 @@ serde_json = "1.0"
 
 thread_local = "1.1"
 once_cell = "1.19"
-futures-lite = "2.0.1"  # async poll task 
+#futures-lite = "2.0.1"  # async poll task 
 
 sysinfo = { version = "0.29", optional = true }
 native-dialog = { version = "0.7", optional = true }
@@ -98,23 +96,23 @@ opt-level = 3
 [package.metadata.android]
 package = "com.ethertia.client"
 build_targets = [ "aarch64-linux-android" ]
+resources = "build/android/res"
 assets = "assets"
 apk_name = "ethertia"
 strip = "strip"
 
-#[package.metadata.android.signing.android-debug]
-#path = "$HOME/.android/debug.keystore"
-#keystore_password = ""
+[package.metadata.android.signing.android-debug]
+path = "../../.android/debug.keystore"
+keystore_password = "android"
 
 [package.metadata.android.sdk]
 min_sdk_version = 24
-target_sdk_version = 30
-max_sdk_version = 30
+target_sdk_version = 33
+max_sdk_version = 33
 
 [package.metadata.android.application]
-debuggable = false
-theme = "@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
-#icon = "@mipmap/ic_launcher"
-label = "Application Name"
-extract_native_libs = true
-uses_cleartext_traffic = true
+icon = "@mipmap/icon"
+label = "ethertia"
+
+[package.metadata.android.application.activity]
+orientation = "landscape"
