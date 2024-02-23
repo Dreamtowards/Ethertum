@@ -30,11 +30,13 @@ jobs:
           cargo install --force cargo-apk
 
       - name: Build for Android
-        run: ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --profile android-debug --no-default-features
+        run: |
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
+          ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --profile android-debug --package mobile
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: android-artifacts
           path: |
-            ./target/android-debug/${APP_NAME}.apk
+            ./target/android-debug/apk/${APP_NAME}.apk
