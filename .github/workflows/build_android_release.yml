@@ -31,6 +31,7 @@ jobs:
 
       - name: Build for Android
         run: |
+          mkdir ~/.android
           keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
           ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --profile android-debug --package mobile
 
