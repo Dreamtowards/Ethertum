@@ -40,4 +40,4 @@ jobs:
         with:
           name: android-artifacts
           path: |
-            ./target/android-debug/apk/${APP_NAME}.apk
+            ./target/android-debug/apk/ethertia.apk
