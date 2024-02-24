@@ -61,7 +61,7 @@ fn error_handler(In(result): In<anyhow::Result<()>>) {
     ];
 
     if let Err(err) = result {
-        //panic!("{}", err)
+        panic!("{}", err)
     }
 }
 
