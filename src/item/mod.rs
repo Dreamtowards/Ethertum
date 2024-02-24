@@ -45,6 +45,7 @@ impl Plugin for ItemPlugin {
 #[derive(Resource, Default)]
 struct Items {
     pub registry: Registry,
+    pub atlas: Handle<Image>,
 
     // pub apple: RegId,
     // pub pickaxe: RegId,
@@ -81,14 +82,57 @@ fn setup_items(
 
 }
 
+
+use image::{self, GenericImageView, RgbaImage};
+
 fn bake_items(
     mut items: ResMut<Items>,
+    asset_server: Res<AssetServer>,
 ) {
+    // Build NumId Table
     items.registry.build_num_id();
     info!("Registered {} items: {:?}", items.registry.len(), items.registry.vec);
 
+    // Generate Items Atlas Image
+    let cache_file = std::env::current_dir().unwrap().join("cache/items.png");
+    let resolution = 64;
 
-    // build atlas
+    if let Err(_) = std::fs::metadata(&cache_file) {
+        info!("Items Atlas Image cache not found, Generating...");
 
+        let n = items.registry.len() as u32;
+
+        let mut atlas = RgbaImage::new(n * resolution, resolution);
     
+        for (idx, str_id) in items.registry.vec.iter().enumerate() {
+            let idx = idx as u32;
+            
+            let imgloc = if false { 
+                // todo: ASSET_ROOT_PATH
+                format!("assets/textures/{str_id}/view.png")
+            } else {
+                format!("assets/items/{str_id}/view.png")
+            };
+    
+            let img = image::open(imgloc).unwrap();
+            let img = img.resize_exact(resolution, resolution, image::imageops::FilterType::Triangle);
+    
+            // copy to
+            for y in 0..resolution {
+                for x in 0..resolution {
+                    atlas.put_pixel(idx*resolution + x, y, img.get_pixel(x, y));
+                }
+            }
+        }
+    
+        std::fs::create_dir_all(&cache_file.parent().unwrap()).unwrap();
+        atlas.save(&cache_file).unwrap();
+    }
+
+    items.atlas = asset_server.load(cache_file);
+}
+
+
+fn gen_items_atlas_image(cache_file: &str, resolution: u32) {
+
 }
