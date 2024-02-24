@@ -2,6 +2,7 @@ name: Android
 
 on:
   create:
+  workflow_dispatch:
   # push:
   #   branches: [ "main" ]
   pull_request:
