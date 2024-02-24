@@ -8,4 +8,13 @@ macro_rules! hashmap {
         }
     };
 }
-pub use hashmap;
+
+#[macro_export]
+macro_rules! err_opt_is_none {
+    () => {
+        {
+            let e = anyhow::anyhow!("Option is None");
+            e
+        }
+    };
+}

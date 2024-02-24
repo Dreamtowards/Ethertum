@@ -37,7 +37,7 @@ impl Plugin for ItemPlugin {
         
         app.add_systems(Startup, setup_items);
 
-        app.add_systems(PostStartup, bake_items);
+        app.add_systems(PostStartup, bake_items.pipe(error_handler));
     }
 }
 
@@ -52,6 +52,17 @@ struct Items {
     // pub stick: RegId,
     // pub shear: RegId,
 
+}
+
+fn error_handler(In(result): In<anyhow::Result<()>>) {
+    let hm = crate::hashmap![
+        "foo" => 100,
+        "bar" => 200,
+    ];
+
+    if let Err(err) = result {
+        //panic!("{}", err)
+    }
 }
 
 fn setup_items(
@@ -88,13 +99,13 @@ use image::{self, GenericImageView, RgbaImage};
 fn bake_items(
     mut items: ResMut<Items>,
     asset_server: Res<AssetServer>,
-) {
+) -> anyhow::Result<()> {
     // Build NumId Table
     items.registry.build_num_id();
     info!("Registered {} items: {:?}", items.registry.len(), items.registry.vec);
 
     // Generate Items Atlas Image
-    let cache_file = std::env::current_dir().unwrap().join("cache/items.png");
+    let cache_file = std::env::current_dir()?.join("cache/items.png");
     let resolution = 64;
 
     if let Err(_) = std::fs::metadata(&cache_file) {
@@ -114,7 +125,7 @@ fn bake_items(
                 format!("assets/items/{str_id}/view.png")
             };
     
-            let img = image::open(imgloc).unwrap();
+            let img = image::open(imgloc)?;
             let img = img.resize_exact(resolution, resolution, image::imageops::FilterType::Triangle);
     
             // copy to
@@ -125,11 +136,12 @@ fn bake_items(
             }
         }
     
-        std::fs::create_dir_all(&cache_file.parent().unwrap()).unwrap();
-        atlas.save(&cache_file).unwrap();
+        std::fs::create_dir_all(&cache_file.parent().ok_or(crate::err_opt_is_none!())?)?;
+        atlas.save(&cache_file)?;
     }
 
     items.atlas = asset_server.load(cache_file);
+    Ok(())
 }
 
 
