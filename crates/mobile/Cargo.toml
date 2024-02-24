@@ -1,0 +1,37 @@
+[package]
+name = "mobile"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "mobile"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+bevy = { version = "0.12" }
+ethertia = { path = "../..", default-features = false }
+
+[package.metadata.android]
+package = "com.ethertia.client"
+build_targets = [ "aarch64-linux-android" ]
+resources = "../../build/android/res"
+assets = "../../assets"
+apk_name = "ethertia"
+strip = "strip"
+
+[package.metadata.android.signing.android-debug]
+path = "../../../../../.android/debug.keystore"
+keystore_password = "android"
+
+[package.metadata.android.sdk]
+min_sdk_version = 24
+target_sdk_version = 33
+max_sdk_version = 33
+
+[package.metadata.android.application]
+icon = "@mipmap/icon"
+label = "ethertia"
+
+[package.metadata.android.application.activity]
+orientation = "landscape"

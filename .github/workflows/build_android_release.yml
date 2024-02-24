@@ -1,0 +1,43 @@
+name: Android
+
+on:
+  create:
+  # push:
+  #   branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      APP_NAME: ethertia
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: |
+          rustup target add aarch64-linux-android
+          cargo install --force cargo-apk
+
+      - name: Build for Android
+        run: |
+          mkdir ~/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
+          ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --profile android-debug --package mobile
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-artifacts
+          path: |
+            ./target/android-debug/apk/ethertia.apk
