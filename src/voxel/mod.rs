@@ -22,10 +22,10 @@ pub type ChunkPtr = Arc<RwLock<Chunk>>;  // Box<Chunk>;         not supported fo
 use bevy::{prelude::*, utils::HashMap};
 
 #[derive(Resource, Deref, Clone)]
-struct MpscTx<T>(crate::channel_impl::Sender<T>);
+struct ChannelTx<T>(crate::channel_impl::Sender<T>);
 
 #[derive(Resource, Deref, Clone)]
-struct MpscRx<T>(crate::channel_impl::Receiver<T>);
+struct ChannelRx<T>(crate::channel_impl::Receiver<T>);
 
 
 

@@ -7,7 +7,7 @@ use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, 
 use crate::{
     character_controller::{CharacterController, CharacterControllerCamera}, game::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
 };
-use super::{material::mtl, meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, MpscRx, MpscTx};
+use super::{material::mtl, meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, ChannelRx, ChannelTx};
 
 
 
@@ -26,8 +26,8 @@ impl Plugin for ClientVoxelPlugin {
 
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
-            app.insert_resource(MpscTx(tx));
-            app.insert_resource(MpscRx(rx));
+            app.insert_resource(ChannelTx(tx));
+            app.insert_resource(ChannelRx(rx));
         }
 
         // Startup Init
@@ -98,8 +98,8 @@ fn chunks_remesh_enqueue(
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 
     mut cli: ResMut<ClientInfo>,
-    tx_chunks_meshing: Res<MpscTx<ChunkRemeshData>>,
-    rx_chunks_meshing: Res<MpscRx<ChunkRemeshData>>,
+    tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
+    rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
 ) {
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 

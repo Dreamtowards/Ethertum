@@ -5,7 +5,7 @@ use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
 
 use crate::{game_server::ServerInfo, net::{CellData, SPacket, RenetServerHelper}, util::iter};
-use super::{Chunk, ChunkComponent, ChunkPtr, ChunkSystem, MpscRx, MpscTx, WorldGen};
+use super::{Chunk, ChunkComponent, ChunkPtr, ChunkSystem, ChannelRx, ChannelTx, WorldGen};
 
 
 type ChunkLoadingData = (IVec3, ChunkPtr);
@@ -20,8 +20,8 @@ impl Plugin for ServerVoxelPlugin {
 
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkLoadingData>();
-            app.insert_resource(MpscTx(tx));
-            app.insert_resource(MpscRx(rx));
+            app.insert_resource(ChannelTx(tx));
+            app.insert_resource(ChannelRx(rx));
         }
 
         app.add_systems(Update, chunks_load);
@@ -42,8 +42,8 @@ fn chunks_load(
     mut cmds: Commands,
 
     mut chunks_loading: Local<HashSet<IVec3>>,  // for detect/skip if is loading
-    tx_chunks_loading: Res<MpscTx<ChunkLoadingData>>,
-    rx_chunks_loading: Res<MpscRx<ChunkLoadingData>>,
+    tx_chunks_loading: Res<ChannelTx<ChunkLoadingData>>,
+    rx_chunks_loading: Res<ChannelRx<ChunkLoadingData>>,
 ) {
     // todo
     // 优化: 仅当某玩家 进入/退出 移动过区块边界时，才针对更新
