@@ -1,6 +1,5 @@
 #[macro_use]
 mod macros;
-pub use macros::hashmap;
 
 pub mod registry;
 

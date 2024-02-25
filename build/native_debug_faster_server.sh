@@ -1,0 +1,1 @@
+cargo run --config=../.cargo/config_build_faster.toml --features "bevy/dynamic_linking" --bin dedicated_server
