@@ -7,15 +7,6 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "native_debug_faster",
-            "program": "${workspaceFolder}/<executable file>",
-            "preLaunchTask": "native_debug_faster build",
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
             "name": "native_debug_fastest",
             "program": "${workspaceFolder}/<executable file>",
             "preLaunchTask": "native_debug_fastest build",
