@@ -59,23 +59,18 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 ### Getting Started to Dev
 
-1. Install Rust Toolchain for your OS
+1\. Install Rust Toolchain for your OS  
+here is some common typically tutorials.
 
-2. Download Repository
-```bash
-$ git clone https://github.com/Dreamtowards/Ethertum.git
-```
+2\. Download Repository  
+`git clone https://github.com/Dreamtowards/Ethertum.git`
 
-3. Download Assets
+3\. Download Assets  
+[assets.zip](https://github.com/Dreamtowards/Ethertum/releases/download/latest-assets/assets.zip)
+are separated from Code Repository due to Large Binary Size.  
 
-[assets.zip](https://github.com/Dreamtowards/Ethertum/releases/tag/latest-assets)
-are separated from Code Repository due to Large Binary Size.
-
-4. Build & Run
-
-```bash
-$ cargo run --bin ethertia
-```
+4\. Build & Run  
+`sh ./build/native_debug_faster.sh`  
 Note: you also need to run `dedicated_server` if you want enter a gameplay world.
 
 ## Useful links
