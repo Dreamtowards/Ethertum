@@ -14,7 +14,7 @@ ethertia = { path = "../..", default-features = false }
 
 [package.metadata.android]
 package = "com.ethertia.client"
-build_targets = [ "aarch64-linux-android" ]
+build_targets = ["aarch64-linux-android"]
 resources = "../../build/android/res"
 assets = "../../assets"
 apk_name = "ethertia"
@@ -27,7 +27,10 @@ keystore_password = "android"
 [package.metadata.android.sdk]
 min_sdk_version = 24
 target_sdk_version = 33
-max_sdk_version = 33
+#max_sdk_version = 33
+
+[[package.metadata.android.uses_permission]]
+name = "android.permission.INTERNET"
 
 [package.metadata.android.application]
 icon = "@mipmap/icon"
