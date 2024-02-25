@@ -4,4 +4,5 @@ build/wasm/*.js
 build/wasm/*.wasm
 
 /assets/models/
-/assets/*
+/assets/items/
+/assets/sounds/
