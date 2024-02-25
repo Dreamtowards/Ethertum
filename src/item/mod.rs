@@ -54,16 +54,16 @@ struct Items {
 
 }
 
-fn error_handler(In(result): In<anyhow::Result<()>>) {
-    let hm = crate::hashmap![
-        "foo" => 100,
-        "bar" => 200,
-    ];
+// fn error_handler(In(result): In<anyhow::Result<()>>) {
+//     let hm = crate::hashmap![
+//         "foo" => 100,
+//         "bar" => 200,
+//     ];
 
-    if let Err(err) = result {
-        panic!("{}", err)
-    }
-}
+//     if let Err(err) = result {
+//         panic!("{}", err)
+//     }
+// }
 
 fn setup_items(
     mut items: ResMut<Items>,
