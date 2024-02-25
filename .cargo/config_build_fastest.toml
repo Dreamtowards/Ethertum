@@ -16,8 +16,8 @@ rustflags = [
 [target.x86_64-pc-windows-msvc]
 linker = "rust-lld.exe"                         # Use LLD Linker
 rustflags = [
-    "-Zshare-generics=n",
-    "-Zthreads=0",
+    "-Zshare-generics=y",
+    "-Zthreads=8",
 ]
 
 # improves compile times, but reduces the amount of debug info to 'line number tables only'

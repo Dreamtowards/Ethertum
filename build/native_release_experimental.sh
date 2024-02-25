@@ -1,1 +1,0 @@
-cargo run --release --no-default-features --features "experimental_channel" --bin ethertia

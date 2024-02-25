@@ -2,22 +2,6 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "native_debug_faster build",
-            "problemMatcher": [
-                "$rustc"
-            ],
-            "type": "cargo",
-            "command": "build",
-            "args": [
-                "--config=${fileWorkspaceFolder}/.cargo/config_build_faster.toml",
-                "--features=bevy/dynamic_linking"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
             "label": "native_debug_fastest build",
             "problemMatcher": [
                 "$rustc"
@@ -25,7 +9,7 @@
             "type": "cargo",
             "command": "build",
             "args": [
-                "--config=${fileWorkspaceFolder}/.cargo/config_build_fastest.toml",
+                "--config=${workspaceFolder}/.cargo/config_build_fastest.toml",
                 "--features=bevy/dynamic_linking"
             ],
             "group": {
