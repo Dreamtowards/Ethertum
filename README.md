@@ -77,7 +77,6 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 ### Contributors
 
 - [Dreamtowards](https://github.com/Dreamtowards)
-- [*an anonymous mentor*](https://github.com/okkmnone) - WASM, Android support, Unix philosophy mentor.
 - [Thaumstrial](https://github.com/thaumstrial)
 - [Nerd]() - LoD Opinions, 
 <!-- - [LittleMao]() -->
@@ -87,7 +86,7 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 ### Resources
 
 - [voxel.wiki](https://voxel.wiki), [voxelgamedev.com](https://voxelgamedev.com): A rabbit hole of Voxel Game Dev
-- [The Art of Unix Programming]()
+- [The Art of Unix Programming](http://www.catb.org/esr/writings/taoup/html/) by Eric Steven Raymond
 - [Scratchapixel](https://www.scratchapixel.com/)
 - [0fps.net](https://0fps.net/)
 
@@ -107,7 +106,7 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 [7 Days to Die](https://7daystodie.com/)  
 
 > Related Games:  
-[Veloren](https://github.com/veloren/veloren/blob/v0.8.0/voxygen/src/audio/music.rs), 
+[Veloren](https://veloren.net/), 
 [Hytopia](https://creators.hytopia.com/docs/about-hytopia), 
 [Phira](https://phira.moe/), 
 [Chunk Stories](https://web.archive.org/web/20201107224030/http://chunkstories.xyz/blog/a-note-on-descriptor-indexing/),
