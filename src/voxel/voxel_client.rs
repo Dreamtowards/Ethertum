@@ -59,9 +59,9 @@ fn startup(
     info!("Init ChunkSystem");
 
     chunk_sys.shader_terrain = terrain_materials.add(TerrainMaterial {
-        texture_diffuse: Some(asset_server.load("cache/atlas_diff.png")),
-        texture_normal: Some(asset_server.load("cache/atlas_norm.png")),
-        texture_dram: Some(asset_server.load("cache/atlas_dram.png")),
+        texture_diffuse: Some(asset_server.load("baked/atlas_diff.png")),
+        texture_normal: Some(asset_server.load("baked/atlas_norm.png")),
+        texture_dram: Some(asset_server.load("baked/atlas_dram.png")),
         ..default()
     });
 

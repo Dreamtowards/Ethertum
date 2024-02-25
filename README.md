@@ -57,6 +57,26 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218002527.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218005036.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218094516.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217174639.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217160739.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217004724.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240120001806.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240119013301.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230310-1.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs221130.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/_figures/23u07.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230401.png" alt="Ethertia"> <img style="height: 80px;" src="https://raw.githubusercontent.com/Dreamtowards/Ethertia/main/run/screenshots/qs230402.png" alt="Ethertia">
 
 
+### Getting Started to Dev
+
+1. Install Rust Toolchain for your OS
+
+2. Download Repository
+```bash
+$ git clone https://github.com/Dreamtowards/Ethertum.git
+```
+
+3. Download Assets
+
+[assets.zip](https://github.com/Dreamtowards/Ethertum/releases/tag/latest-assets)
+are separated from Code Repository due to Large Binary Size.
+
+4. Build & Run
+
+```bash
+$ cargo run --bin ethertia
+```
+Note: you also need to run `dedicated_server` if you want enter a gameplay world.
 
 ## Useful links
 

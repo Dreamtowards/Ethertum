@@ -37,7 +37,7 @@ impl Plugin for ItemPlugin {
         
         app.add_systems(Startup, setup_items);
 
-        app.add_systems(PostStartup, bake_items.pipe(error_handler));
+        // app.add_systems(PostStartup, bake_items);
     }
 }
 
@@ -67,6 +67,7 @@ fn error_handler(In(result): In<anyhow::Result<()>>) {
 
 fn setup_items(
     mut items: ResMut<Items>,
+    asset_server: Res<AssetServer>,
 ) {
     let reg = &mut items.registry;
 
@@ -91,60 +92,67 @@ fn setup_items(
     reg.insert("iron_ingot");
 
 
-}
 
+    // below are temporary. Build should defer to PostStartup stage.:
 
-use image::{self, GenericImageView, RgbaImage};
-
-fn bake_items(
-    mut items: ResMut<Items>,
-    asset_server: Res<AssetServer>,
-) -> anyhow::Result<()> {
     // Build NumId Table
     items.registry.build_num_id();
     info!("Registered {} items: {:?}", items.registry.len(), items.registry.vec);
 
-    // Generate Items Atlas Image
-    let cache_file = std::env::current_dir()?.join("cache/items.png");
-    let resolution = 64;
-
-    if let Err(_) = std::fs::metadata(&cache_file) {
-        info!("Items Atlas Image cache not found, Generating...");
-
-        let n = items.registry.len() as u32;
-
-        let mut atlas = RgbaImage::new(n * resolution, resolution);
     
-        for (idx, str_id) in items.registry.vec.iter().enumerate() {
-            let idx = idx as u32;
+    items.atlas = asset_server.load("baked/items.png");
+
+}
+
+
+// use image::{self, GenericImageView, RgbaImage};
+
+// fn bake_items(
+//     mut items: ResMut<Items>,
+//     asset_server: Res<AssetServer>,
+// ) -> anyhow::Result<()> {
+
+    // // Generate Items Atlas Image
+    // let cache_file = std::env::current_dir()?.join("baked/items.png");
+    // let resolution = 64;
+
+    // if let Err(_) = std::fs::metadata(&cache_file) {
+    //     info!("Items Atlas Image cache not found, Generating...");
+
+    //     let n = items.registry.len() as u32;
+
+    //     let mut atlas = RgbaImage::new(n * resolution, resolution);
+    
+    //     for (idx, str_id) in items.registry.vec.iter().enumerate() {
+    //         let idx = idx as u32;
             
-            let imgloc = if false { 
-                // todo: ASSET_ROOT_PATH
-                format!("assets/textures/{str_id}/view.png")
-            } else {
-                format!("assets/items/{str_id}/view.png")
-            };
+    //         let imgloc = if false { 
+    //             // todo: ASSET_ROOT_PATH
+    //             format!("assets/textures/{str_id}/view.png")
+    //         } else {
+    //             format!("assets/items/{str_id}/view.png")
+    //         };
     
-            let img = image::open(imgloc)?;
-            let img = img.resize_exact(resolution, resolution, image::imageops::FilterType::Triangle);
+    //         let img = image::open(imgloc)?;
+    //         let img = img.resize_exact(resolution, resolution, image::imageops::FilterType::Triangle);
     
-            // copy to
-            for y in 0..resolution {
-                for x in 0..resolution {
-                    atlas.put_pixel(idx*resolution + x, y, img.get_pixel(x, y));
-                }
-            }
-        }
+    //         // copy to
+    //         for y in 0..resolution {
+    //             for x in 0..resolution {
+    //                 atlas.put_pixel(idx*resolution + x, y, img.get_pixel(x, y));
+    //             }
+    //         }
+    //     }
     
-        std::fs::create_dir_all(&cache_file.parent().ok_or(crate::err_opt_is_none!())?)?;
-        atlas.save(&cache_file)?;
-    }
+    //     std::fs::create_dir_all(&cache_file.parent().ok_or(crate::err_opt_is_none!())?)?;
+    //     atlas.save(&cache_file)?;
+    // }
 
-    items.atlas = asset_server.load(cache_file);
-    Ok(())
-}
+    // items.atlas = asset_server.load(cache_file);
+    // Ok(())
+// }
 
 
-fn gen_items_atlas_image(cache_file: &str, resolution: u32) {
+// fn gen_items_atlas_image(cache_file: &str, resolution: u32) {
 
-}
+// }
