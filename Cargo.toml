@@ -5,7 +5,14 @@ edition = "2021"
 
 [features]
 default = ["target_native_os"]
-target_native_os = ["dep:bevy_atmosphere", "dep:bevy_editor_pls", "dep:native-dialog", "dep:memory-stats", "dep:sysinfo"]
+target_native_os = [
+    "dep:bevy_atmosphere",
+    "dep:bevy_editor_pls",
+    "dep:native-dialog",
+    "dep:memory-stats",
+    "dep:sysinfo",
+    #"reqwest?/blocking",
+]
 target_web = []
 experimental_channel = []
 
@@ -33,9 +40,11 @@ bevy_editor_pls = { version = "0.7", optional = true }
 bevy_common_assets = { version = "0.9", features = ["json"] }
 bevy_obj = "0.12"
 
+bevy_touch_stick = { version = "0.1" }
+
 egui_extras = { version = "0.24", default-features = false, features = []}
 egui-notify = "0.13"
-
+leafwing-input-manager = { version = "0.12" }
 
 noise = "0.8"
 bincode = "1.3"
@@ -59,6 +68,8 @@ human_bytes = "0.4"
 instant = "0.1.12"
 crossbeam-channel = "0.5.11"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.11", features = ["json", "blocking", "native-tls-vendored"] }
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!

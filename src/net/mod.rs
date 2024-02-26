@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 mod packet;
 pub use packet::{CPacket, SPacket, CellData};
 
-mod netproc_client;
+pub mod netproc_client;
 mod netproc_server;
 
 
