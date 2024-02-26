@@ -8,7 +8,7 @@ use bevy_xpbd_3d::{
     PhysicsSet,
 };
 
-use crate::{game::{condition, ClientInfo}, util::SmoothValue};
+use crate::{game::{condition, ClientInfo}, net::netproc_client::input, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
 
@@ -136,6 +136,7 @@ fn input_move(
         &mut GravityScale,
         &ShapeHits,
         &Rotation,
+        &leafwing_input_manager::action_state::ActionState<input::Action>,
     )>,
     mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
@@ -149,7 +150,7 @@ fn input_move(
     }
     let dt_sec = time.delta_seconds();
 
-    for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
+    for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
         let mut movement = Vec3::ZERO;
 
         // Flying
@@ -159,8 +160,24 @@ fn input_move(
             // View Rotation
             let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
 
-            ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
-            ctl.yaw -= mouse_delta.x;
+            #[cfg(not(target_os = "android"))]
+            {
+                ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
+                ctl.yaw -= mouse_delta.x;
+            }
+            if action_state.pressed(&input::Action::Look) {
+                const AXIS_SPEED: f32 = 0.1;
+                let axis_value = action_state.clamped_axis_pair(&input::Action::Look).unwrap().xy();
+        
+                if axis_value != Vec2::ZERO {
+                    //let dir = Vec2::angle_between(Vec2::X, axis_value.normalize());
+                    //trans.rotation = Quat::from_rotation_z(dir);
+
+                    let dir = axis_value.normalize();
+                    ctl.pitch += AXIS_SPEED * dir.y;
+                    ctl.yaw -= AXIS_SPEED * dir.x;
+                }
+            }
             if ctl.yaw.abs() > PI {
                 ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
             }
@@ -196,6 +213,18 @@ fn input_move(
             if key_input.pressed(KeyCode::S) {
                 movement.z += 1.;
             }
+            if action_state.pressed(&input::Action::Move) {
+                let axis_value = action_state.clamped_axis_pair(&input::Action::Move).unwrap().xy();
+        
+                info!("moving: {axis_value}");
+        
+                let move_delta = axis_value * 10.0 * time.delta_seconds();
+                let move_delta = move_delta.extend(0.);
+                //trans.translation += move_delta.extend(0.);
+
+                trans.translation.x += move_delta.x;
+                trans.translation.z -= move_delta.y;
+            }
 
             // Input Sprint
             if key_input.pressed(KeyCode::W) {
@@ -223,8 +252,10 @@ fn input_move(
             }
 
             // Apply Yaw
-            movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
-            trans.rotation = Quat::from_rotation_y(ctl.yaw);
+            {
+                movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
+                trans.rotation = Quat::from_rotation_y(ctl.yaw);
+            }
 
             // Is Grouned
             // The character is grounded if the shape caster has a hit with a normal

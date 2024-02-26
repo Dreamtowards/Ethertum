@@ -12,7 +12,25 @@ use crate::{
 
 use super::{packet::CellData, SPacket};
 
+use bevy_touch_stick::{prelude::*, TouchStickUiKnob, TouchStickUiOutline};
+use leafwing_input_manager::prelude::*;
 
+pub mod input {
+    use super::*;
+
+    #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
+    pub enum Stick {
+        #[default]
+        Left,
+        Right,
+    }
+
+    #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+    pub enum Action {
+        Move,
+        Look,
+    }
+}
 
 pub fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
@@ -82,7 +100,7 @@ pub fn client_sys(
                 
                 next_ui.set(CurrentUI::None);
                 
-                spawn_player(player_entity.client_entity(), true, &clientinfo.cfg.username, &mut cmds, &mut meshes, &mut materials);
+                spawn_player(player_entity.client_entity(), true, &clientinfo.cfg.username, &mut cmds, &asset_server, &mut meshes, &mut materials);
 
 
                 // cmds.insert_resource(WorldInfo::default());  // moved to Click Connect. 要在用之前初始化，如果现在标记 那么就来不及初始化 随后就有ChunkNew数据包 要用到资源
@@ -97,7 +115,7 @@ pub fn client_sys(
                 // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
                 // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
 
-                spawn_player(entity_id.client_entity(), false, &name, &mut cmds, &mut meshes, &mut materials);
+                spawn_player(entity_id.client_entity(), false, &name, &mut cmds, &asset_server, &mut meshes, &mut materials);
             }
             SPacket::EntityPos { entity_id, position } => {
                 info!("EntityPos {} -> {}", entity_id.raw(), position);
@@ -214,6 +232,7 @@ fn spawn_player(
     is_theplayer: bool,
     name: &String,
     cmds: &mut Commands,
+    asset_server: &Res<AssetServer>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {
@@ -265,13 +284,139 @@ fn spawn_player(
     });
 
     if is_theplayer {
-        ec.insert(CharacterControllerBundle::new(
-            Collider::capsule(1.3, 0.3),
-            CharacterController {
-                is_flying: true,
-                enable_input: false,
+        ec.insert((
+            CharacterControllerBundle::new(
+                Collider::capsule(1.3, 0.3),
+                CharacterController {
+                    is_flying: true,
+                    enable_input: false,
+                    ..default()
+                },
+            ),
+            leafwing_input_manager::InputManagerBundle::<input::Action> {
+                // Stores "which actions are currently activated"
+                action_state: ActionState::default(),
+                // Describes how to convert from player inputs into those actions
+                input_map: InputMap::default()
+                    .insert(input::Action::Move, DualAxis::left_stick())
+                    .insert(input::Action::Look, DualAxis::right_stick())
+                    .build(),
+            },
+        )).with_children(|parent| {
+            // pointy "nose" for player
+            parent.spawn(SpriteBundle {
+                transform: Transform {
+                    translation: Vec3::new(15., 0., 0.),
+                    rotation: Quat::from_rotation_z(std::f32::consts::PI / 4.),
+                    ..default()
+                },
+                sprite: Sprite {
+                    color: Color::ORANGE,
+                    custom_size: Some(Vec2::splat(50. / f32::sqrt(2.))),
+                    ..default()
+                },
+                ..default()
+            });
+        });
+
+        // spawn a move stick
+        cmds.spawn((
+            // map this stick as a left gamepad stick (through bevy_input)
+            // leafwing will register this as a normal gamepad
+            TouchStickGamepadMapping::LEFT_STICK,
+            TouchStickUiBundle {
+                stick: TouchStick {
+                    id: input::Stick::Left,
+                    stick_type: TouchStickType::Fixed,
+                    ..default()
+                },
+                // configure the interactable area through bevy_ui
+                style: Style {
+                    width: Val::Px(150.),
+                    height: Val::Px(150.),
+                    position_type: PositionType::Absolute,
+                    left: Val::Percent(15.),
+                    bottom: Val::Percent(5.),
+                    ..default()
+                },
                 ..default()
             },
-        ));
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                TouchStickUiKnob,
+                ImageBundle {
+                    image: asset_server.load("knob.png").into(),
+                    style: Style {
+                        width: Val::Px(75.),
+                        height: Val::Px(75.),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ));
+            parent.spawn((
+                TouchStickUiOutline,
+                ImageBundle {
+                    image: asset_server.load("outline.png").into(),
+                    style: Style {
+                        width: Val::Px(150.),
+                        height: Val::Px(150.),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ));
+        });
+
+        // spawn a look stick
+        cmds.spawn((
+                // map this stick as a right gamepad stick (through bevy_input)
+                // leafwing will register this as a normal gamepad
+                TouchStickGamepadMapping::RIGHT_STICK,
+                TouchStickUiBundle {
+                    stick: TouchStick {
+                        id: input::Stick::Right,
+                        stick_type: TouchStickType::Floating,
+                        ..default()
+                    },
+                    // configure the interactable area through bevy_ui
+                    style: Style {
+                        width: Val::Px(150.),
+                        height: Val::Px(150.),
+                        position_type: PositionType::Absolute,
+                        right: Val::Percent(15.),
+                        bottom: Val::Percent(5.),
+                        ..default()
+                    },
+                    ..default()
+                },
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    TouchStickUiKnob,
+                    ImageBundle {
+                        image: asset_server.load("knob.png").into(),
+                        style: Style {
+                            width: Val::Px(75.),
+                            height: Val::Px(75.),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                ));
+                parent.spawn((
+                    TouchStickUiOutline,
+                    ImageBundle {
+                        image: asset_server.load("outline.png").into(),
+                        style: Style {
+                            width: Val::Px(150.),
+                            height: Val::Px(150.),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                ));
+            });
     }
 }
