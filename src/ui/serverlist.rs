@@ -138,7 +138,7 @@ pub fn ui_serverlist(
     new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
         let serverlist = &mut cli.data().cfg.serverlist;
 
-        let mut do_new_server = false;
+        let (mut do_new_server, mut do_refresh) = (false, false);
 
         let mut join_addr = None;
         let mut del_i = None;
@@ -153,10 +153,9 @@ pub fn ui_serverlist(
                 
             }
             if ui.selectable_label(false, "Refresh").clicked() {
-                
+                do_refresh = true;
             }
         }, &mut next_ui, |ui| {
-            
             for (idx, server_item) in serverlist.iter_mut().enumerate() {
                 let editing = edit_i.is_some_and(|i| i == idx);
                 
@@ -178,7 +177,7 @@ pub fn ui_serverlist(
                         if editing {
                             ui.text_edit_singleline(&mut server_item.addr);
                         } else {
-                            ui.label("A Dedicated Server");
+                            ui.label(&server_item.addr);
                         }
 
                         ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
@@ -208,9 +207,15 @@ pub fn ui_serverlist(
         });
 
         if do_new_server {
-            
             serverlist.push(ServerListItem { name: "Server Name".into(), addr: "0.0.0.0:4000".into() });
         }
+        if do_refresh {
+            match crate::util::get_server_list("https://ethertia.com/server-info.json") {
+                Ok(ret) => *serverlist = ret,
+                Err(err) => info!("{}", err),
+            }
+        }
+
         if let Some(del_i) = del_i {
             serverlist.remove(del_i);
         }

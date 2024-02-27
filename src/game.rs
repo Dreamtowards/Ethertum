@@ -573,7 +573,7 @@ impl Default for ClientSettings {
         Self {
             serverlist: Vec::default(),
             fov: 85.,
-            username: "Steven".into(),
+            username: crate::util::generate_simple_user_name(),
             hud_padding: 24.,
         }
     }

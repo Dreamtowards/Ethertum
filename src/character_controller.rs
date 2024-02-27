@@ -162,7 +162,7 @@ fn input_move(
 
             #[cfg(not(target_os = "android"))]
             {
-                ctl.pitch = (ctl.pitch - mouse_delta.y).clamp(-FRAC_PI_2, FRAC_PI_2);
+                ctl.pitch = (ctl.pitch - mouse_delta.y);
                 ctl.yaw -= mouse_delta.x;
             }
             if action_state.pressed(&input::Action::Look) {
@@ -178,8 +178,12 @@ fn input_move(
                     ctl.yaw -= AXIS_SPEED * dir.x;
                 }
             }
-            if ctl.yaw.abs() > PI {
-                ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
+
+            {
+                ctl.pitch = ctl.pitch.clamp(-FRAC_PI_2, FRAC_PI_2);
+                if ctl.yaw.abs() > PI {
+                    ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
+                }
             }
 
             // 3rd person cam distance.
