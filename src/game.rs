@@ -45,6 +45,13 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
+        // Input
+        {
+            app.add_plugins((
+                bevy_touch_stick::TouchStickPlugin::<crate::net::netproc_client::input::Stick>::default(),
+                leafwing_input_manager::plugin::InputManagerPlugin::<crate::net::netproc_client::input::Action>::default(),
+            ));
+        }
 
         // Render
         {

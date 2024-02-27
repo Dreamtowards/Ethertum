@@ -42,6 +42,28 @@ pub fn ui_main_menu(
             }
             
             ui.add_sized(siz, egui::TextEdit::singleline(&mut *dbg_server_addr));
+            if ui.add_sized(siz, egui::Button::new("server info")).clicked() {
+                let get_server_ip = |url| -> anyhow::Result<String> {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        Err(anyhow::anyhow!("Not supported at this time"))
+                    }
+
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let client = reqwest::blocking::Client::builder()
+                            .timeout(instant::Duration::from_secs_f64(5.0))
+                            .build()?;
+                        let res = client.get(url).send()?.json::<std::collections::HashMap<String, String>>()?;
+                        Ok(res.get("entry").ok_or(crate::err_opt_is_none!())?.clone())
+                    }
+                };
+
+                match get_server_ip("https://ethertia.com/server-info.json") {
+                    Ok(ret) => *dbg_server_addr = ret,
+                    Err(_) => *dbg_server_addr = "192.168.1.12:4000".to_string(),
+                }
+            }
 
             if ui.add_sized(siz, egui::Button::new("Connect to Server")).clicked() {
                 // 连接服务器 这两个操作会不会有点松散
