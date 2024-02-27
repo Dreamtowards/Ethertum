@@ -2,6 +2,7 @@
 name = "ethertia"
 version = "0.1.0"
 edition = "2021"
+default-run = "ethertia"
 
 [features]
 default = ["target_native_os"]
@@ -65,6 +66,7 @@ chrono = "0.4.31"
 anyhow = "1.0.75"  # error handling
 human_bytes = "0.4"
 
+rand = "0.8"
 instant = "0.1.12"
 crossbeam-channel = "0.5.11"
 

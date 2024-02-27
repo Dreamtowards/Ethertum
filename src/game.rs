@@ -557,7 +557,7 @@ pub struct ServerListItem {
     pub addr: String,
 }
 
-const CLIENT_SETTINGS_FILE: &str = "./client.settings.json";
+const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
 
 #[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ClientSettings {
@@ -573,7 +573,7 @@ impl Default for ClientSettings {
         Self {
             serverlist: Vec::default(),
             fov: 85.,
-            username: "Steven".into(),
+            username: crate::util::generate_simple_user_name(),
             hud_padding: 24.,
         }
     }

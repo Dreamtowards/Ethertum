@@ -156,7 +156,7 @@ pub fn ui_settings(
     ui.horizontal(|ui| {
 
         static mut PATH: String = String::new();
-        ui.text_edit_singleline(unsafe {&mut PATH});
+        ui.text_edit_singleline(unsafe { crate::util::raw::as_ref(std::ptr::addr_of_mut!(PATH)) });
 
         if ui.button("Load").clicked() {
             load_obj(&mut cmds, &asset_server, &mut materials, unsafe{PATH.as_str()}, false, query_campos.single().translation);
