@@ -96,3 +96,9 @@ impl SmoothValue {
         self.current += dt * (self.target - self.current);
     }
 }
+
+pub mod raw {
+    pub unsafe fn as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
+        &mut *ptr
+    }
+}

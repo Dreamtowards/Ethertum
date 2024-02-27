@@ -2,4 +2,4 @@
 # rustup target add aarch64-linux-android
 # cargo install cargo-apk
 
-cargo apk build --profile android-debug --package mobile
+cargo +stable apk build --profile android-debug --package mobile

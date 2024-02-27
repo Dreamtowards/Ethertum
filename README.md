@@ -59,20 +59,17 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 
 ## Getting Started
 
+1\. [Install Rust](https://www.rust-lang.org/tools/install)
 
-#### 1. Download the Repository  
-`git clone https://github.com/Dreamtowards/Ethertum.git`
+2\. Build & Run
+```shell
+git clone https://github.com/Dreamtowards/Ethertum.git
+cd Ethertum
 
-#### 2. Download & Unzip the Assets  
-Download the [assets.zip](https://github.com/Dreamtowards/Ethertum/releases/download/latest-assets/assets.zip) and unzip it to overwrite the assets folder in the repository
-> Assets are separated from Code Repository due to Large Binary Size.  
-
-#### 3. Build & Run  
-`cargo run --bin ethertia`   
-> Note:  
-> 1. make sure Rust Toolchain are installed for your system. (here is some common typically tutorials.)  
-> 2. you also need to run `dedicated_server` if you want enter a gameplay world.  
-> 3. use predefined build script `sh ./build/client_debug.sh` will dramatically speed up your build time.
+cargo run --release
+# or
+source build/client_debug.sh
+```
 
 ## Useful links
 

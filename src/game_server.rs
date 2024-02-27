@@ -34,33 +34,27 @@ impl Plugin for GameServerPlugin {
 fn on_init(
     mut serv: ResMut<ServerInfo>,
 ) {
-    info!("Loading server settings from {SERVER_SETTINGS_FILE}");
-    if let Ok(str) = std::fs::read_to_string(SERVER_SETTINGS_FILE) {
-        if let Ok(val) = serde_json::from_str(&str) {
-            serv.cfg = val;
-        }
+    if let Err(err) = serv.load() {
+        panic!("{}", err)
     }
 }
 
 fn on_exit(
     mut exit_events: EventReader<bevy::app::AppExit>,
-    mut serv: ResMut<ServerInfo>,
+    serv: ResMut<ServerInfo>,
 ) {
     for _ in exit_events.read() {
-        
-        info!("Saving server settings to {SERVER_SETTINGS_FILE}");
-        std::fs::write(SERVER_SETTINGS_FILE, serde_json::to_string(&serv.cfg).unwrap()).unwrap();   
+
     }
 }
 
 
 
-const SERVER_SETTINGS_FILE: &str = "./server.json";
+const SERVER_SETTINGS_FILE: &str = "server.settings.json";
 
 #[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ServerSettings {
-    
-    pub addr: String,
+    addr: String,
 }
 
 impl Default for ServerSettings {
@@ -71,18 +65,39 @@ impl Default for ServerSettings {
     }
 }
 
+impl ServerSettings {
+    pub fn addr(&self) -> &str {
+        &self.addr
+    }
+}
 
 #[derive(Resource, Default)]
 pub struct ServerInfo {
     // PlayerList
     pub online_players: HashMap<ClientId, PlayerInfo>,
-
-    pub cfg: ServerSettings,
+    cfg: ServerSettings,
 }
 
 impl ServerInfo {
+    pub fn cfg(&self) -> &ServerSettings {
+        &self.cfg
+    }
 
+    fn load(&mut self) -> anyhow::Result<()> {
+        Ok(match std::fs::read_to_string(SERVER_SETTINGS_FILE) {
+            Ok(s) => {
+                info!("Loading server settings from {SERVER_SETTINGS_FILE}");
+                
+                self.cfg = serde_json::from_str(&s)?
+            },
+            Err(_) => {
+                info!("Saving server settings to {SERVER_SETTINGS_FILE}");
 
+                let s = serde_json::to_string_pretty(&self.cfg)?;
+                std::fs::write(SERVER_SETTINGS_FILE, s)?;
+            },
+        })
+    }
 }
 
 

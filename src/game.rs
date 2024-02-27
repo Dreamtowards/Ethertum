@@ -557,7 +557,7 @@ pub struct ServerListItem {
     pub addr: String,
 }
 
-const CLIENT_SETTINGS_FILE: &str = "./client.settings.json";
+const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
 
 #[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ClientSettings {

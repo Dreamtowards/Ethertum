@@ -103,7 +103,7 @@ fn bind_endpoint(
     mut cmds: Commands,
     serv: Res<ServerInfo>,
 ) {
-    let addr = serv.cfg.addr.parse().unwrap();
+    let addr = serv.cfg().addr().parse().unwrap();
 
     cmds.insert_resource(new_netcode_server_transport(addr, 64));
     info!("Server bind endpoint at {}", addr);
