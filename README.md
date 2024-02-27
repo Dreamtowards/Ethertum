@@ -29,7 +29,7 @@
 <!-- ![MIT](https://img.shields.io/badge/license-MIT-blue.svg) -->
 <!-- ![Apache](https://img.shields.io/badge/license-Apache-blue.svg) -->
 
-A Sandbox Survival Game, with Rust, Bevy. inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, GTA<sup>V,SA</sup>, VRChat, RisingWorld, Palworld,. 
+A Voxel Multiplayer Sandbox Survival Game built in Rust & Bevy. inspired by e.g. Minecraft<sup>Beta 1.7.3</sup>, RisingWorld. 
 
 <!-- [Documentations](https://docs.ethertia.com) - 
 [Official Site](https://ethertia.com) - 
@@ -57,21 +57,22 @@ Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[
 <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218002527.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218005036.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218094516.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217174639.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217160739.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217004724.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240120001806.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240119013301.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230310-1.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs221130.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/_figures/23u07.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230401.png" alt="Ethertia"> <img style="height: 80px;" src="https://raw.githubusercontent.com/Dreamtowards/Ethertia/main/run/screenshots/qs230402.png" alt="Ethertia">
 
 
-### Getting Started to Dev
+## Getting Started
 
-1\. Install Rust Toolchain for your OS  
-here is some common typically tutorials.
 
-2\. Download Repository  
+#### 1. Download the Repository  
 `git clone https://github.com/Dreamtowards/Ethertum.git`
 
-3\. Download Assets  
-[assets.zip](https://github.com/Dreamtowards/Ethertum/releases/download/latest-assets/assets.zip)
-are separated from Code Repository due to Large Binary Size.  
+#### 2. Download & Unzip the Assets  
+Download the [assets.zip](https://github.com/Dreamtowards/Ethertum/releases/download/latest-assets/assets.zip) and unzip it to overwrite the assets folder in the repository
+> Assets are separated from Code Repository due to Large Binary Size.  
 
-4\. Build & Run  
-`sh ./build/native_debug_faster.sh`  
-Note: you also need to run `dedicated_server` if you want enter a gameplay world.
+#### 3. Build & Run  
+`cargo run --bin ethertia`   
+> Note:  
+> 1. make sure Rust Toolchain are installed for your system. (here is some common typically tutorials.)  
+> 2. you also need to run `dedicated_server` if you want enter a gameplay world.  
+> 3. use predefined build script `sh ./build/client_debug.sh` will dramatically speed up your build time.
 
 ## Useful links
 
