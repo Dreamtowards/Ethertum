@@ -26,7 +26,7 @@ keystore_password = "android"
 
 [package.metadata.android.sdk]
 min_sdk_version = 24
-target_sdk_version = 33   # Google Play denies 29 or below
+target_sdk_version = 33
 #max_sdk_version = 33
 
 [[package.metadata.android.uses_permission]]

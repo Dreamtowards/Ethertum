@@ -356,12 +356,8 @@ fn handle_inputs(
     if *last_is_manipulating != curr_manipulating {
         *last_is_manipulating = curr_manipulating;
 
-        // All Has-Cursor Platforms
-        // #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        // {
-            window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
-            window.cursor.visible = !curr_manipulating;
-        // }
+        window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
+        window.cursor.visible = !curr_manipulating;
 
         if let Ok(ctr) = &mut controller_query.get_single_mut() {
             ctr.enable_input = curr_manipulating;
