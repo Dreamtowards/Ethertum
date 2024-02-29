@@ -21,12 +21,12 @@ apk_name = "ethertia"
 strip = "strip"
 
 [package.metadata.android.signing.android-debug]
-path = "../../.android/debug.keystore"  #"../../../../../.android/debug.keystore"
+path = "../../../../../.android/debug.keystore"
 keystore_password = "android"
 
 [package.metadata.android.sdk]
 min_sdk_version = 24
-target_sdk_version = 29
+target_sdk_version = 33   # Google Play denies 29 or below
 #max_sdk_version = 33
 
 [[package.metadata.android.uses_permission]]
