@@ -98,19 +98,23 @@ impl SmoothValue {
 }
 
 pub mod raw {
-    pub unsafe fn as_ref<'a, T>(ptr: *mut T) -> &'a mut T {
+    pub unsafe fn as_ref<'a, T>(ptr: *const T) -> &'a T {
+        &*ptr
+    }
+
+    pub unsafe fn as_mut<'a, T>(ptr: *mut T) -> &'a mut T {
         &mut *ptr
     }
 }
 
 pub fn generate_simple_user_name() -> String {
-    static ADJES: [&str; 5] = ["Happy", "Sunny", "Sweet", "Bright", "Cheerful"];
-    static SUBJECTS: [&str; 10] = ["Apple", "Banana", "Orange", "Mango", "Grapes", "Cherry", "Lime", "Peach", "Pear", "Steven"];
+    static ADJS: [&str; 5] = ["Happy", "Sunny", "Sweet", "Bright", "Cheerful"];
+    static NOUNS: [&str; 10] = ["Apple", "Banana", "Orange", "Mango", "Grapes", "Cherry", "Lime", "Peach", "Pear", "Steven"];
 
     use rand::Rng;
 
     let mut rng = rand::thread_rng();
-    format!("{}{}{}", ADJES[rng.gen_range(0..ADJES.len())], SUBJECTS[rng.gen_range(0..SUBJECTS.len())], rng.gen_range(50..9999))
+    format!("{}{}{}", ADJS[rng.gen_range(0..ADJS.len())], NOUNS[rng.gen_range(0..NOUNS.len())], rng.gen_range(5..9999))
 }
 
 pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game::ServerListItem>> {
