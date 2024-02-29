@@ -29,6 +29,7 @@ jobs:
         run: |
           rustup target add aarch64-linux-android
           cargo install --force cargo-apk
+          # sudo apt-get install pkg-config libssl-dev
 
       - name: Build for Android
         run: |

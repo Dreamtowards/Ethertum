@@ -114,18 +114,18 @@ pub fn generate_simple_user_name() -> String {
 }
 
 pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game::ServerListItem>> {
-    #[cfg(target_arch = "wasm32")]
-    {
+    // #[cfg(target_arch = "wasm32")]
+    // {
         Err(anyhow::anyhow!("Not supported at this time"))
-    }
+    // }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let client = reqwest::blocking::Client::builder()
-            //.timeout(instant::Duration::from_secs_f64(5.0))
-            .build()?;
-        //let res = client.get(url).send()?.json::<std::collections::HashMap<String, String>>()?;
-        //Ok(res.get("entry").ok_or(crate::err_opt_is_none!())?.clone())
-        Ok(serde_json::from_value(client.get(url).send()?.json()?)?)
-    }
+    // #[cfg(not(target_arch = "wasm32"))]
+    // {
+    //     let client = reqwest::blocking::Client::builder()
+    //         //.timeout(instant::Duration::from_secs_f64(5.0))
+    //         .build()?;
+    //     //let res = client.get(url).send()?.json::<std::collections::HashMap<String, String>>()?;
+    //     //Ok(res.get("entry").ok_or(crate::err_opt_is_none!())?.clone())
+    //     Ok(serde_json::from_value(client.get(url).send()?.json()?)?)
+    // }
 }

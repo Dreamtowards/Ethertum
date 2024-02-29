@@ -6,8 +6,8 @@ wasm-bindgen --no-typescript --out-dir artifacts/wasm --target web target/wasm32
 # ./wasm-opt.exe -Oz -o ./wasm/ethertia_opt.wasm ./wasm/ethertia_bindgen_bg.wasm
 # ./wasm-opt.exe -O -ol 100 -s 100 -o ./wasm/ethertia.wasm ../target/wasm32-unknown-unknown/release/ethertia.wasm
 
-#mkdir artifacts
 cp -r assets/ artifacts/wasm/
+cp build/wasm/index.html artifacts/wasm/
 zip --recurse-paths artifacts/ethertia.zip artifacts/wasm
 
 

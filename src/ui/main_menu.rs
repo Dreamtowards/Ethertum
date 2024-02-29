@@ -38,7 +38,7 @@ pub fn ui_main_menu(
             let siz = [240., 24.];
 
             if dbg_server_addr.is_empty() {
-                *dbg_server_addr = "127.0.0.1:4000".into();
+                *dbg_server_addr = "74.48.134.236:4000".into();
             }
             
             ui.add_sized(siz, egui::TextEdit::singleline(&mut *dbg_server_addr));

@@ -11,7 +11,7 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, item::ItemPlugin, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
+    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, item::{Inventory, ItemPlugin}, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
 };
 
 use crate::voxel::ClientVoxelPlugin;
@@ -259,7 +259,7 @@ fn startup(
     cmds.spawn((
         DirectionalLightBundle {
             directional_light: DirectionalLight {
-                shadows_enabled: true,
+                shadows_enabled: cli.skylight_shadow,
                 ..default()
             },
             ..default()
@@ -355,8 +355,12 @@ fn handle_inputs(
     if *last_is_manipulating != curr_manipulating {
         *last_is_manipulating = curr_manipulating;
 
-        window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
-        window.cursor.visible = !curr_manipulating;
+        // All Has-Cursor Platforms
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
+            window.cursor.visible = !curr_manipulating;
+        }
 
         if let Ok(ctr) = &mut controller_query.get_single_mut() {
             ctr.enable_input = curr_manipulating;
@@ -497,6 +501,24 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
 
 }
 
+
+
+
+
+struct ClientPlayerInfo {
+
+    inventory: Inventory,
+
+    hootbar_index: u32,
+
+}
+
+
+
+
+
+
+
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct WorldInfo {
@@ -548,6 +570,9 @@ impl Default for WorldInfo {
 }
 
 
+
+
+
 // #[derive(Resource)]
 // pub struct ServerListHandle(Handle<ServerList>);
 
@@ -580,6 +605,9 @@ impl Default for ClientSettings {
 }
 
 
+
+
+
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ClientInfo {
@@ -610,6 +638,8 @@ pub struct ClientInfo {
     pub sky_inscattering_color: Color,
     pub sky_extinction_color: Color,
     pub sky_fog_is_atomspheric: bool,
+    
+    pub skylight_shadow: bool,
 
     #[reflect(ignore)]
     pub cfg: ClientSettings,
@@ -641,6 +671,8 @@ impl Default for ClientInfo {
             sky_fog_is_atomspheric: true,
             sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0),  // bevy demo: Color::rgb(0.7, 0.844, 1.0),
             sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
+
+            skylight_shadow: false,
 
             cfg: ClientSettings::default(),
         }

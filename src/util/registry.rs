@@ -2,7 +2,7 @@ use bevy::utils::HashMap;
 
 pub type RegId = u16;
 
-#[derive(Default)]
+#[derive(Default, bevy::prelude::Resource)]
 pub struct Registry {
     pub vec: Vec<String>,
 

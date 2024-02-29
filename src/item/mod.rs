@@ -13,14 +13,14 @@ struct Item {
 
 
 
-struct ItemStack {
+pub struct ItemStack {
     pub count: u8,
     pub item_id: u8,
 
     // pub durability
 }
 
-struct Inventory {
+pub struct Inventory {
     pub items: Vec<ItemStack>,
 
 }
@@ -34,6 +34,7 @@ impl Plugin for ItemPlugin {
     fn build(&self, app: &mut App) {
 
         app.insert_resource(Items::default());
+        app.insert_resource(Registry::default());
         
         app.add_systems(Startup, setup_items);
 
@@ -44,14 +45,20 @@ impl Plugin for ItemPlugin {
 
 #[derive(Resource, Default)]
 struct Items {
-    pub registry: Registry,
     pub atlas: Handle<Image>,
 
-    // pub apple: RegId,
-    // pub pickaxe: RegId,
-    // pub stick: RegId,
-    // pub shear: RegId,
+    pub apple: RegId,
+    
+    pub coal: RegId,
+    pub stick: RegId,
+    
+    pub frame: RegId,
+    pub lantern: RegId,
 
+    pub pickaxe: RegId,
+    pub shears: RegId,
+    pub grapple: RegId,
+    pub iron_ingot: RegId,
 }
 
 // fn error_handler(In(result): In<anyhow::Result<()>>) {
@@ -67,37 +74,37 @@ struct Items {
 
 fn setup_items(
     mut items: ResMut<Items>,
+    mut reg: ResMut<Registry>,
     asset_server: Res<AssetServer>,
 ) {
-    let reg = &mut items.registry;
 
     // Food
-    reg.insert("apple");
-    reg.insert("avocado");
+    items.apple = reg.insert("apple");
+    //  reg.insert("avocado");
 
     // Material
-    reg.insert("coal");
-    reg.insert("stick");
+    items.coal  = reg.insert("coal");
+    items.stick = reg.insert("stick");
 
     // Object
-    reg.insert("frame");
-    reg.insert("lantern");
+    items.frame = reg.insert("frame");
+    items.lantern = reg.insert("lantern");
     // torch
 
     // Tool
-    reg.insert("pickaxe");
+    items.pickaxe = reg.insert("pickaxe");
     // shovel
-    reg.insert("shears");
-    reg.insert("grapple");
-    reg.insert("iron_ingot");
+    items.shears = reg.insert("shears");
+    items.grapple = reg.insert("grapple");
+    items.iron_ingot = reg.insert("iron_ingot");
 
 
 
     // below are temporary. Build should defer to PostStartup stage.:
 
     // Build NumId Table
-    items.registry.build_num_id();
-    info!("Registered {} items: {:?}", items.registry.len(), items.registry.vec);
+    reg.build_num_id();
+    info!("Registered {} items: {:?}", reg.len(), reg.vec);
 
     
     items.atlas = asset_server.load("baked/items.png");

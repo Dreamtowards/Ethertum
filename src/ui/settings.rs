@@ -104,6 +104,8 @@ pub fn ui_settings(
                     if let Ok(mut ctl) = query_cam.get_single_mut() {
                         ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, "Auto Unfly"));
                     }
+                    
+                    ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut ctl.skylight_shadow, ""));
                    
                     ui.label("Voxel:");
 
