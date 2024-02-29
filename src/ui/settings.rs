@@ -105,7 +105,7 @@ pub fn ui_settings(
                         ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, "Auto Unfly"));
                     }
                     
-                    ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut ctl.skylight_shadow, ""));
+                    ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut cli.skylight_shadow, ""));
                    
                     ui.label("Voxel:");
 

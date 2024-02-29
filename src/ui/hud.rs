@@ -2,7 +2,7 @@
 use std::collections::VecDeque;
 
 use bevy::{prelude::*, reflect::List};
-use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, Id, Layout, ScrollArea, TextEdit, TextFormat}, EguiContexts};
+use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, ScrollArea, Stroke, TextEdit, TextFormat, Vec2}, EguiContexts};
 use bevy_renet::renet::RenetClient;
 use egui_extras::{Size, StripBuilder};
 
@@ -197,18 +197,50 @@ pub fn hud_chat(
 pub fn hud_hotbar(
     mut ctx: EguiContexts,
     cli: Res<ClientInfo>,
+
 ) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
         .anchor(Align2::CENTER_BOTTOM, [0., -cli.cfg.hud_padding])
-        // .frame(Frame::default().fill(Color32::from_black_alpha(180)))
+        .frame(Frame::default().fill(Color32::from_black_alpha(0)))
         .show(ctx.ctx_mut(), |ui| {
             let s = 50.;
 
+            let healthbar_size = Vec2::new(250., 10.);
+            let mut min = ui.min_rect();
+            min.set_height(0.);
+            min.set_width(0.);
+            min = min.translate(Vec2::new(0., -healthbar_size.y - 10.));
+            
+            ui.painter().rect_filled(
+                min.expand2(healthbar_size), 
+                Rounding::ZERO,
+                Color32::from_black_alpha(200),
+            );
+
+            ui.painter().rect_filled(
+                min.expand2(Vec2::new(healthbar_size.x * (cli.health as f32 / cli.health_max as f32), healthbar_size.y)), 
+                Rounding::ZERO,
+                Color32::RED,
+            );
+            ui.painter().text(
+                min.left_center(), Align2::LEFT_CENTER, 
+                format!("{}/{}", cli.health, cli.health_max), 
+                FontId::proportional(12.), Color32::WHITE
+            );
+
+
+
             ui.horizontal(|ui| {
-                for i in 0..9 {
-                    ui.add_sized([s, s], egui::Button::new(""));
+                for i in 0..crate::game::HOTBAR_SLOTS {
+                    let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
+
+                    if cli.hotbar_index == i {
+                        slot = slot.stroke(Stroke::new(3., Color32::WHITE));
+                    }
+
+                    ui.add_sized([s, s], slot);
                 }
             });
 

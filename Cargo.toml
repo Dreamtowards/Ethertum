@@ -29,7 +29,7 @@ bevy = { version = "0.12" }
 bevy_xpbd_3d = "0.3"
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
-bevy_renet = "0.0"
+bevy_renet = "0.0.10"
 
 bevy_atmosphere = { version = "0.8", optional = true }
 bevy_mod_billboard = "0.5"

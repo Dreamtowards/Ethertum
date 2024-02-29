@@ -17,9 +17,6 @@ pub struct ClientVoxelPlugin;
 impl Plugin for ClientVoxelPlugin {
     fn build(&self, app: &mut App) {
 
-        // ClientChunkSystem.
-        app.insert_resource(ClientChunkSystem::new());
-
         // Render Shader.
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
         app.register_asset_reflect::<TerrainMaterial>();  // debug
@@ -30,8 +27,9 @@ impl Plugin for ClientVoxelPlugin {
             app.insert_resource(ChannelRx(rx));
         }
 
-        // Startup Init
-        app.add_systems(First, startup.run_if(condition::load_world()));
+        app.add_systems(First, setup.run_if(condition::load_world()));
+        app.add_systems(Last, cleanup.run_if(condition::unload_world()));
+        
 
         app.insert_resource(HitResult::default());
         app.add_systems(Update,
@@ -49,14 +47,14 @@ impl Plugin for ClientVoxelPlugin {
 
 
 
-fn startup(
-    mut chunk_sys: ResMut<ClientChunkSystem>,
-
-    mut commands: Commands,
+fn setup(
+    mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
 ) {
     info!("Init ChunkSystem");
+
+    let mut chunk_sys = ClientChunkSystem::new();
 
     chunk_sys.shader_terrain = terrain_materials.add(TerrainMaterial {
         texture_diffuse: Some(asset_server.load("baked/atlas_diff.png")),
@@ -66,7 +64,7 @@ fn startup(
     });
 
     // ChunkSystem entity. all chunk entities will be spawn as children. (for almost no reason. just for editor hierarchy)
-    chunk_sys.entity = commands
+    chunk_sys.entity = cmds
         .spawn((
             Name::new("ChunkSystem"),
             InheritedVisibility::VISIBLE,
@@ -75,6 +73,15 @@ fn startup(
             DespawnOnWorldUnload,
         ))
         .id();
+    
+    cmds.insert_resource(chunk_sys);
+}
+
+fn cleanup(
+    mut cmds: Commands,
+) {
+
+    cmds.remove_resource::<ClientChunkSystem>();
 }
 
 

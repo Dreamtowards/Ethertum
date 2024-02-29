@@ -1,6 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 
 #[cfg(feature = "target_native_os")]
@@ -198,9 +198,9 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 
 fn startup(
     mut cmds: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    // asset_server: Res<AssetServer>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
     mut cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
@@ -331,6 +331,7 @@ fn cleanup(
 
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
+    mut mouse_wheel_events: EventReader<MouseWheel>,
     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
     mut controller_query: Query<&mut CharacterController>,
 
@@ -339,7 +340,7 @@ fn handle_inputs(
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 
-    mut clientinfo: ResMut<ClientInfo>,
+    mut cli: ResMut<ClientInfo>,
 ) {
     let mut window = window_query.single_mut();
 
@@ -356,17 +357,25 @@ fn handle_inputs(
         *last_is_manipulating = curr_manipulating;
 
         // All Has-Cursor Platforms
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        {
+        // #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        // {
             window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
             window.cursor.visible = !curr_manipulating;
-        }
+        // }
 
         if let Ok(ctr) = &mut controller_query.get_single_mut() {
             ctr.enable_input = curr_manipulating;
         }
     }
 
+    // Duplicated Code!
+    let mut wheel_delta = 0.0;
+    for w in mouse_wheel_events.read() {
+        wheel_delta += w.x + w.y;
+    }
+    cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(HOTBAR_SLOTS as i32) as u32;
+
+    
     // Temporary F4 Debug Settings
     if key.just_pressed(KeyCode::F4) {
         next_ui.set(CurrentUI::WtfSettings);
@@ -374,17 +383,17 @@ fn handle_inputs(
 
     // Temporary Toggle F9 Debug Inspector
     if key.just_pressed(KeyCode::F9) {
-        clientinfo.dbg_inspector = !clientinfo.dbg_inspector;
+        cli.dbg_inspector = !cli.dbg_inspector;
     }
 
     // Toggle F3 Debug TextInfo
     if key.just_pressed(KeyCode::F3) {
-        clientinfo.dbg_text = !clientinfo.dbg_text;
+        cli.dbg_text = !cli.dbg_text;
     }
 
     // Toggle F12 Debug MenuBar
     if key.just_pressed(KeyCode::F12) {
-        clientinfo.dbg_menubar = !clientinfo.dbg_menubar;
+        cli.dbg_menubar = !cli.dbg_menubar;
     }
 
     // Toggle Fullscreen
@@ -505,15 +514,6 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
 
 
 
-struct ClientPlayerInfo {
-
-    inventory: Inventory,
-
-    hootbar_index: u32,
-
-}
-
-
 
 
 
@@ -606,7 +606,7 @@ impl Default for ClientSettings {
 
 
 
-
+pub const HOTBAR_SLOTS: u32 = 9;
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
@@ -643,6 +643,16 @@ pub struct ClientInfo {
 
     #[reflect(ignore)]
     pub cfg: ClientSettings,
+
+    
+    // ClientPlayerInfo
+    #[reflect(ignore)]
+    pub inventory: Inventory,
+
+    pub hotbar_index: u32,
+
+    pub health: u32,
+    pub health_max: u32,
 }
 
 impl Default for ClientInfo {
@@ -675,6 +685,11 @@ impl Default for ClientInfo {
             skylight_shadow: false,
 
             cfg: ClientSettings::default(),
+
+            inventory: Inventory::new(36),
+            hotbar_index: 0,
+            health: 20,
+            health_max: 20,
         }
     }
 }

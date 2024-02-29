@@ -3,7 +3,7 @@ use bevy_egui::{
     egui::{self, pos2, Align2, Color32, Frame, Layout,Rounding, },
     EguiContexts, 
 };
-use bevy_renet::renet::RenetClient;
+use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::game::{ClientInfo, EthertiaClient, WorldInfo};
 use super::CurrentUI;
@@ -47,11 +47,11 @@ pub fn ui_main_menu(
                 next_ui.set(CurrentUI::ConnectingServer);
                 cli.connect_server(dbg_server_addr.clone());
             }
-            if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
-                // 临时的单人版方法 直接进入世界而不管网络
-                next_ui.set(CurrentUI::None);
-                commands.insert_resource(WorldInfo::default());  
-            }
+            // if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
+            //     // 临时的单人版方法 直接进入世界而不管网络
+            //     next_ui.set(CurrentUI::None);
+            //     commands.insert_resource(WorldInfo::default());  
+            // }
             ui.label("·");
 
             if ui.add_sized(siz, egui::Button::new("Singleplayer")).clicked() {
@@ -129,6 +129,8 @@ pub fn ui_pause_menu(
                     next_ui.set(CurrentUI::MainMenu);
                     commands.remove_resource::<WorldInfo>();
                     net_client.disconnect();
+                    commands.remove_resource::<RenetClient>();
+                    commands.remove_resource::<NetcodeClientTransport>();
                     // cli.close_world();
                 }
             });

@@ -20,9 +20,18 @@ pub struct ItemStack {
     // pub durability
 }
 
+#[derive(Default)]
 pub struct Inventory {
     pub items: Vec<ItemStack>,
 
+}
+
+impl Inventory {
+    pub fn new(size: usize) -> Self {
+        Self {
+            items: Vec::with_capacity(size),
+        }
+    }
 }
 
 

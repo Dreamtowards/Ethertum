@@ -18,7 +18,7 @@ use crate::{
 pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    mut chunk_sys: ResMut<ClientChunkSystem>,
+    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
     mut clientinfo: ResMut<ClientInfo>,
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 
@@ -129,24 +129,26 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("World", |ui| {
-                            if ui.button("ReMesh All Chunks").clicked() {
-                                let ls =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
-                                for chunkpos in ls {
-                                    chunk_sys.mark_chunk_remesh(chunkpos);
-                                }
-                            }
-                            ui.separator();
+
                             ui.label("Gizmos:");
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Curr Chunk");
                             ui.toggle_value(&mut clientinfo.dbg_gizmo_remesh_chunks, "ReMesh Chunks");
                             ui.separator();
 
-                            if ui.button("Gen Tree").clicked() {
-                                let p = query_cam.single().translation.as_ivec3();
-                                let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
-
-                                worldgen::gen_tree(&mut chunk, Chunk::as_localpos(p), 0.8);
+                            if let Some(mut chunk_sys) = chunk_sys {
+                                if ui.button("ReMesh All Chunks").clicked() {
+                                    let ls =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+                                    for chunkpos in ls {
+                                        chunk_sys.mark_chunk_remesh(chunkpos);
+                                    }
+                                }
+                                if ui.button("Gen Tree").clicked() {
+                                    let p = query_cam.single().translation.as_ivec3();
+                                    let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
+    
+                                    worldgen::gen_tree(&mut chunk, Chunk::as_localpos(p), 0.8);
+                                }
                             }
                         });
                         ui.menu_button("Render", |ui| {});
@@ -182,7 +184,7 @@ pub fn hud_debug_text(
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
     worldinfo: Option<Res<WorldInfo>>,
-    chunk_sys: Res<ClientChunkSystem>,
+    chunk_sys: Option<Res<ClientChunkSystem>>,
     hit_result: Res<HitResult>,
     query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
@@ -252,6 +254,8 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
     let mut cam_visible_entities_num = 0;
     let mut str_world = String::default();
     if let Some(worldinfo) = worldinfo {
+        let chunk_sys = chunk_sys.unwrap();
+
         let (cam_trans, cam_visible_entities) = query_cam.single();
         let cam_pos = cam_trans.translation;
         let cam_pos_spd = (cam_pos - *last_cam_pos).length() / time.delta_seconds();
