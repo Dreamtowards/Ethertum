@@ -175,7 +175,7 @@ fn input_move(
             for touch in touches.iter() {
                 let mov = touch.delta();
                 
-                ctl.pitch   += look_sensitivity * mov.y;
+                ctl.pitch   -= look_sensitivity * mov.y;
                 ctl.yaw     -= look_sensitivity * mov.x;
             }
 

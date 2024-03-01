@@ -142,7 +142,7 @@ pub fn client_sys(
                             ChunkComponent::new(*chunkpos),
                             MaterialMeshBundle {
                                 mesh: chunk.mesh_handle.clone(),
-                                material: chunk_sys.shader_terrain.clone(),
+                                material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),//chunk_sys.shader_terrain.clone(),
                                 transform: Transform::from_translation(chunkpos.as_vec3()),
                                 visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
                                 ..default()
