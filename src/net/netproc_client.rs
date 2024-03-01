@@ -1,3 +1,4 @@
+//! Client Networking Handler
 
 use std::sync::{Arc, RwLock};
 
@@ -5,32 +6,15 @@ use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopo
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::components::{Collider, RigidBody};
+use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle}, game::{ClientInfo, DespawnOnWorldUnload, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
+    character_controller::{CharacterController, CharacterControllerBundle}, game::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
 };
 
 use super::{packet::CellData, SPacket};
 
-use bevy_touch_stick::{prelude::*, TouchStickUiKnob, TouchStickUiOutline};
-use leafwing_input_manager::prelude::*;
 
-pub mod input {
-    use super::*;
-
-    #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
-    pub enum Stick {
-        #[default]
-        Left,
-        Right,
-    }
-
-    #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-    pub enum Action {
-        Move,
-        Look,
-    }
-}
 
 pub fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
@@ -293,13 +277,13 @@ fn spawn_player(
                     ..default()
                 },
             ),
-            leafwing_input_manager::InputManagerBundle::<input::Action> {
+            leafwing_input_manager::InputManagerBundle::<InputAction> {
                 // Stores "which actions are currently activated"
                 action_state: ActionState::default(),
                 // Describes how to convert from player inputs into those actions
-                input_map: InputMap::default()
-                    .insert(input::Action::Move, DualAxis::left_stick())
-                    .insert(input::Action::Look, DualAxis::right_stick())
+                input_map: leafwing_input_manager::input_map::InputMap::default()
+                    .insert(InputAction::Move, DualAxis::left_stick())
+                    .insert(InputAction::Look, DualAxis::right_stick())
                     .build(),
             },
         )).with_children(|parent| {
@@ -319,104 +303,5 @@ fn spawn_player(
             });
         });
 
-        // spawn a move stick
-        cmds.spawn((
-            // map this stick as a left gamepad stick (through bevy_input)
-            // leafwing will register this as a normal gamepad
-            TouchStickGamepadMapping::LEFT_STICK,
-            TouchStickUiBundle {
-                stick: TouchStick {
-                    id: input::Stick::Left,
-                    stick_type: TouchStickType::Fixed,
-                    ..default()
-                },
-                // configure the interactable area through bevy_ui
-                style: Style {
-                    width: Val::Px(150.),
-                    height: Val::Px(150.),
-                    position_type: PositionType::Absolute,
-                    left: Val::Percent(15.),
-                    bottom: Val::Percent(5.),
-                    ..default()
-                },
-                ..default()
-            },
-        ))
-        .with_children(|parent| {
-            parent.spawn((
-                TouchStickUiKnob,
-                ImageBundle {
-                    image: asset_server.load("knob.png").into(),
-                    style: Style {
-                        width: Val::Px(75.),
-                        height: Val::Px(75.),
-                        ..default()
-                    },
-                    ..default()
-                },
-            ));
-            parent.spawn((
-                TouchStickUiOutline,
-                ImageBundle {
-                    image: asset_server.load("outline.png").into(),
-                    style: Style {
-                        width: Val::Px(150.),
-                        height: Val::Px(150.),
-                        ..default()
-                    },
-                    ..default()
-                },
-            ));
-        });
-
-        // spawn a look stick
-        cmds.spawn((
-                // map this stick as a right gamepad stick (through bevy_input)
-                // leafwing will register this as a normal gamepad
-                TouchStickGamepadMapping::RIGHT_STICK,
-                TouchStickUiBundle {
-                    stick: TouchStick {
-                        id: input::Stick::Right,
-                        stick_type: TouchStickType::Floating,
-                        ..default()
-                    },
-                    // configure the interactable area through bevy_ui
-                    style: Style {
-                        width: Val::Px(150.),
-                        height: Val::Px(150.),
-                        position_type: PositionType::Absolute,
-                        right: Val::Percent(15.),
-                        bottom: Val::Percent(5.),
-                        ..default()
-                    },
-                    ..default()
-                },
-            ))
-            .with_children(|parent| {
-                parent.spawn((
-                    TouchStickUiKnob,
-                    ImageBundle {
-                        image: asset_server.load("knob.png").into(),
-                        style: Style {
-                            width: Val::Px(75.),
-                            height: Val::Px(75.),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                ));
-                parent.spawn((
-                    TouchStickUiOutline,
-                    ImageBundle {
-                        image: asset_server.load("outline.png").into(),
-                        style: Style {
-                            width: Val::Px(150.),
-                            height: Val::Px(150.),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                ));
-            });
     }
 }

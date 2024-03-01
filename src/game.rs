@@ -1,43 +1,22 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::{app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+use bevy::{
+    app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, 
+    input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, 
+    utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
+use bevy_obj::ObjPlugin;
+use bevy_renet::renet::RenetClient;
+use bevy_touch_stick::*;
+use bevy_xpbd_3d::prelude::*;
 
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use bevy_obj::ObjPlugin;
-use bevy_renet::renet::RenetClient;
-use bevy_xpbd_3d::prelude::*;
-
-use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, item::{Inventory, ItemPlugin}, net::{CPacket, ClientNetworkPlugin, RenetClientHelper}, ui::CurrentUI
-};
-
-use crate::voxel::ClientVoxelPlugin;
-
-pub mod condition {
-    use bevy::ecs::{schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
-    use crate::ui::CurrentUI;
-    use super::WorldInfo;
-
-    pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_exists::<WorldInfo>()
-    }
-    pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_added::<WorldInfo>()
-    }
-    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_removed::<WorldInfo>()
-    }
-    pub fn manipulating() -> impl FnMut(Res<State<CurrentUI>>) -> bool + Clone {
-        |curr_ui: Res<State<CurrentUI>>| *curr_ui == CurrentUI::None
-    }
-}
-
-/// Despawn the Entity on World Unload.
-#[derive(Component)]
-pub struct DespawnOnWorldUnload;
+use crate::character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin};
+use crate::item::{Inventory, ItemPlugin};
+use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
+use crate::{ui::CurrentUI, voxel::ClientVoxelPlugin};
 
 
 
@@ -45,13 +24,6 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        // Input
-        {
-            app.add_plugins((
-                bevy_touch_stick::TouchStickPlugin::<crate::net::netproc_client::input::Stick>::default(),
-                leafwing_input_manager::plugin::InputManagerPlugin::<crate::net::netproc_client::input::Action>::default(),
-            ));
-        }
 
         // Render
         {
@@ -100,14 +72,15 @@ impl Plugin for GamePlugin {
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
-        app.add_systems(First, startup.run_if(condition::load_world()));  // Camera, Player, Sun
-        app.add_systems(Last, cleanup.run_if(condition::unload_world()));
+        app.add_systems(First, on_world_init.run_if(condition::load_world()));  // Camera, Player, Sun
+        app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
         
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
-        app.add_systems(PreStartup, on_init);  // load settings
-        app.add_systems(Last, on_exit);  // save settings
+        // App Init/Exit
+        app.add_systems(PreStartup, on_app_init);  // load settings
+        app.add_systems(Last, on_app_exit);  // save settings
 
 
         // Debug
@@ -119,10 +92,53 @@ impl Plugin for GamePlugin {
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
 
+        // Input
+        {
+            app.add_plugins((
+                bevy_touch_stick::TouchStickPlugin::<InputStickId>::default(),
+                leafwing_input_manager::plugin::InputManagerPlugin::<InputAction>::default(),
+            ));
+        }
     }
 }
 
-fn on_init(
+
+
+
+
+/// Marker: Despawn the Entity on World Unload.
+#[derive(Component)]
+pub struct DespawnOnWorldUnload;
+
+// Marker: Sun
+#[derive(Component)]
+struct Sun;
+
+pub mod condition {
+    use bevy::ecs::{schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
+    use crate::ui::CurrentUI;
+    use super::WorldInfo;
+
+    pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_exists::<WorldInfo>()
+    }
+    pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_added::<WorldInfo>()
+    }
+    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_removed::<WorldInfo>()
+    }
+    pub fn manipulating() -> impl FnMut(Res<State<CurrentUI>>) -> bool + Clone {
+        |curr_ui: Res<State<CurrentUI>>| *curr_ui == CurrentUI::None
+    }
+}
+
+
+
+
+
+
+fn on_app_init(
     mut cli: ResMut<ClientInfo>,
 ) {
     info!("Loading client settings from {CLIENT_SETTINGS_FILE}");
@@ -133,7 +149,7 @@ fn on_init(
     }
 }
 
-fn on_exit(
+fn on_app_exit(
     mut exit_events: EventReader<AppExit>,
     cli: Res<ClientInfo>,
 ) {
@@ -145,91 +161,19 @@ fn on_exit(
     }
 }
 
-#[derive(SystemParam)]
-pub struct EthertiaClient<'w,'s> {
-
-    clientinfo: ResMut<'w, ClientInfo>,
-
-    cmds: Commands<'w,'s>,
-}
-
-impl<'w,'s> EthertiaClient<'w,'s> {
-
-    /// for Singleplayer
-    // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
-
-    pub fn data(&mut self) -> &mut ClientInfo {
-        self.clientinfo.as_mut()
-    }
-
-    pub fn connect_server(&mut self, server_addr: String) {
-        info!("Connecting to {}", server_addr);
-
-        let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
-        
-        let username = &self.clientinfo.cfg.username;
-        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
-
-        self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.trim().parse().unwrap(), Some("userData123".to_string().into_bytes())));
-        
-        // clear Disconnect Reason prevents mis-display.
-        self.clientinfo.disconnected_reason.clear();
-
-        // 提前初始化世界 以防用资源时 发现没有被初始化
-        self.cmds.insert_resource(WorldInfo::default());
-
-        // let mut cmd = CommandQueue::default();
-        // cmd.push(move |world: &mut World| {
-        //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
-        //     world.insert_resource(RenetClient::new(bevy_renet::renet::ConnectionConfig::default()));
-            
-        //     let mut net_client = world.resource_mut::<RenetClient>();
-
-        //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
-        // });
-    }
-
-    pub fn enter_world() {
-
-    }
-}
 
 
-fn startup(
+
+
+
+fn on_world_init(
     mut cmds: Commands,
-    // asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
     // mut materials: ResMut<Assets<StandardMaterial>>,
     // mut meshes: ResMut<Assets<Mesh>>,
     mut cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
-
-
-    // Logical Player
-    // crate::net::spawn_player(Entity::from_raw(1000), true, &cli.username, &mut cmds, &mut meshes, &mut materials);
-    // commands.spawn((
-    //     PbrBundle {
-    //         mesh: meshes.add(Mesh::from(shape::Capsule {
-    //             radius: 0.3,
-    //             depth: 1.3,
-    //             ..default()
-    //         })),
-    //         material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-    //         transform: Transform::from_xyz(0.0, 0.0, 0.0),
-    //         ..default()
-    //     },
-    //     CharacterControllerBundle::new(
-    //         Collider::capsule(1.3, 0.3),
-    //         CharacterController {
-    //             is_flying: true,
-    //             enable_input: false,
-    //             ..default()
-    //         },
-    //     ),
-    //     Name::new("Player"),
-    //     DespawnOnWorldUnload,
-    // ));
 
     // Camera
     cmds.spawn((
@@ -269,56 +213,108 @@ fn startup(
         DespawnOnWorldUnload,
     ));
 
-    // // sky
-    // cmds.spawn(PbrBundle {
-    //     mesh: meshes.add(Mesh::from(shape::Box::default())),
-    //     material: materials.add(StandardMaterial {
-    //         base_color: Color::hex("888888").unwrap(),
-    //         unlit: true,
-    //         cull_mode: None,
-    //         ..default()
-    //     }),
-    //     transform: Transform::from_scale(Vec3::splat(1_000_000.0)),
-    //     ..default()
-    // });
 
-    // commands.spawn((
-    //     SceneBundle {
-    //         scene: assets.load("spaceship.glb#Scene0"),
-    //         transform: Transform::from_xyz(0., 0., -10.),
-    //         ..default()
-    //     },
-    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-    //     RigidBody::Static,
-    // ));
+    // TouchStick  Move-Left
+    cmds.spawn((
+        // map this stick as a left gamepad stick (through bevy_input)
+        // leafwing will register this as a normal gamepad
+        TouchStickGamepadMapping::LEFT_STICK,
+        TouchStickUiBundle {
+            stick: TouchStick {
+                id: InputStickId::Left,
+                stick_type: TouchStickType::Fixed,
+                ..default()
+            },
+            // configure the interactable area through bevy_ui
+            style: Style {
+                width: Val::Px(150.),
+                height: Val::Px(150.),
+                position_type: PositionType::Absolute,
+                left: Val::Percent(15.),
+                bottom: Val::Percent(5.),
+                ..default()
+            },
+            ..default()
+        },
+    )).with_children(|parent| {
+        parent.spawn((
+            TouchStickUiKnob,
+            ImageBundle {
+                image: asset_server.load("knob.png").into(),
+                style: Style {
+                    width: Val::Px(75.),
+                    height: Val::Px(75.),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+        parent.spawn((
+            TouchStickUiOutline,
+            ImageBundle {
+                image: asset_server.load("outline.png").into(),
+                style: Style {
+                    width: Val::Px(150.),
+                    height: Val::Px(150.),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+    });
 
-    // // Floor
-    // commands.spawn((
-    //     SceneBundle {
-    //         scene: asset_server.load("playground.glb#Scene0"),
-    //         transform: Transform::from_xyz(0.5, -5.5, 0.5),
-    //         ..default()
-    //     },
-    //     AsyncSceneCollider::new(Some(ComputedCollider::TriMesh)),
-    //     RigidBody::Static,
-    //     DespawnOnWorldUnload,
-    // ));
+    // spawn a look stick
+    cmds.spawn((
+        // map this stick as a right gamepad stick (through bevy_input)
+        // leafwing will register this as a normal gamepad
+        TouchStickGamepadMapping::RIGHT_STICK,
+        TouchStickUiBundle {
+            stick: TouchStick {
+                id: InputStickId::Right,
+                stick_type: TouchStickType::Floating,
+                ..default()
+            },
+            // configure the interactable area through bevy_ui
+            style: Style {
+                width: Val::Px(150.),
+                height: Val::Px(150.),
+                position_type: PositionType::Absolute,
+                right: Val::Percent(15.),
+                bottom: Val::Percent(5.),
+                ..default()
+            },
+            ..default()
+        },
+    )).with_children(|parent| {
+        parent.spawn((
+            TouchStickUiKnob,
+            ImageBundle {
+                image: asset_server.load("knob.png").into(),
+                style: Style {
+                    width: Val::Px(75.),
+                    height: Val::Px(75.),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+        parent.spawn((
+            TouchStickUiOutline,
+            ImageBundle {
+                image: asset_server.load("outline.png").into(),
+                style: Style {
+                    width: Val::Px(150.),
+                    height: Val::Px(150.),
+                    ..default()
+                },
+                ..default()
+            },
+        ));
+    });
 
-    // // Cube
-    // commands.spawn((
-    //     RigidBody::Dynamic,
-    //     AngularVelocity(Vec3::new(2.5, 3.4, 1.6)),
-    //     Collider::cuboid(1.0, 1.0, 1.0),
-    //     PbrBundle {
-    //         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-    //         material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-    //         transform: Transform::from_xyz(0.0, 4.0, 0.0),
-    //         ..default()
-    //     },
-    // ));
 }
 
-fn cleanup(
+fn on_world_exit(
     mut commands: Commands,
     query_despawn: Query<Entity, With<DespawnOnWorldUnload>>,
 ) {
@@ -328,6 +324,31 @@ fn cleanup(
         commands.entity(entity).despawn_recursive();
     }
 }
+
+
+
+
+
+
+
+
+
+
+#[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
+pub enum InputStickId {
+    #[default]
+    Left,
+    Right,
+}
+
+#[derive(leafwing_input_manager::Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+pub enum InputAction {
+    Move,
+    Look,
+}
+
+
+
 
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
@@ -513,7 +534,7 @@ fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam
 
 
 
-
+/// the resource only exixts when world is loaded
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
@@ -567,10 +588,8 @@ impl Default for WorldInfo {
 
 
 
+// ClientSettings Configs
 
-
-// #[derive(Resource)]
-// pub struct ServerListHandle(Handle<ServerList>);
 
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub struct ServerListItem {
@@ -599,6 +618,9 @@ impl Default for ClientSettings {
         }
     }
 }
+
+
+
 
 
 
@@ -690,5 +712,66 @@ impl Default for ClientInfo {
     }
 }
 
-#[derive(Component)]
-struct Sun; // marker
+
+
+
+
+
+
+
+
+
+
+
+
+// A helper on Client
+
+#[derive(SystemParam)]
+pub struct EthertiaClient<'w,'s> {
+
+    clientinfo: ResMut<'w, ClientInfo>,
+
+    cmds: Commands<'w,'s>,
+}
+
+impl<'w,'s> EthertiaClient<'w,'s> {
+
+    /// for Singleplayer
+    // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
+
+    pub fn data(&mut self) -> &mut ClientInfo {
+        self.clientinfo.as_mut()
+    }
+
+    pub fn connect_server(&mut self, server_addr: String) {
+        info!("Connecting to {}", server_addr);
+
+        let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
+        
+        let username = &self.clientinfo.cfg.username;
+        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
+
+        self.cmds.insert_resource(net_client);
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.trim().parse().unwrap(), Some("userData123".to_string().into_bytes())));
+        
+        // clear Disconnect Reason prevents mis-display.
+        self.clientinfo.disconnected_reason.clear();
+
+        // 提前初始化世界 以防用资源时 发现没有被初始化
+        self.cmds.insert_resource(WorldInfo::default());
+
+        // let mut cmd = CommandQueue::default();
+        // cmd.push(move |world: &mut World| {
+        //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
+        //     world.insert_resource(RenetClient::new(bevy_renet::renet::ConnectionConfig::default()));
+            
+        //     let mut net_client = world.resource_mut::<RenetClient>();
+
+        //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
+        // });
+    }
+
+    pub fn enter_world() {
+
+    }
+}

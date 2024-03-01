@@ -8,7 +8,7 @@ use bevy_xpbd_3d::{
     PhysicsSet,
 };
 
-use crate::{game::{condition, ClientInfo}, net::netproc_client::input, util::SmoothValue};
+use crate::{game::{condition, InputAction, ClientInfo}, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
 
@@ -136,7 +136,7 @@ fn input_move(
         &mut GravityScale,
         &ShapeHits,
         &Rotation,
-        &leafwing_input_manager::action_state::ActionState<input::Action>,
+        &leafwing_input_manager::action_state::ActionState<InputAction>,
     )>,
     mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
@@ -151,6 +151,8 @@ fn input_move(
     let dt_sec = time.delta_seconds();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
+        
+        // A Normalized, Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
         let mut movement = Vec3::ZERO;
 
         // Flying
@@ -160,14 +162,15 @@ fn input_move(
             // View Rotation
             let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
 
-            #[cfg(not(target_os = "android"))]
-            {
-                ctl.pitch = (ctl.pitch - mouse_delta.y);
+            // #[cfg(not(target_os = "android"))]
+            // {
+                ctl.pitch = ctl.pitch - mouse_delta.y;
                 ctl.yaw -= mouse_delta.x;
-            }
-            if action_state.pressed(&input::Action::Look) {
+            // }
+
+            if action_state.pressed(&InputAction::Look) {
                 const AXIS_SPEED: f32 = 0.1;
-                let axis_value = action_state.clamped_axis_pair(&input::Action::Look).unwrap().xy();
+                let axis_value = action_state.clamped_axis_pair(&InputAction::Look).unwrap().xy();
         
                 if axis_value != Vec2::ZERO {
                     //let dir = Vec2::angle_between(Vec2::X, axis_value.normalize());
@@ -178,15 +181,25 @@ fn input_move(
                     ctl.yaw -= AXIS_SPEED * dir.x;
                 }
             }
+            if action_state.pressed(&InputAction::Move) {
+                let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
+        
+                info!("moving: {axis_value}");
+        
+                let move_delta = axis_value * 10.0 * time.delta_seconds();
 
-            {
-                ctl.pitch = ctl.pitch.clamp(-FRAC_PI_2, FRAC_PI_2);
-                if ctl.yaw.abs() > PI {
-                    ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
-                }
+                movement.x += move_delta.x;
+                movement.z += move_delta.y;
             }
 
-            // 3rd person cam distance.
+            // Clamp/Normalize
+            ctl.pitch = ctl.pitch.clamp(-FRAC_PI_2, FRAC_PI_2);
+            if ctl.yaw.abs() > PI {
+                ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
+            }
+
+
+            // 3rd Person Camera: Distance Control.
             if key_input.pressed(KeyCode::AltLeft) {
                 let d = (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
                 if cam_dist_smoothed.target < 4. {
@@ -204,7 +217,8 @@ fn input_move(
                 ctl.cam_distance = cam_dist_smoothed.current;
             }
 
-            // Disp Move
+
+            // Move: WSAD
             if key_input.pressed(KeyCode::A) {
                 movement.x -= 1.;
             }
@@ -216,18 +230,6 @@ fn input_move(
             }
             if key_input.pressed(KeyCode::S) {
                 movement.z += 1.;
-            }
-            if action_state.pressed(&input::Action::Move) {
-                let axis_value = action_state.clamped_axis_pair(&input::Action::Move).unwrap().xy();
-        
-                info!("moving: {axis_value}");
-        
-                let move_delta = axis_value * 10.0 * time.delta_seconds();
-                let move_delta = move_delta.extend(0.);
-                //trans.translation += move_delta.extend(0.);
-
-                trans.translation.x += move_delta.x;
-                trans.translation.z -= move_delta.y;
             }
 
             // Input Sprint
@@ -255,15 +257,14 @@ fn input_move(
                 }
             }
 
-            // Apply Yaw
+            // Apply Yaw to Movement & Rotation
             {
                 movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
                 trans.rotation = Quat::from_rotation_y(ctl.yaw);
             }
 
             // Is Grouned
-            // The character is grounded if the shape caster has a hit with a normal
-            // that isn't too steep.
+            // The character is grounded if the shape caster has a hit with a normal that isn't too steep.
             ctl.is_grounded = hits.iter().any(|hit| {
                 // if ctl.max_slope_angle == 0. {
                 //     true
@@ -275,7 +276,7 @@ fn input_move(
             // Jump
             let jump = key_input.pressed(KeyCode::Space);
 
-            // Input: Fly: DoubleJump
+            // Fly: Double Space
             let time_now = time.elapsed_seconds();
             if key_input.just_pressed(KeyCode::Space) {
                 static mut LAST_FLY_JUMP: f32 = 0.;
@@ -290,7 +291,7 @@ fn input_move(
                 ctl.is_flying = false;
             }
 
-            // Sprint DoubleW
+            // Sprint: Double W
             if key_input.just_pressed(KeyCode::W) {
                 static mut LAST_W: f32 = 0.;
                 if time_now - unsafe { LAST_W } < 0.3 {
