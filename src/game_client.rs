@@ -20,9 +20,9 @@ use crate::{ui::CurrentUI, voxel::ClientVoxelPlugin};
 
 
 
-pub struct GamePlugin;
+pub struct GameClientPlugin;
 
-impl Plugin for GamePlugin {
+impl Plugin for GameClientPlugin {
     fn build(&self, app: &mut App) {
 
         // Render
@@ -154,7 +154,7 @@ fn on_app_exit(
     cli: Res<ClientInfo>,
 ) {
     for _ in exit_events.read() {
-        info!("Terminate. AppExit Event.");
+        info!("Program Terminate");
         
         info!("Saving client settings to {CLIENT_SETTINGS_FILE}");
         std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();   
@@ -391,18 +391,16 @@ fn handle_inputs(
         ctr.enable_input_cursor_look = cursor_grab;
     }
 
-    
     // Toggle Cursor-Look 
     if curr_manipulating && key.just_pressed(KeyCode::Comma) {
         cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
-    // Duplicated Code!
-    let mut wheel_delta = 0.0;
-    for w in mouse_wheel_events.read() {
-        wheel_delta += w.x + w.y;
+    if curr_manipulating {
+        let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc+v.x+v.y);
+
+        cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(HOTBAR_SLOTS as i32) as u32;
     }
-    cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(HOTBAR_SLOTS as i32) as u32;
 
     
     // Temporary F4 Debug Settings

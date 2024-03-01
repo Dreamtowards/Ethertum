@@ -9,7 +9,7 @@ use bevy_xpbd_3d::components::{Collider, RigidBody};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle}, game::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
+    character_controller::{CharacterController, CharacterControllerBundle}, game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
 };
 
 use super::{packet::CellData, SPacket};

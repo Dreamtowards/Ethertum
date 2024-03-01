@@ -5,7 +5,7 @@ use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera}, game::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
+    character_controller::{CharacterController, CharacterControllerCamera}, game_client::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
 };
 use super::{material::mtl, meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, ChannelRx, ChannelTx};
 

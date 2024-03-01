@@ -12,7 +12,7 @@ use bevy_egui::{
 use egui_extras::{Size, StripBuilder};
 
 use crate::{
-    game::{condition, ClientInfo},
+    game_client::{condition, ClientInfo},
 };
 use self::{hud::ChatHistory};
 use bevy_common_assets::json::JsonAssetPlugin;
@@ -75,7 +75,6 @@ impl Plugin for UiPlugin {
                 serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
 
                 serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
-                serverlist::ui_serverlist_add.run_if(in_state(CurrentUI::ServerListItemAdd)),
                 serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
                 serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
 
@@ -97,7 +96,6 @@ pub enum CurrentUI {
     PauseMenu,
     WtfSettings,
     WtfServerList,
-    ServerListItemAdd,
     ConnectingServer,
     DisconnectedReason,
     ChatInput,

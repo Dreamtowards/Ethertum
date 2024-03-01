@@ -1,6 +1,6 @@
 
 // Client
-pub mod game;
+pub mod game_client;
 pub mod ui;
 pub mod character_controller;
 

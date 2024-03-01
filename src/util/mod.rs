@@ -117,7 +117,7 @@ pub fn generate_simple_user_name() -> String {
     format!("{}{}{}", ADJS[rng.gen_range(0..ADJS.len())], NOUNS[rng.gen_range(0..NOUNS.len())], rng.gen_range(5..9999))
 }
 
-pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game::ServerListItem>> {
+pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game_client::ServerListItem>> {
     // #[cfg(target_arch = "wasm32")]
     // {
         Err(anyhow::anyhow!("Not supported at this time"))

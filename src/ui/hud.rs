@@ -6,7 +6,7 @@ use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Fr
 use bevy_renet::renet::RenetClient;
 use egui_extras::{Size, StripBuilder};
 
-use crate::{game::{ClientInfo, WorldInfo}, net::{CPacket, RenetClientHelper, SPacket}};
+use crate::{game_client::{ClientInfo, WorldInfo}, net::{CPacket, RenetClientHelper, SPacket}};
 
 use super::CurrentUI;
 
@@ -233,7 +233,7 @@ pub fn hud_hotbar(
 
 
             ui.horizontal(|ui| {
-                for i in 0..crate::game::HOTBAR_SLOTS {
+                for i in 0..crate::game_client::HOTBAR_SLOTS {
                     let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
 
                     if cli.hotbar_index == i {

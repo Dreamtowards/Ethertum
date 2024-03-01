@@ -17,8 +17,7 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(ethertia::game::GamePlugin)
+        .add_plugins(ethertia::game_client::GameClientPlugin)
         // .add_plugins(ethertia::editor::EditorPlugin)
-        // .add_plugins(ethertia::net::NetworkServerPlugin)
         .run();
 }

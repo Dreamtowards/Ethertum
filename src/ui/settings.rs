@@ -1,18 +1,17 @@
 
-use bevy::{
-    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
-};
+use bevy::prelude::*;
 use bevy_egui::{
     egui::{
-        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect,
+        self, Color32, Layout, Rangef, Rect,
         Rounding, Stroke, Ui, Widget,
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
-use bevy_xpbd_3d::components::{AsyncCollider, ComputedCollider, RigidBody};
 
 use crate::{
-    character_controller::CharacterController, game::{condition, ClientInfo, DespawnOnWorldUnload, EthertiaClient, WorldInfo}, voxel::{ClientChunkSystem, HitResult}
+    character_controller::CharacterController, 
+    game_client::{condition, ClientInfo, DespawnOnWorldUnload, EthertiaClient, WorldInfo}, 
+    voxel::{ClientChunkSystem, HitResult}
 };
 
 use super::{new_egui_window, ui_lr_panel, CurrentUI};

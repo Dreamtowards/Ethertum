@@ -7,7 +7,7 @@ use bevy_xpbd_3d::{
     plugins::spatial_query::{ShapeCaster, ShapeHits},
     PhysicsSet,
 };
-use crate::{game::{condition, InputAction, ClientInfo}, util::SmoothValue};
+use crate::{game_client::{condition, InputAction, ClientInfo}, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
 

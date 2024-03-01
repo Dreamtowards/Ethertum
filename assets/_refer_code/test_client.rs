@@ -89,3 +89,62 @@ fn main() {
     //         ..default()
     //     },
     // ));
+
+
+
+
+
+
+
+
+
+
+    
+// pub fn ui_panel_info(
+// ) {
+// }
+
+// fn ui_input_server_line(ui: &mut Ui, widget: impl Widget) {
+//     ui.horizontal(|ui| {
+//         let end_width = 100.;
+//         let end_margin = 1.;
+
+//         ui.with_layout(Layout::left_to_right(egui::Align::Center), |ui| {
+//             ui.add_space(end_margin);
+//             ui.add_sized([end_width, 10.], widget);
+//         });
+//     });
+// }
+
+// pub fn ui_serverlist_add(
+//     mut ctx: EguiContexts, 
+//     mut next_ui: ResMut<NextState<CurrentUI>>,
+//     mut cli: ResMut<ClientInfo>,
+
+//     mut _name: Local<String>,
+//     mut _addr: Local<String>,
+// ) {
+//     new_egui_window("ServerList ItemEdit").show(ctx.ctx_mut(), |ui| {
+
+//         ui.vertical_centered(|ui| {
+
+//             ui.text_edit_singleline(&mut *_name);
+            
+//             ui.text_edit_singleline(&mut *_addr);
+
+//             ui.set_enabled(!_name.is_empty() && !_addr.is_empty());
+//             let save = ui.button("Save").clicked();
+//             if save {
+//                 cli.cfg.serverlist.push(ServerListItem { name: _name.clone(), addr: _addr.clone() });
+//             }
+//             ui.set_enabled(true);
+
+//             if save || ui.button("Cancel").clicked() {
+                
+//                 _name.clear();
+//                 _addr.clear();
+//                 next_ui.set(CurrentUI::WtfServerList);
+//             }
+//         });
+//     });
+// }

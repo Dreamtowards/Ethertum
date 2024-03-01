@@ -5,7 +5,7 @@ use bevy_egui::{
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
-use crate::game::{ClientInfo, EthertiaClient, WorldInfo};
+use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 use super::CurrentUI;
 
 
@@ -25,7 +25,7 @@ pub fn ui_main_menu(
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
     // }
 
-    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+    egui::CentralPanel::default().frame(Frame::none()).show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
 
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);

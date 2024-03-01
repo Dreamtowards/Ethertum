@@ -1,7 +1,5 @@
 use bevy::prelude::*;
 
-use ethertia::game::GamePlugin;
-
 #[bevy_main]
 fn main() {
     let mut app = App::new();
@@ -13,7 +11,7 @@ fn main() {
         }),
         ..default()
     }))
-    .add_plugins(GamePlugin);
+    .add_plugins(ethertia::game_client::GameClientPlugin);
 
     #[cfg(target_os = "android")]
     app.insert_resource(Msaa::Off);
