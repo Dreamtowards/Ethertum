@@ -87,8 +87,12 @@ pub struct CharacterController {
     // Input
     pub enable_input: bool,
 
-    // CursorMotionDelta Yaw/Pitch,  valid on enable_input=true, 
+    /// enable:  Yaw/Pitch by CursorMove,           and make Cursor Grabbed/Invisible.  like MC-PC
+    /// disable: Yaw/Pitch by CursorDrag/TouchMove. and make Cursor Visible             like MC-PE
+    /// only valid on enable_input=true, 
     pub enable_input_cursor_look: bool,
+
+
     // fly_speed: f32,
     // walk_speed: f32,
 
@@ -127,11 +131,13 @@ impl Default for CharacterController {
 }
 
 fn input_move(
-    key_input: Res<Input<KeyCode>>,
-    // phys_ctx: ,
-    time: Res<Time>,
+    input_key: Res<Input<KeyCode>>,
+    input_mouse_button: Res<Input<MouseButton>>,
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
+    touches: Res<Touches>,
+
+    time: Res<Time>,
     mut query: Query<(
         &mut Transform,
         &mut CharacterController,
@@ -143,14 +149,8 @@ fn input_move(
     )>,
     mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
-    let mut mouse_delta = Vec2::ZERO;
-    for motion in mouse_motion_events.read() {
-        mouse_delta += motion.delta;
-    }
-    let mut wheel_delta = 0.0;
-    for w in mouse_wheel_events.read() {
-        wheel_delta += w.x + w.y;
-    }
+    let mouse_delta = mouse_motion_events.read().fold(Vec2::ZERO, |acc, v| acc+v.delta);
+    let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc+v.x+v.y);
     let dt_sec = time.delta_seconds();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
@@ -166,18 +166,29 @@ fn input_move(
             let look_sensitivity = 0.003;
             let mouse_delta = mouse_delta * look_sensitivity; //ctl.mouse_sensitivity;
 
-            if ctl.enable_input_cursor_look {
+            if ctl.enable_input_cursor_look || input_mouse_button.pressed(MouseButton::Left) {
                 ctl.pitch = ctl.pitch - mouse_delta.y;
                 ctl.yaw -= mouse_delta.x;
             }
 
+            // Touch Look
+            for touch in touches.iter() {
+                let mov = touch.delta();
+                
+                ctl.pitch   += look_sensitivity * mov.y;
+                ctl.yaw     -= look_sensitivity * mov.x;
+            }
+
+            // TouchStickUi / Gamepad: Look
             if action_state.pressed(&InputAction::Look) {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Look).unwrap().xy();
 
                 let look_sensitivity = look_sensitivity * 10.;
-                ctl.pitch += look_sensitivity * axis_value.y;
-                ctl.yaw -= look_sensitivity * axis_value.x;
+                ctl.pitch   += look_sensitivity * axis_value.y;
+                ctl.yaw     -= look_sensitivity * axis_value.x;
             }
+
+            // TouchStickUi / Gamepad: Move
             if action_state.pressed(&InputAction::Move) {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
         
@@ -195,7 +206,7 @@ fn input_move(
 
 
             // 3rd Person Camera: Distance Control.
-            if key_input.pressed(KeyCode::AltLeft) {
+            if input_key.pressed(KeyCode::AltLeft) {
                 let d = (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
                 if cam_dist_smoothed.target < 4. {
                     if cam_dist_smoothed.target != 0. {
@@ -214,40 +225,40 @@ fn input_move(
 
 
             // Move: WSAD
-            if key_input.pressed(KeyCode::A) {
+            if input_key.pressed(KeyCode::A) {
                 movement.x -= 1.;
             }
-            if key_input.pressed(KeyCode::D) {
+            if input_key.pressed(KeyCode::D) {
                 movement.x += 1.;
             }
-            if key_input.pressed(KeyCode::W) {
+            if input_key.pressed(KeyCode::W) {
                 movement.z -= 1.;
             }
-            if key_input.pressed(KeyCode::S) {
+            if input_key.pressed(KeyCode::S) {
                 movement.z += 1.;
             }
 
             // Input Sprint
-            if key_input.pressed(KeyCode::W) {
-                if key_input.pressed(KeyCode::ControlLeft) {
+            if input_key.pressed(KeyCode::W) {
+                if input_key.pressed(KeyCode::ControlLeft) {
                     ctl.is_sprinting = true;
                 }
             } else {
                 ctl.is_sprinting = false;
             }
 
-            ctl.is_sneaking = key_input.pressed(KeyCode::ShiftLeft);
+            ctl.is_sneaking = input_key.pressed(KeyCode::ShiftLeft);
 
-            if key_input.just_pressed(KeyCode::L) {
+            if input_key.just_pressed(KeyCode::L) {
                 ctl.is_flying = !ctl.is_flying;
             }
 
 
             if ctl.is_flying {
-                if key_input.pressed(KeyCode::ShiftLeft) {
+                if input_key.pressed(KeyCode::ShiftLeft) {
                     movement.y -= 1.;
                 }
-                if key_input.pressed(KeyCode::Space) {
+                if input_key.pressed(KeyCode::Space) {
                     movement.y += 1.;
                 }
             }
@@ -269,11 +280,11 @@ fn input_move(
             });
 
             // Jump
-            let jump = key_input.pressed(KeyCode::Space);
+            let jump = input_key.pressed(KeyCode::Space);
 
             // Fly: Double Space
             let time_now = time.elapsed_seconds();
-            if key_input.just_pressed(KeyCode::Space) {
+            if input_key.just_pressed(KeyCode::Space) {
                 static mut LAST_FLY_JUMP: f32 = 0.;
                 if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
                     ctl.is_flying = !ctl.is_flying;
@@ -287,7 +298,7 @@ fn input_move(
             }
 
             // Sprint: Double W
-            if key_input.just_pressed(KeyCode::W) {
+            if input_key.just_pressed(KeyCode::W) {
                 static mut LAST_W: f32 = 0.;
                 if time_now - unsafe { LAST_W } < 0.3 {
                     ctl.is_sprinting = true;
