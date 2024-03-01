@@ -6,7 +6,7 @@ use bevy::{
     utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
 };
 use bevy_obj::ObjPlugin;
-use bevy_renet::renet::RenetClient;
+use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 use bevy_touch_stick::*;
 use bevy_xpbd_3d::prelude::*;
 
@@ -319,14 +319,17 @@ fn on_world_init(
 }
 
 fn on_world_exit(
-    mut commands: Commands,
+    mut cmds: Commands,
     query_despawn: Query<Entity, With<DespawnOnWorldUnload>>,
 ) {
     info!("Unload World");
 
     for entity in query_despawn.iter() {
-        commands.entity(entity).despawn_recursive();
+        cmds.entity(entity).despawn_recursive();
     }
+    
+    cmds.remove_resource::<RenetClient>();
+    cmds.remove_resource::<NetcodeClientTransport>();
 }
 
 

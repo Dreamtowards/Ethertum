@@ -27,8 +27,8 @@ impl Plugin for ClientVoxelPlugin {
             app.insert_resource(ChannelRx(rx));
         }
 
-        app.add_systems(First, setup.run_if(condition::load_world()));
-        app.add_systems(Last, cleanup.run_if(condition::unload_world()));
+        app.add_systems(First, on_world_init.run_if(condition::load_world()));
+        app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
 
         app.insert_resource(HitResult::default());
@@ -47,7 +47,7 @@ impl Plugin for ClientVoxelPlugin {
 
 
 
-fn setup(
+fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
@@ -77,10 +77,11 @@ fn setup(
     cmds.insert_resource(chunk_sys);
 }
 
-fn cleanup(
+fn on_world_exit(
     mut cmds: Commands,
 ) {
 
+    info!("Clear ClientChunkSystem");
     cmds.remove_resource::<ClientChunkSystem>();
 }
 

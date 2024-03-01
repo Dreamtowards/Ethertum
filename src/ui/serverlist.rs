@@ -50,8 +50,7 @@ pub fn ui_disconnected_reason(
     mut ctx: EguiContexts,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 
-    clientinfo: Res<ClientInfo>,
-    mut net_client: ResMut<RenetClient>,
+    cli: Res<ClientInfo>,
 ) {
     new_egui_window("Disconnected Reason").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
@@ -60,17 +59,12 @@ pub fn ui_disconnected_reason(
             ui.add_space(h * 0.2);
 
             ui.label("Disconnected:");
-            ui.colored_label(Color32::WHITE, clientinfo.disconnected_reason.as_str());
+            ui.colored_label(Color32::WHITE, cli.disconnected_reason.as_str());
 
-            if let Some(reason) = net_client.disconnect_reason() {
-                ui.label(reason.to_string());
-            }
             
             ui.add_space(h * 0.3);
             
             if ui.button("Back to title").clicked() {
-                // todo: Interrupt Connection without handle Result.
-                net_client.disconnect();
                 next_ui.set(CurrentUI::MainMenu);
             }
         });

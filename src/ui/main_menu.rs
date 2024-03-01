@@ -14,7 +14,6 @@ pub fn ui_main_menu(
     // asset_server: Res<AssetServer>,
     mut app_exit_events: EventWriter<AppExit>,
     mut ctx: EguiContexts,
-    mut commands: Commands,
     mut cli: EthertiaClient,
 
     mut next_ui: ResMut<NextState<CurrentUI>>,
@@ -25,7 +24,7 @@ pub fn ui_main_menu(
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
     // }
 
-    egui::CentralPanel::default().frame(Frame::none()).show(ctx.ctx_mut(), |ui| {
+    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
 
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
@@ -129,8 +128,6 @@ pub fn ui_pause_menu(
                     next_ui.set(CurrentUI::MainMenu);
                     commands.remove_resource::<WorldInfo>();
                     net_client.disconnect();
-                    commands.remove_resource::<RenetClient>();
-                    commands.remove_resource::<NetcodeClientTransport>();
                     // cli.close_world();
                 }
             });

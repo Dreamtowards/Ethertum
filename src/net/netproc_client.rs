@@ -9,7 +9,9 @@ use bevy_xpbd_3d::components::{Collider, RigidBody};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle}, game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo}, ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
+    character_controller::{CharacterController, CharacterControllerBundle}, 
+    game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo}, 
+    ui::CurrentUI, util::current_timestamp_millis, voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem}
 };
 
 use super::{packet::CellData, SPacket};
@@ -18,9 +20,9 @@ use super::{packet::CellData, SPacket};
 
 pub fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
-    mut client: ResMut<RenetClient>,
-    mut last_connected: Local<u32>,
-    mut clientinfo: ResMut<ClientInfo>,
+    mut net_client: ResMut<RenetClient>,
+    mut last_connected: Local<u32>,  // 0=NonConnection, 1=Connecting, 2=Connected
+    mut cli: ResMut<ClientInfo>,
 
     mut chats: ResMut<crate::ui::hud::ChatHistory>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
@@ -35,31 +37,36 @@ pub fn client_sys(
 
     mut entity_s2c: Local<HashMap<Entity, Entity>>,
 ) {
-    if *last_connected != 1 && client.is_connecting() {
+    if *last_connected != 1 && net_client.is_connecting() {
         *last_connected = 1;
 
-    } else if *last_connected != 2 && client.is_connected() {
+    } else if *last_connected != 2 && net_client.is_connected() {
         *last_connected = 2;
 
-    } else if *last_connected != 0 && client.is_disconnected() {
+    } else if *last_connected != 0 && net_client.is_disconnected() {
         *last_connected = 0;
-        info!("Disconnected. {}", client.disconnect_reason().unwrap());
+
+        if cli.disconnected_reason.is_empty() {
+            cli.disconnected_reason = net_client.disconnect_reason().unwrap().to_string();
+        }
 
         cmds.remove_resource::<WorldInfo>();  // todo: cli.close_world();
-        if client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
+        if net_client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
             next_ui.set(CurrentUI::DisconnectedReason);
         }
+        
+        info!("Disconnected. {}", cli.disconnected_reason);
     }
     
 
-    while let Some(bytes) = client.receive_message(DefaultChannel::ReliableOrdered) {
+    while let Some(bytes) = net_client.receive_message(DefaultChannel::ReliableOrdered) {
         // info!("CLI Recv PACKET: {}", String::from_utf8_lossy(&bytes));
         let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
         match &packet {
             SPacket::Disconnect { reason } => {
                 info!("Disconnected: {}", reason);
-                clientinfo.disconnected_reason = reason.clone();
-                client.disconnect_due_to_transport();
+                cli.disconnected_reason = reason.clone();
+                net_client.disconnect_due_to_transport();
             }
             SPacket::ServerInfo {
                 motd,
@@ -84,7 +91,7 @@ pub fn client_sys(
                 
                 next_ui.set(CurrentUI::None);
                 
-                spawn_player(player_entity.client_entity(), true, &clientinfo.cfg.username, &mut cmds, &asset_server, &mut meshes, &mut materials);
+                spawn_player(player_entity.client_entity(), true, &cli.cfg.username, &mut cmds, &asset_server, &mut meshes, &mut materials);
 
 
                 // cmds.insert_resource(WorldInfo::default());  // moved to Click Connect. 要在用之前初始化，如果现在标记 那么就来不及初始化 随后就有ChunkNew数据包 要用到资源
@@ -114,7 +121,7 @@ pub fn client_sys(
             }
             SPacket::PlayerList { playerlist } => {
 
-                clientinfo.playerlist = playerlist.clone();  // should move?
+                cli.playerlist = playerlist.clone();  // should move?
             }
 
             SPacket::ChunkNew { chunkpos, voxel } => {
