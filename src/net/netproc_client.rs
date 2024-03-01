@@ -64,7 +64,7 @@ pub fn client_sys(
         let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
         match &packet {
             SPacket::Disconnect { reason } => {
-                info!("Disconnected: {}", reason);
+                info!("DisconnectedPacket: {}", reason);
                 cli.disconnected_reason = reason.clone();
                 net_client.disconnect_due_to_transport();
             }
@@ -142,7 +142,7 @@ pub fn client_sys(
                             ChunkComponent::new(*chunkpos),
                             MaterialMeshBundle {
                                 mesh: chunk.mesh_handle.clone(),
-                                material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),//chunk_sys.shader_terrain.clone(),
+                                material: chunk_sys.shader_terrain.clone(),  //materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
                                 transform: Transform::from_translation(chunkpos.as_vec3()),
                                 visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
                                 ..default()
@@ -176,10 +176,10 @@ pub fn client_sys(
 
                 chunk_sys.spawn_chunk(chunkptr);
 
-                info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
+                // info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
             SPacket::ChunkDel { chunkpos } => {
-                info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
+                // info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
 
                 if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
                     let entity = chunkptr.read().unwrap().entity;

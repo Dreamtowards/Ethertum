@@ -211,7 +211,7 @@ fn chunks_remesh_enqueue(
         }
 
         cli.chunks_meshing.remove(&chunkpos);
-        info!("ReMesh Finished {}", chunk_sys.chunks_remesh.len());
+        info!("ReMesh Finished {}", cli.chunks_meshing.len());
     }
 }
 
@@ -556,7 +556,7 @@ impl Default for TerrainMaterial {
 
             wasm0: Vec4::new(1.0, 1.0, 4.5, 0.48),
             // sample_scale: 1.0,
-            // normal_intensity: 1.0,
+            // normal_intensity: 1.0,s
             // triplanar_blend_pow: 4.5,
             // heightmap_blend_pow: 0.48,
         }
@@ -564,10 +564,10 @@ impl Default for TerrainMaterial {
 }
 
 impl Material for TerrainMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/terrain.wgsl".into()
     }
-    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/terrain.wgsl".into()
     }
 

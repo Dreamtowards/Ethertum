@@ -45,8 +45,8 @@ fn vertex(
     let inst_idx = bevy_render::instance_index::get_instance_index(in.instance_index);
 
     var out: MyVertexOutput;
-    out.position = mesh_functions::mesh_position_local_to_clip(model, vec4<f32>(in.position, 1.0));
     out.world_position = mesh_functions::mesh_position_local_to_world(model, vec4<f32>(in.position, 1.0));
+    out.position = bevy_pbr::view_transformations::position_world_to_clip(out.world_position.xyz);
     out.world_normal = mesh_functions::mesh_normal_local_to_world(in.normal, inst_idx); 
     out.instance_index = inst_idx;
 
@@ -69,8 +69,8 @@ struct Ubo {
 @group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
 @group(1) @binding(2) var tex_normal: texture_2d<f32>;
 @group(1) @binding(3) var tex_dram: texture_2d<f32>;
-
 @group(1) @binding(4) var<uniform> ubo: Ubo;
+
 // @group(1) @binding(4) var<uniform> sample_scale: f32;
 // @group(1) @binding(5) var<uniform> normal_intensity: f32;
 // @group(1) @binding(6) var<uniform> triplanar_blend_pow: f32;
