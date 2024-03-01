@@ -7,7 +7,6 @@ use bevy_xpbd_3d::{
     plugins::spatial_query::{ShapeCaster, ShapeHits},
     PhysicsSet,
 };
-
 use crate::{game::{condition, InputAction, ClientInfo}, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
@@ -87,6 +86,9 @@ pub struct CharacterController {
 
     // Input
     pub enable_input: bool,
+
+    // CursorMotionDelta Yaw/Pitch,  valid on enable_input=true, 
+    pub enable_input_cursor_look: bool,
     // fly_speed: f32,
     // walk_speed: f32,
 
@@ -111,6 +113,7 @@ impl Default for CharacterController {
             pitch: 0.,
             is_flying: false,
             enable_input: true,
+            enable_input_cursor_look: true,
             is_grounded: false,
             is_sprinting: false,
             is_sneaking: false,
@@ -152,7 +155,7 @@ fn input_move(
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
         
-        // A Normalized, Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
+        // A Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
         let mut movement = Vec3::ZERO;
 
         // Flying
@@ -160,36 +163,28 @@ fn input_move(
 
         if ctl.enable_input {
             // View Rotation
-            let mouse_delta = mouse_delta * 0.003; //ctl.mouse_sensitivity;
+            let look_sensitivity = 0.003;
+            let mouse_delta = mouse_delta * look_sensitivity; //ctl.mouse_sensitivity;
 
-            // #[cfg(not(target_os = "android"))]
-            // {
+            if ctl.enable_input_cursor_look {
                 ctl.pitch = ctl.pitch - mouse_delta.y;
                 ctl.yaw -= mouse_delta.x;
-            // }
+            }
 
             if action_state.pressed(&InputAction::Look) {
-                const AXIS_SPEED: f32 = 0.1;
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Look).unwrap().xy();
-        
-                if axis_value != Vec2::ZERO {
-                    //let dir = Vec2::angle_between(Vec2::X, axis_value.normalize());
-                    //trans.rotation = Quat::from_rotation_z(dir);
 
-                    let dir = axis_value.normalize();
-                    ctl.pitch += AXIS_SPEED * dir.y;
-                    ctl.yaw -= AXIS_SPEED * dir.x;
-                }
+                let look_sensitivity = look_sensitivity * 10.;
+                ctl.pitch += look_sensitivity * axis_value.y;
+                ctl.yaw -= look_sensitivity * axis_value.x;
             }
             if action_state.pressed(&InputAction::Move) {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
         
                 info!("moving: {axis_value}");
         
-                let move_delta = axis_value * 10.0 * time.delta_seconds();
-
-                movement.x += move_delta.x;
-                movement.z += move_delta.y;
+                movement.x += axis_value.x;
+                movement.z -= axis_value.y;
             }
 
             // Clamp/Normalize
@@ -259,7 +254,7 @@ fn input_move(
 
             // Apply Yaw to Movement & Rotation
             {
-                movement = Mat3::from_rotation_y(ctl.yaw) * movement.normalize_or_zero();
+                movement = Mat3::from_rotation_y(ctl.yaw) * movement;
                 trans.rotation = Quat::from_rotation_y(ctl.yaw);
             }
 

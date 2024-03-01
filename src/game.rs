@@ -216,12 +216,14 @@ fn on_world_init(
 
     // TouchStick  Move-Left
     cmds.spawn((
+        Name::new("InputStickMove"),
+        DespawnOnWorldUnload,
         // map this stick as a left gamepad stick (through bevy_input)
         // leafwing will register this as a normal gamepad
         TouchStickGamepadMapping::LEFT_STICK,
         TouchStickUiBundle {
             stick: TouchStick {
-                id: InputStickId::Left,
+                id: InputStickId::LeftMove,
                 stick_type: TouchStickType::Fixed,
                 ..default()
             },
@@ -265,12 +267,14 @@ fn on_world_init(
 
     // spawn a look stick
     cmds.spawn((
+        Name::new("InputStickLook"),
+        DespawnOnWorldUnload,
         // map this stick as a right gamepad stick (through bevy_input)
         // leafwing will register this as a normal gamepad
         TouchStickGamepadMapping::RIGHT_STICK,
         TouchStickUiBundle {
             stick: TouchStick {
-                id: InputStickId::Right,
+                id: InputStickId::RightLook,
                 stick_type: TouchStickType::Floating,
                 ..default()
             },
@@ -337,8 +341,8 @@ fn on_world_exit(
 #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
 pub enum InputStickId {
     #[default]
-    Left,
-    Right,
+    LeftMove,
+    RightLook,
 }
 
 #[derive(leafwing_input_manager::Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
@@ -374,15 +378,23 @@ fn handle_inputs(
     }
     // Toggle Game-Manipulating (grabbing mouse / character controlling) when UI set. 
     let curr_manipulating = *curr_ui == CurrentUI::None;
-    if *last_is_manipulating != curr_manipulating {
-        *last_is_manipulating = curr_manipulating;
+    *last_is_manipulating = curr_manipulating;
+    
+    // Apply Cursor Grab
+    let cursor_grab = curr_manipulating && cli.enable_cursor_look;
+    window.cursor.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
+    window.cursor.visible = !cursor_grab;
+    
+    // Enable Character Controlling
+    if let Ok(ctr) = &mut controller_query.get_single_mut() {
+        ctr.enable_input = curr_manipulating;
+        ctr.enable_input_cursor_look = cursor_grab;
+    }
 
-        window.cursor.grab_mode = if curr_manipulating { CursorGrabMode::Locked } else { CursorGrabMode::None };
-        window.cursor.visible = !curr_manipulating;
-
-        if let Ok(ctr) = &mut controller_query.get_single_mut() {
-            ctr.enable_input = curr_manipulating;
-        }
+    
+    // Toggle Cursor-Look 
+    if curr_manipulating && key.just_pressed(KeyCode::Comma) {
+        cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
     // Duplicated Code!
@@ -629,14 +641,8 @@ pub const HOTBAR_SLOTS: u32 = 9;
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ClientInfo {
+    // Networking
     pub disconnected_reason: String,  // todo: Clean at Connect. prevents re-show old reason.
-
-    pub dbg_text: bool,
-    pub dbg_menubar: bool,
-    pub dbg_inspector: bool,
-    pub dbg_gizmo_remesh_chunks: bool,
-    pub dbg_gizmo_curr_chunk: bool,
-    pub dbg_gizmo_all_loaded_chunks: bool,
 
     // ping. (full, client-time, server-time, client-time) in ms.
     pub ping: (u32, u64, u64, u64),
@@ -644,13 +650,26 @@ pub struct ClientInfo {
     // as same as SPacket::PlayerList. username, ping.
     pub playerlist: Vec<(String, u32)>,
 
+
+    // Debug Draw
+    pub dbg_text: bool,
+    pub dbg_menubar: bool,
+    pub dbg_inspector: bool,
+    pub dbg_gizmo_remesh_chunks: bool,
+    pub dbg_gizmo_curr_chunk: bool,
+    pub dbg_gizmo_all_loaded_chunks: bool,
+
+
+    // Voxel Brush
     pub brush_size: f32,
     pub brush_strength: f32,
     pub brush_shape: u16,
     pub brush_tex: u16,
 
+    pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
 
+    // Render Sky
     pub sky_fog_color: Color,
     pub sky_fog_visibility: f32,  
     pub sky_inscattering_color: Color,
@@ -662,6 +681,8 @@ pub struct ClientInfo {
     #[reflect(ignore)]
     pub cfg: ClientSettings,
 
+    // Control
+    pub enable_cursor_look: bool,
     
     // ClientPlayerInfo
     #[reflect(ignore)]
@@ -692,6 +713,7 @@ impl Default for ClientInfo {
             brush_shape: 0,
             brush_tex: 21,
 
+            max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
 
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
@@ -703,6 +725,8 @@ impl Default for ClientInfo {
             skylight_shadow: false,
 
             cfg: ClientSettings::default(),
+            
+            enable_cursor_look: true,
 
             inventory: Inventory::new(36),
             hotbar_index: 0,

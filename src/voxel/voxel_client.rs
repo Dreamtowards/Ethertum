@@ -29,7 +29,7 @@ impl Plugin for ClientVoxelPlugin {
 
         app.add_systems(First, setup.run_if(condition::load_world()));
         app.add_systems(Last, cleanup.run_if(condition::unload_world()));
-        
+
 
         app.insert_resource(HitResult::default());
         app.add_systems(Update,
@@ -115,7 +115,7 @@ fn chunks_remesh_enqueue(
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::utils::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
-        if cli.chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
+        if cli.chunks_meshing.len() >= cli.max_concurrent_meshing {
             break;
         }
         if cli.chunks_meshing.contains(&chunkpos) {
@@ -422,7 +422,6 @@ pub struct ClientChunkSystem {
 
     pub shader_terrain: Handle<TerrainMaterial>,
     pub entity: Entity,
-    pub max_concurrent_meshing: usize,
 }
 
 impl ChunkSystem for ClientChunkSystem {
@@ -440,7 +439,6 @@ impl ClientChunkSystem {
 
             shader_terrain: Handle::default(),
             entity: Entity::PLACEHOLDER,
-            max_concurrent_meshing: 8,
         }
     }
     

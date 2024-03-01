@@ -40,10 +40,9 @@ pub fn ui_settings(
     mut worldinfo: Option<ResMut<WorldInfo>>,
 
     mut query_cam: Query<&mut CharacterController>,
-    mut chunk_sys: ResMut<ClientChunkSystem>,
+    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
     
     
-    mut query_campos: Query<&Transform, With<CharacterController>>,
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -109,7 +108,7 @@ pub fn ui_settings(
                    
                     ui.label("Voxel:");
 
-                    ui_setting_line(ui, "Chunks Meshing Max Concurrency", egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50));
+                    ui_setting_line(ui, "Chunks Meshing Max Concurrency", egui::Slider::new(&mut cli.max_concurrent_meshing, 0..=50));
 
                     ui_setting_line(ui, "Brush Size", egui::Slider::new(&mut cli.brush_size, 0.0..=20.0));
             
@@ -155,16 +154,16 @@ pub fn ui_settings(
         ));
     }
 
-    ui.horizontal(|ui| {
+    // ui.horizontal(|ui| {
 
-        static mut PATH: String = String::new();
-        ui.text_edit_singleline(unsafe { crate::util::raw::as_mut(std::ptr::addr_of_mut!(PATH)) });
+    //     static mut PATH: String = String::new();
+    //     ui.text_edit_singleline(unsafe { crate::util::raw::as_mut(std::ptr::addr_of_mut!(PATH)) });
 
-        if ui.button("Load").clicked() {
-            load_obj(&mut cmds, &asset_server, &mut materials, unsafe{PATH.as_str()}, false, query_campos.single().translation);
-        }
+    //     if ui.button("Load").clicked() {
+    //         load_obj(&mut cmds, &asset_server, &mut materials, unsafe{PATH.as_str()}, false, query_campos.single().translation);
+    //     }
         
-    });
+    // });
 
     // load_obj(&mut cmds, &asset_server, &mut materials, "bucket", true, vec3(0., 0., -5.*1.));
     // load_obj(&mut cmds, &asset_server, &mut materials, "bench", false, vec3(0., 0., -5.*2.));
