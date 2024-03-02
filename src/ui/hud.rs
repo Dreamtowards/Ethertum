@@ -278,7 +278,7 @@ pub fn hud_playerlist(
                     ui.colored_label(Color32::WHITE, player.0.as_str());
 
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.colored_label(Color32::GREEN, format!("{}ms", player.1));
+                        ui.colored_label(Color32::GRAY, format!("{}ms", player.1));
                     })
                 });
             }

@@ -109,6 +109,7 @@ pub struct PlayerInfo {
 
     pub entity_id: EntityId,
     pub position: Vec3,
+    pub ping_rtt: u32,
 
     pub chunks_load_distance: IVec2,
 

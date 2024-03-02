@@ -68,15 +68,6 @@ pub fn server_sys(
                         },
                     );
                 }
-                CPacket::Ping { client_time } => {
-                    server.send_packet(
-                        client_id,
-                        &SPacket::Pong {
-                            client_time,
-                            server_time: current_timestamp_millis(),
-                        },
-                    );
-                }
                 CPacket::Login { uuid, access_token, username } => {
                     info!("Login Requested: {} {} {}", uuid, access_token, username);
 
@@ -111,6 +102,7 @@ pub fn server_sys(
                         position: Vec3::ZERO,
                         chunks_loaded: HashSet::default(),
                         chunks_load_distance: IVec2::new(4, 2),
+                        ping_rtt: 0,
                     });
                 }
                 // Play Stage:
@@ -136,11 +128,22 @@ pub fn server_sys(
                             server.broadcast_packet_except(client_id, 
                                 &SPacket::EntityPos { entity_id: player.entity_id, position });
                         }
+                        CPacket::Ping { client_time, last_rtt } => {
+                            player.ping_rtt = last_rtt;
+
+                            server.send_packet(
+                                client_id,
+                                &SPacket::Pong {
+                                    client_time,
+                                    server_time: current_timestamp_millis(),
+                                },
+                            );
+                        }
                         CPacket::PlayerList => {
 
                             let playerlist = serverinfo.online_players.iter()
-                                .map(|e| (e.1.username.clone(), server.network_info(*e.0).unwrap().rtt as u32)).collect();
-                            server.send_packet(client_id, &SPacket::PlayerList { playerlist })
+                                .map(|e| (e.1.username.clone(), e.1.ping_rtt)).collect();
+                            server.send_packet(client_id, &SPacket::PlayerList { playerlist });
                         }
                         CPacket::ChunkModify { chunkpos, voxel } => {
 

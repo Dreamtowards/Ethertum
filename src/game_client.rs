@@ -489,7 +489,7 @@ fn tick_world(
 
     // Ping Network
     if time.at_interval(1.0) {
-        net_client.send_packet(&CPacket::Ping { client_time: crate::util::current_timestamp_millis() });
+        net_client.send_packet(&CPacket::Ping { client_time: crate::util::current_timestamp_millis(), last_rtt: cli.ping.0 as u32 });
     }
 
     // Fog

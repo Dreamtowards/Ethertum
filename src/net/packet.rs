@@ -59,7 +59,7 @@ pub enum CPacket {
     // Handshake & Server Query & Login
     Handshake { protocol_version: u64 },
     ServerQuery {},
-    Ping { client_time: u64 },
+    Ping { client_time: u64, last_rtt: u32 },  // last_rtt is a temporary solution to let server know the client's ping
 
     Login { uuid: u64, access_token: u64, username: String },
 

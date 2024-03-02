@@ -186,11 +186,9 @@ fn chunks_remesh_enqueue(
 
                 tx.send((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)).unwrap();
             });
-
             task.detach();
-            // chunk_sys.chunks_meshing.insert(chunkpos, ());
 
-            info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
+            // info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
         } 
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
@@ -211,7 +209,7 @@ fn chunks_remesh_enqueue(
         }
 
         cli.chunks_meshing.remove(&chunkpos);
-        info!("[ReMesh Completed] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
+        // info!("[ReMesh Completed] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
     }
 }
 
