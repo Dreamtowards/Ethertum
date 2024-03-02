@@ -13,7 +13,7 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin};
+use crate::{character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, util::TimeIntervals};
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
 use crate::{ui::CurrentUI, voxel::ClientVoxelPlugin};
@@ -48,11 +48,11 @@ impl Plugin for GameClientPlugin {
         // .obj model loader.
         app.add_plugins(ObjPlugin);
 
-        // UI
-        app.add_plugins(crate::ui::UiPlugin);
-
         // Physics
         app.add_plugins(PhysicsPlugins::default());
+
+        // UI
+        app.add_plugins(crate::ui::UiPlugin);
 
         // CharacterController
         app.add_plugins(CharacterControllerPlugin);
@@ -85,10 +85,10 @@ impl Plugin for GameClientPlugin {
 
         // Debug
         {
-            // Debug Draw Basis
-            app.add_systems(PostUpdate, gizmo_sys.after(PhysicsSet::Sync).run_if(condition::in_world()));
+            // Draw Basis
+            app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world()));
             
-            // Debug World Inspector
+            // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
 
@@ -360,17 +360,17 @@ pub enum InputAction {
 fn handle_inputs(
     key: Res<Input<KeyCode>>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    mut window_query: Query<&mut Window, With<PrimaryWindow>>,
-    mut controller_query: Query<&mut CharacterController>,
+    mut query_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut query_controller: Query<&mut CharacterController>,
 
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    mut last_is_manipulating: Local<bool>,
+    // mut last_is_manipulating: Local<bool>,
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 
     mut cli: ResMut<ClientInfo>,
 ) {
-    let mut window = window_query.single_mut();
+    let mut window = query_window.single_mut();
 
     if key.just_pressed(KeyCode::Escape) {
         if worldinfo.is_some() {
@@ -379,9 +379,9 @@ fn handle_inputs(
             next_ui.set(CurrentUI::MainMenu);
         }
     }
-    // Toggle Game-Manipulating (grabbing mouse / character controlling) when UI set. 
+    // Toggle Game-Manipulating (grabbing mouse / character controlling) when CurrentUi!=None. 
     let curr_manipulating = *curr_ui == CurrentUI::None;
-    *last_is_manipulating = curr_manipulating;
+    // *last_is_manipulating = curr_manipulating;
     
     // Apply Cursor Grab
     let cursor_grab = curr_manipulating && cli.enable_cursor_look;
@@ -389,7 +389,7 @@ fn handle_inputs(
     window.cursor.visible = !cursor_grab;
     
     // Enable Character Controlling
-    if let Ok(ctr) = &mut controller_query.get_single_mut() {
+    if let Ok(ctr) = &mut query_controller.get_single_mut() {
         ctr.enable_input = curr_manipulating;
         ctr.enable_input_cursor_look = cursor_grab;
     }
@@ -487,6 +487,12 @@ fn tick_world(
         }
     }
 
+    // Ping Network
+    if time.at_interval(1.0) {
+        net_client.send_packet(&CPacket::Ping { client_time: crate::util::current_timestamp_millis() });
+    }
+
+    // Fog
     let mut fog = query_fog.single_mut();
     fog.color = cli.sky_fog_color;
     if cli.sky_fog_is_atomspheric {  // let FogFalloff::Atmospheric { .. } = fog.falloff {
@@ -511,7 +517,7 @@ fn tick_world(
     }
 }
 
-fn gizmo_sys(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
+fn debug_draw_gizmo(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
     gizmo_config.depth_bias = -1.; // always in front
 
     // World Basis Axes
@@ -645,13 +651,15 @@ pub const HOTBAR_SLOTS: u32 = 9;
 #[reflect(Resource)]
 pub struct ClientInfo {
     // Networking
-    pub disconnected_reason: String,  // todo: Clean at Connect. prevents re-show old reason.
+    pub disconnected_reason: String,
 
-    // ping. (full, client-time, server-time, client-time) in ms.
-    pub ping: (u32, u64, u64, u64),
+    // ping. (full, ping-client-time, pong-server-time, pong-client-time) in ms.
+    pub ping: (u64, u64, u64, u64),
 
     // as same as SPacket::PlayerList. username, ping.
     pub playerlist: Vec<(String, u32)>,
+
+    pub server_addr: String,  // just a record
 
 
     // Debug Draw
@@ -705,6 +713,7 @@ impl Default for ClientInfo {
             disconnected_reason: String::new(),
             ping: (0,0,0,0),
             playerlist: Vec::new(),
+            server_addr: String::new(),
 
             dbg_text: true,
             dbg_menubar: true,
@@ -776,6 +785,7 @@ impl<'w,'s> EthertiaClient<'w,'s> {
 
     pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
+        self.clientinfo.server_addr = server_addr.clone();
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
         
@@ -785,7 +795,7 @@ impl<'w,'s> EthertiaClient<'w,'s> {
         self.cmds.insert_resource(net_client);
         self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.trim().parse().unwrap(), Some("userData123".to_string().into_bytes())));
         
-        // clear Disconnect Reason prevents mis-display.
+        // clear DisconnectReason on new connect, to prevents display old invalid reason.
         self.clientinfo.disconnected_reason.clear();
 
         // 提前初始化世界 以防用资源时 发现没有被初始化

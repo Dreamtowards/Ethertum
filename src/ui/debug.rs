@@ -1,6 +1,6 @@
 
 use bevy::{
-    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, prelude::*, transform::commands
+    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin}, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
@@ -19,7 +19,7 @@ pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
-    mut clientinfo: ResMut<ClientInfo>,
+    mut cli: ResMut<ClientInfo>,
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 
     net_client: Option<Res<RenetClient>>,
@@ -29,11 +29,11 @@ pub fn ui_menu_panel(
 ) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
-    const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
+    const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
     let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused { color32_of(DARK_RED) } else { color32_of(DARK) };
-    // if *state_ingame == GameInput::Controlling {to_color32(DARK)} else {to_color32(PURPLE)};
+    // color32_of(worldinfo.map_or(DARK, |v| v.is_paused));
 
     egui::TopBottomPanel::top("menu_panel")
         .frame(Frame::default().fill(bg))
@@ -60,11 +60,11 @@ pub fn ui_menu_panel(
                         if net_client.is_connected() {
                             use human_bytes::human_bytes;
                             let ni = net_client.network_info();
-
+                            let ping = cli.ping;
                             let bytes_per_sec = ni.bytes_sent_per_second+ni.bytes_received_per_second;
-                            ui.menu_button(format!("{}ms {}/s", ni.rtt as u32, human_bytes(bytes_per_sec)), |ui| {
-                                let ping = clientinfo.ping;
-                                ui.label("server_addr");  // transport.netcode_client.server_addr()
+
+                            ui.menu_button(format!("{}ms {}/s", ping.0, human_bytes(bytes_per_sec)), |ui| {
+                                ui.label(&cli.server_addr).on_hover_text("Server Addr");  // transport.netcode_client.server_addr()
                                 ui.add_space(12.);
                                 ui.horizontal(|ui| {
                                     ui.label(format!("{}ms", ping.0)).on_hover_text("Latency / RTT");
@@ -76,7 +76,7 @@ pub fn ui_menu_panel(
                                     // ui.label("109M").on_hover_text("Transit");
                                     // ui.small("108M\n30K").on_hover_text("Transit (Upload/Download)");
                                 });
-                                ui.label(format!("loss packet: {}", ni.packet_loss));
+                                ui.small(format!("loss: {}", ni.packet_loss));
                             }); 
                         }
                     }
@@ -103,26 +103,25 @@ pub fn ui_menu_panel(
                     ui.with_layout(Layout::left_to_right(egui::Align::BOTTOM), |ui| {
                         ui.add_space(12.);
                         ui.menu_button("System", |ui| {
-                            ui.menu_button("Connect Server", |ui| {
-                                ui.button("Add Server");
+                            ui.menu_button("Connect to Server", |ui| {
+                                if ui.button("Add Server").clicked() {
+
+                                }
                                 ui.separator();
                             });
                             ui.menu_button("Open World", |ui| {
-                                ui.button("New World");
-                                ui.button("Open World..");
+                                if ui.button("New World").clicked() {}
+                                if ui.button("Open World..").clicked() {}
                                 ui.separator();
                             });
-                            ui.button("Edit World..");
-                            ui.button("Close World");
-                            ui.separator(); // hello world
-                            ui.button("Server Start");
-                            ui.button("Server Stop");
+                            if ui.button("Edit World..").clicked() {}
+                            if ui.button("Close World").clicked() {}
                             ui.separator();
-                            ui.button("Settings");
-                            ui.button("Mods");
-                            ui.button("Assets");
-                            ui.button("Controls");
-                            ui.button("About");
+                            if ui.button("Settings").clicked() {}
+                            if ui.button("Mods").clicked() {}
+                            if ui.button("Assets").clicked() {}
+                            if ui.button("Controls").clicked() {}
+                            if ui.button("About").clicked() {}
                             ui.separator();
                             if ui.button("Terminate").clicked() {
                                 app_exit_events.send(AppExit);
@@ -131,9 +130,9 @@ pub fn ui_menu_panel(
                         ui.menu_button("World", |ui| {
 
                             ui.label("Gizmos:");
-                            ui.toggle_value(&mut clientinfo.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
-                            ui.toggle_value(&mut clientinfo.dbg_gizmo_curr_chunk, "Curr Chunk");
-                            ui.toggle_value(&mut clientinfo.dbg_gizmo_remesh_chunks, "ReMesh Chunks");
+                            ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
+                            ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Curr Chunk");
+                            ui.toggle_value(&mut cli.dbg_gizmo_remesh_chunks, "ReMesh Chunks");
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
@@ -156,13 +155,13 @@ pub fn ui_menu_panel(
                         ui.menu_button("View", |ui| {
                             ui.toggle_value(&mut true, "HUD");
                             ui.toggle_value(&mut false, "Fullscreen");
-                            if ui.button("Save Screenshot").clicked() {
+                            if ui.button("Take Screenshot").clicked() {
                                 todo!();
                             }
 
                             ui.separator();
-                            ui.toggle_value(&mut clientinfo.dbg_text, "Debug Text");
-                            ui.toggle_value(&mut clientinfo.dbg_inspector, "Inspector");
+                            ui.toggle_value(&mut cli.dbg_text, "Debug Text");
+                            ui.toggle_value(&mut cli.dbg_inspector, "Inspector");
 
                         });
                     });
@@ -183,6 +182,7 @@ pub fn hud_debug_text(
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
+    cli: Res<ClientInfo>,
     worldinfo: Option<Res<WorldInfo>>,
     chunk_sys: Option<Res<ClientChunkSystem>>,
     hit_result: Res<HitResult>,
@@ -264,7 +264,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
         let num_chunks_loading = -1;//chunk_sys.chunks_loading.len();
         let num_chunks_remesh = chunk_sys.chunks_remesh.len();
-        let num_chunks_meshing = -1;//chunk_sys.chunks_meshing.len();
+        let num_chunks_meshing = cli.chunks_meshing.len();
 
         let mut hit_str = "none".into();
         if hit_result.is_hit {
@@ -300,9 +300,12 @@ chunk_sys.num_chunks());
 
     let num_entity = diagnostics.get(EntityCountDiagnosticsPlugin::ENTITY_COUNT).map_or(0., |f|f.smoothed().unwrap_or_default()) as usize;
 
+    let cpu_usage = diagnostics.get(SystemInformationDiagnosticsPlugin::CPU_USAGE).map_or(-1.0, |d| d.smoothed().unwrap_or_default());
+    let mem_usage = diagnostics.get(SystemInformationDiagnosticsPlugin::CPU_USAGE).map_or(-1.0, |d| d.smoothed().unwrap_or_default());
+
     let str = format!(
 "fps: {fps:.1}, dt: {frame_time:.4}ms
-entity vis: {cam_visible_entities_num} / all {num_entity}.
+entity vis: {cam_visible_entities_num} / all {num_entity}. cpu:{cpu_usage} mem: {mem_usage}
 {str_sys}
 {str_world}
 "

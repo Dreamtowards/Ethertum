@@ -1,9 +1,9 @@
 use bevy::math::IVec2;
 
 
-enum MtlShape {
-    Isosurface,
-    Silhouette,
+enum VoxelShapeId {
+    Isosurface = 0,
+    Silhouette = 1,
     Mesh,
 }
 struct Material {
@@ -14,7 +14,7 @@ struct Material {
     is_foliage: bool,
     // custom_mesh
 
-    shape_id: MtlShape,
+    shape_id: VoxelShapeId,
     tex_id: u32,
 
     // item: Rc<Item>
@@ -25,7 +25,7 @@ impl Default for Material {
         Self {
             hardness: 1.,
             is_foliage: false,
-            shape_id: MtlShape::Isosurface,
+            shape_id: VoxelShapeId::Isosurface,
             tex_id: 0,
         }
     }

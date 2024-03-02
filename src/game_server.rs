@@ -117,10 +117,7 @@ pub struct PlayerInfo {
 
 impl PlayerInfo {
 
-    fn update(&self) {
-
-
-
-    }
+    // fn update(&self) {
+    // }
 
 }

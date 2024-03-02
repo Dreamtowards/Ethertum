@@ -190,7 +190,7 @@ fn chunks_remesh_enqueue(
             task.detach();
             // chunk_sys.chunks_meshing.insert(chunkpos, ());
 
-            info!("ReMesh enqueued {} {}", chunkpos, chunk_sys.chunks_remesh.len());
+            info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
         } 
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
@@ -211,7 +211,7 @@ fn chunks_remesh_enqueue(
         }
 
         cli.chunks_meshing.remove(&chunkpos);
-        info!("ReMesh Finished {}", cli.chunks_meshing.len());
+        info!("[ReMesh Completed] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
     }
 }
 

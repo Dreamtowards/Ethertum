@@ -1,6 +1,6 @@
 
 use bevy::{
-    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
+    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
@@ -46,7 +46,7 @@ impl Plugin for UiPlugin {
             app.add_plugins((
                 FrameTimeDiagnosticsPlugin,
                 EntityCountDiagnosticsPlugin,
-                //SystemInformationDiagnosticsPlugin
+                // SystemInformationDiagnosticsPlugin,
             ));
         }
 
@@ -54,19 +54,17 @@ impl Plugin for UiPlugin {
         {
             app.add_systems(Update, (
                 hud::hud_hotbar,
+                hud::hud_chat,
                 hud::hud_playerlist.run_if(condition::manipulating()),
             ).run_if(condition::in_world()));
             
             app.insert_resource(ChatHistory::default());
-            app.add_systems(Update, hud::hud_chat.run_if(condition::in_world()));
         }
         
         app.add_state::<CurrentUI>();
 
         app.add_systems(Update, 
             (
-
-
                 settings::ui_settings.run_if(in_state(CurrentUI::WtfSettings)),
                 main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)),
 
@@ -77,7 +75,6 @@ impl Plugin for UiPlugin {
                 serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
                 serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
                 serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
-
             )
             //.chain()
             //.before(debug::ui_menu_panel)

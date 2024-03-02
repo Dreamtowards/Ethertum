@@ -79,6 +79,7 @@ pub fn client_sys(
             }
             SPacket::Pong { client_time, server_time } => {
                 let curr = current_timestamp_millis();
+                cli.ping = (curr - *client_time, *client_time, *server_time, curr);
                 info!(
                     "Ping: {}ms = cs {} + sc {}",
                     curr - client_time,
