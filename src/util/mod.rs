@@ -19,6 +19,25 @@ pub mod iter {
         }
     }
 
+    pub fn iter_center_spread(nxz: i32, ny: i32, mut func: impl FnMut(IVec3)) {
+        let max_n = nxz.max(ny);
+        for n in 0..=max_n {
+            for y in -n..=n {
+                for z in -n..=n {
+                    for x in -n..=n {
+                        if x.abs() < n && y.abs() < n && z.abs() < n {
+                            continue;
+                        }
+                        if x.abs() > nxz || y.abs() > ny || z.abs() > nxz {
+                            continue;
+                        }
+                        func(IVec3::new(x, y, z));
+                    }
+                }
+            }
+        }
+    }
+
     pub fn iter_xzy(n: i32, mut func: impl FnMut(IVec3)) {
         assert!(n > 0);
         for ly in 0..n {

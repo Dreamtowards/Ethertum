@@ -49,20 +49,20 @@ fn chunks_load(
     // 优化: 仅当某玩家 进入/退出 移动过区块边界时，才针对更新
     // 待改进: 这里可能有多种加载方法，包括Inner-Outer近距离优先加载，填充IVec3待加载列表并排序方法
 
+    // Dispatch Chunk Load
     for player in server.online_players.values() {
         let vd = player.chunks_load_distance;
         let cp = Chunk::as_chunkpos(player.position.as_ivec3());
 
-        iter::iter_aabb(vd.x, vd.y, |rp| {
+        iter::iter_center_spread(vd.x, vd.y, |rp| {
             let chunkpos = rp * Chunk::SIZE + cp;
-
             if chunks_loading.len() > 8 {  // max_concurrent_loading_chunks
                 return;
             }
             if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
                 return;
             }
-
+            
             let tx = tx_chunks_loading.clone();
             let task = AsyncComputeTaskPool::get().spawn(async move {
                 // info!("Load Chunk: {:?}", chunkpos);
@@ -81,7 +81,7 @@ fn chunks_load(
         });
     }
 
-    
+    // Complete Chunk Load
     while let Ok((chunkpos, chunkptr)) = rx_chunks_loading.try_recv() {
         chunks_loading.remove(&chunkpos);
 
@@ -133,21 +133,28 @@ fn chunks_load(
     // Send Chunk to Players
     // 野蛮的方法 把所有区块发给所有玩家
     for player in server.online_players.values_mut() {
+        let vd = player.chunks_load_distance;
+        let cp = Chunk::as_chunkpos(player.position.as_ivec3());
 
-        let mut n = 0;
-        for (chunkpos, chunkptr) in chunk_sys.get_chunks() {
-            if !player.chunks_loaded.contains(chunkpos) {
-                if n > 3 {  // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
-                    break;
-                }
-                player.chunks_loaded.insert(*chunkpos);
-                n+=1;
-
-                info!("Send Chunk {}/{} {} to Player {}", player.chunks_loaded.len(), chunk_sys.num_chunks(), n, player.username);
-                let data = CellData::from_chunk(&chunkptr.read().unwrap());
-                net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos: *chunkpos, voxel: data });
+        let mut num_sent = 0;
+        
+        iter::iter_center_spread(vd.x, vd.y, |rp| {
+            let chunkpos = rp * Chunk::SIZE + cp;
+            if num_sent > 4 {  // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
+                return; 
             }
-        }
+            if player.chunks_loaded.contains(&chunkpos) {
+                return; 
+            }
+            if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
+                player.chunks_loaded.insert(chunkpos);
+                num_sent+=1;
+
+                info!("Send Chunk {}/{} {} to Player {}", player.chunks_loaded.len(), chunk_sys.num_chunks(), num_sent, player.username);
+                let data = CellData::from_chunk(&chunkptr.read().unwrap());
+                net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos: chunkpos, voxel: data });
+            }
+        });
     }
 
 
