@@ -68,7 +68,7 @@ pub fn ui_menu_panel(
                                 ui.add_space(12.);
                                 ui.horizontal(|ui| {
                                     ui.label(format!("{}ms", ping.0)).on_hover_text("Latency / RTT");
-                                    ui.small(format!("{}ms\n{}ms", ping.2 as i64 - ping.1 as i64, ping.3 as i64 - ping.2 as i64)).on_hover_text("Latency (Client to Server / Server to Client)");
+                                    ui.small(format!("{}ms\n{}ms", ping.1, ping.2)).on_hover_text("Latency (Client to Server / Server to Client)");
                                     ui.separator();
                                     ui.label(format!("{}/s", human_bytes(bytes_per_sec))).on_hover_text("Bandwidth");
                                     ui.small(format!("{}/s\n{}/s", human_bytes(ni.bytes_sent_per_second), human_bytes(ni.bytes_received_per_second))).on_hover_text("Bandwidth (Upload/Download)");

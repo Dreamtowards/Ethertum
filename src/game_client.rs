@@ -653,8 +653,8 @@ pub struct ClientInfo {
     // Networking
     pub disconnected_reason: String,
 
-    // ping. (full, ping-client-time, pong-server-time, pong-client-time) in ms.
-    pub ping: (u64, u64, u64, u64),
+    // ping. (rtt, c2s, ping-begin) in ms.
+    pub ping: (u64, i64, i64, u64),
 
     // as same as SPacket::PlayerList. username, ping.
     pub playerlist: Vec<(String, u32)>,

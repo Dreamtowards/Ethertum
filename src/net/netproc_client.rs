@@ -80,13 +80,13 @@ pub fn client_sys(
             SPacket::Pong { client_time, server_time } => {
                 let curr = current_timestamp_millis();
 
-                cli.ping = (curr - *client_time, *client_time, *server_time, curr);
-                info!(
-                    "Ping: {}ms = cs {} + sc {}",
-                    curr - *client_time,
-                    *server_time as i64 - *client_time as i64,
-                    curr as i64 - *server_time as i64
+                cli.ping = (
+                    curr - *client_time, 
+                    *server_time as i64 - *client_time as i64, 
+                    curr as i64 - *server_time as i64,
+                    *client_time
                 );
+                // info!("Ping: rtt {}ms = c2s {} + s2c {}", cli.ping.0, cli.ping.1, cli.ping.2);
             }
             SPacket::LoginSuccess { player_entity } => {
                 info!("Login Success!");
