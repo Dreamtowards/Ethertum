@@ -100,28 +100,16 @@ pub fn new_egui_window(title: &str) -> egui::Window {
     
     let mut w = egui::Window::new(title)
         .default_size(size)
-        .resizable(false)
+        .resizable(true)
         .title_bar(false) 
         .anchor(Align2::CENTER_CENTER, [0., 0.])
         .collapsible(false);
 
     let window_size = unsafe {_WINDOW_SIZE};
-    // if window_size.x - size[0] < 100. || window_size.y - size[1] < 100. {
-    //     w = w.fixed_size([window_size.x - 12., window_size.y - 12.]);
-    // }
-    
-    let mut snap = [false, false];
-    if window_size.x - size[0] < 100. {
-        snap[0] = true;
-    }
-    if window_size.y - size[1] < 100.{
-        snap[1] = true;
-    }
-    if snap[0] || snap[1] {
-        w = w.fixed_size([
-            if snap[0] {window_size.x - 10.} else {size[0]}, 
-            if snap[1] {window_size.y - 10.} else {size[1]}
-        ]);
+    if window_size.x - size[0] < 100. || window_size.y - size[1] < 100. {
+        w = w
+        .fixed_size([window_size.x - 12., window_size.y - 12.])
+        .resizable(false);
     }
 
     w

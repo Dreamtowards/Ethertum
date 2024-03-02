@@ -46,7 +46,7 @@ pub fn ui_settings(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    new_egui_window("Settings").resizable(true).show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Settings").show(ctx.ctx_mut(), |ui| {
 
         let curr_settings_panel = settings_panel.clone(); 
 

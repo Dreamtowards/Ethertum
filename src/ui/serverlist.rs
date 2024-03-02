@@ -79,7 +79,7 @@ pub fn ui_serverlist(
     mut cli: EthertiaClient,
     mut edit_i: Local<Option<usize>>,
 ) { 
-    new_egui_window("Server List").resizable(true).show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
         let serverlist = &mut cli.data().cfg.serverlist;
 
         let (mut do_new_server, mut do_refresh) = (false, false);
@@ -180,7 +180,7 @@ pub fn ui_localsaves(
     mut ctx: EguiContexts, 
     mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
-    new_egui_window("Local Saves").resizable(true).show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Local Saves").show(ctx.ctx_mut(), |ui| {
 
         ui_lr_panel(ui, false, |ui| {
             if ui.selectable_label(false, "New World").clicked() {
