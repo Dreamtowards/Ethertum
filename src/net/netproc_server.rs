@@ -72,7 +72,7 @@ pub fn server_sys(
                     server.send_packet(
                         client_id,
                         &SPacket::Pong {
-                            client_time: client_time,
+                            client_time,
                             server_time: current_timestamp_millis(),
                         },
                     );

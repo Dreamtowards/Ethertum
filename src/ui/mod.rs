@@ -1,6 +1,6 @@
 
 use bevy::{
-    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
+    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
@@ -10,12 +10,11 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 use egui_extras::{Size, StripBuilder};
+use bevy_common_assets::json::JsonAssetPlugin;
 
 use crate::{
     game_client::{condition, ClientInfo},
 };
-use self::{hud::ChatHistory};
-use bevy_common_assets::json::JsonAssetPlugin;
 
 mod serverlist;
 mod main_menu;
@@ -58,7 +57,7 @@ impl Plugin for UiPlugin {
                 hud::hud_playerlist.run_if(condition::manipulating()),
             ).run_if(condition::in_world()));
             
-            app.insert_resource(ChatHistory::default());
+            app.insert_resource(hud::ChatHistory::default());
         }
         
         app.add_state::<CurrentUI>();
