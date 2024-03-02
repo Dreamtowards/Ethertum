@@ -43,7 +43,7 @@ bevy_obj = "0.12"
 
 bevy_touch_stick = { version = "0.1" }
 
-egui_extras = { version = "0.24", default-features = false, features = []}
+egui_extras = { version = "0.24", default-features = false, features = [] }
 egui-notify = "0.13"
 leafwing-input-manager = { version = "0.12" }
 
@@ -71,7 +71,7 @@ instant = "0.1"
 crossbeam-channel = "0.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", features = ["json", "blocking", "native-tls-vendored"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "blocking", "rustls-tls"] }
 
 [workspace]
 resolver = "2" # Important! wgpu/bevy needs this!
