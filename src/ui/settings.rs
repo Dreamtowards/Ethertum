@@ -104,6 +104,8 @@ pub fn ui_settings(
                     }
                     
                     ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut cli.skylight_shadow, ""));
+
+                    ui_setting_line(ui, "VSync", egui::Checkbox::new(&mut cli.vsync, ""));
                    
                     ui.label("Voxel:");
 

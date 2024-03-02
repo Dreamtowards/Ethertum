@@ -8,7 +8,6 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                present_mode: bevy::window::PresentMode::AutoNoVsync,
                 resolution: bevy::window::WindowResolution::new(1280., 720.),
                 title: "Ethertia 0.2.6 2024.02e Items".into(),
                 fit_canvas_to_parent: true,  // web: full-window

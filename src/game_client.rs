@@ -3,7 +3,7 @@ use std::f32::consts::{PI, TAU};
 use bevy::{
     app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, 
     input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, 
-    utils::HashSet, window::{CursorGrabMode, PrimaryWindow, WindowMode}
+    utils::HashSet, window::{CursorGrabMode, PresentMode, PrimaryWindow, WindowMode}
 };
 use bevy_obj::ObjPlugin;
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
@@ -434,6 +434,8 @@ fn handle_inputs(
             WindowMode::Windowed
         };
     }
+    // Vsync
+    window.present_mode = if cli.vsync { PresentMode::AutoVsync } else { PresentMode::AutoNoVsync };
 }
 
 fn tick_world(
@@ -670,6 +672,8 @@ pub struct ClientInfo {
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
 
+    pub vsync: bool,
+
     // Render Sky
     pub sky_fog_color: Color,
     pub sky_fog_visibility: f32,  
@@ -716,6 +720,8 @@ impl Default for ClientInfo {
 
             max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
+
+            vsync: false,
 
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0,  // 280 for ExpSq, 1200 for Atmo
