@@ -141,7 +141,7 @@ pub mod condition {
 fn on_app_init(
     mut cli: ResMut<ClientInfo>,
 ) {
-    info!("Loading client settings from {CLIENT_SETTINGS_FILE}");
+    info!("Loading {CLIENT_SETTINGS_FILE}");
     if let Ok(str) = std::fs::read_to_string(CLIENT_SETTINGS_FILE) {
         if let Ok(val) = serde_json::from_str(&str) {
             cli.cfg = val;
@@ -156,7 +156,7 @@ fn on_app_exit(
     for _ in exit_events.read() {
         info!("Program Terminate");
         
-        info!("Saving client settings to {CLIENT_SETTINGS_FILE}");
+        info!("Saving {CLIENT_SETTINGS_FILE}");
         std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();   
     }
 }
@@ -436,6 +436,10 @@ fn handle_inputs(
     }
     // Vsync
     window.present_mode = if cli.vsync { PresentMode::AutoVsync } else { PresentMode::AutoNoVsync };
+
+    unsafe {
+        crate::ui::_WINDOW_SIZE = Vec2::new(window.resolution.width(), window.resolution.height()); 
+    }
 }
 
 fn tick_world(
@@ -681,6 +685,7 @@ pub struct ClientInfo {
     pub chunks_meshing: HashSet<IVec3>,
 
     pub vsync: bool,
+    pub window_size: Vec2,  // readonly 
 
     // Render Sky
     pub sky_fog_color: Color,
@@ -731,6 +736,7 @@ impl Default for ClientInfo {
             chunks_meshing: HashSet::default(),
 
             vsync: false,
+            window_size: Vec2::ZERO,
 
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0,  // 280 for ExpSq, 1200 for Atmo

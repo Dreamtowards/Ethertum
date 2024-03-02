@@ -9,21 +9,16 @@ use bevy_egui::{
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
+use bevy_xpbd_3d::parry::na::ComplexField;
 use egui_extras::{Size, StripBuilder};
-use bevy_common_assets::json::JsonAssetPlugin;
 
-use crate::{
-    game_client::{condition, ClientInfo},
-};
+use crate::game_client::{condition, ClientInfo};
 
 mod serverlist;
 mod main_menu;
-
-#[cfg(feature = "target_native_os")]
-mod debug;
-
 mod settings;
 pub mod hud;
+mod debug;
 
 pub struct UiPlugin;
 
@@ -37,7 +32,6 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, setup_egui_style);
 
         // Debug UI
-        #[cfg(feature = "target_native_os")]
         {
             app.add_systems(Update, debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar)); // Debug MenuBar. before CentralPanel
             app.add_systems(Update, debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel));
@@ -98,15 +92,39 @@ pub enum CurrentUI {
     LocalSaves,
 }
 
-
+// for fn new_egui_window
+pub static mut _WINDOW_SIZE: Vec2 = Vec2::ZERO;
 
 pub fn new_egui_window(title: &str) -> egui::Window {
-    egui::Window::new(title)
-        .default_size([680., 420.])
+    let size = [680., 420.];
+    
+    let mut w = egui::Window::new(title)
+        .default_size(size)
+        .resizable(false)
         .title_bar(false) 
         .anchor(Align2::CENTER_CENTER, [0., 0.])
-        .resizable(false)
-        .collapsible(false)
+        .collapsible(false);
+
+    let window_size = unsafe {_WINDOW_SIZE};
+    // if window_size.x - size[0] < 100. || window_size.y - size[1] < 100. {
+    //     w = w.fixed_size([window_size.x - 12., window_size.y - 12.]);
+    // }
+    
+    let mut snap = [false, false];
+    if window_size.x - size[0] < 100. {
+        snap[0] = true;
+    }
+    if window_size.y - size[1] < 100.{
+        snap[1] = true;
+    }
+    if snap[0] || snap[1] {
+        w = w.fixed_size([
+            if snap[0] {window_size.x - 10.} else {size[0]}, 
+            if snap[1] {window_size.y - 10.} else {size[1]}
+        ]);
+    }
+
+    w
 }
 
 pub fn color32_of(c: Color) -> Color32 {

@@ -179,6 +179,7 @@ pub fn hud_debug_text(
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
 
+    #[cfg(feature = "target_native_os")]
     mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 

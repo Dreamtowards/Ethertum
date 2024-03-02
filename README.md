@@ -92,8 +92,7 @@ source build/client_debug.sh
 - [Dreamtowards](https://github.com/Dreamtowards)
 - [Thaumstrial](https://github.com/thaumstrial)
 - [Nerd]() - LoD Opinions, 
-<!-- - [LittleMao]() -->
-<!-- - [Cuppar]() -->
+<!-- - [LaoLittle]() -->
 
 
 ### Resources
