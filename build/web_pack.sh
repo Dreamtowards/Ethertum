@@ -1,4 +1,4 @@
-# `cargo install wasm-bindgen-cli`
+# cargo install wasm-bindgen-cli
 
 wasm-bindgen --no-typescript --out-dir artifacts/wasm --target web target/wasm32-unknown-unknown/web-release/ethertia.wasm --out-name ethertia
 
@@ -7,7 +7,7 @@ wasm-bindgen --no-typescript --out-dir artifacts/wasm --target web target/wasm32
 # ./wasm-opt.exe -O -ol 100 -s 100 -o ./wasm/ethertia.wasm ../target/wasm32-unknown-unknown/release/ethertia.wasm
 
 cp -r assets/ artifacts/wasm/
-cp build/wasm/index.html artifacts/wasm/
+cp -r build/wasm/* artifacts/wasm/
 zip --recurse-paths artifacts/ethertia.zip artifacts/wasm
 
 

@@ -38,3 +38,8 @@ label = "ethertia"
 
 [package.metadata.android.application.activity]
 orientation = "landscape"
+
+[package.metadata.ios]
+assets = ["../../assets/"]
+build_targets = ["aarch64-apple-ios"]
+dependencies = ["Metal.framework", "Security.framework", "UIKit.framework", "AudioToolbox.framework"]
