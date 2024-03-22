@@ -1,0 +1,21 @@
+name: mobile
+options:
+  bundleIdPrefix: com.ethertia.client
+targets:
+  mobile:
+    type: application
+    platform: iOS
+    sources: [ios-src]
+    settings:
+      base:
+        CLANG_CXX_LANGUAGE_STANDARD: "c++11"
+        CLANG_CXX_LIBRARY: "libc++"
+        HEADER_SEARCH_PATHS:
+          - "$(inherited)"
+        LIBRARY_SEARCH_PATHS:
+          - "$(inherited)"
+          - "../../target/aarch64-apple-ios/release"
+        OTHER_LDFLAGS:
+          - "$(inherited)"
+          - "-lc++abi"
+          - "-lmobile"

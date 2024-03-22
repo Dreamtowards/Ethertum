@@ -1,0 +1,51 @@
+name: iOS
+
+on:
+  create:
+  workflow_dispatch:
+  # push:
+  #   branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    env:
+      APP_NAME: ethertia
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: |
+          rustup target add aarch64-apple-ios x86_64-apple-ios
+          brew install xcodegen
+
+      - name: Build for iOS
+        run: |
+          cp -r build/iOS/* crates/mobile
+          cd crates/mobile/
+          xcodegen generate
+
+          make iphone-release
+
+          mkdir Payload
+          cp -r output/Build/Products/Release-iphoneos/*.app Payload
+          zip -r ${{ env.APP_NAME }}.zip Payload
+          mv ${{ env.APP_NAME }}.zip ../../${{ env.APP_NAME }}.ipa
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-artifacts
+          path: |
+            ./${{ env.APP_NAME }}.ipa

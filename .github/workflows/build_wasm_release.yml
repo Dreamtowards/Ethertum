@@ -32,7 +32,7 @@ jobs:
       - name: Install Dependencies
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli
+          cargo install -f wasm-bindgen-cli --version 0.2.91
           # sudo apt install binaryen   # install for wasm-opt
 
       - name: Build for WASM
