@@ -90,7 +90,7 @@ impl Plugin for GameClientPlugin {
             app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world));
             
             // World Inspector
-            app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
+            // app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
 
         // Input
@@ -524,10 +524,10 @@ fn tick_world(
 
 fn debug_draw_gizmo(
     mut gizmo: Gizmos, 
-    mut gizmo_config: ResMut<GizmoConfigStore>, 
+    // mut gizmo_config: ResMut<GizmoConfigStore>, 
     query_cam: Query<&Transform, With<CharacterControllerCamera>>
 ) {
-    gizmo_config.config_mut::<DefaultGizmoConfigGroup>().0.depth_bias = -1.; // always in front
+    // gizmo.config.depth_bias = -1.; // always in front
 
     // World Basis Axes
     let n = 5;
