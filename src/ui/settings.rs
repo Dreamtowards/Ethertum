@@ -203,7 +203,7 @@ pub fn ui_settings(
                 }
                 SettingsPanel::Audio => {
 
-                    ui_setting_line(ui, "Global Volume", egui::Slider::new(&mut global_volume.volume as &mut f32, 0.0..=1.0));
+                    // ui_setting_line(ui, "Global Volume", egui::Slider::new(&mut global_volume.volume as &mut f32, 0.0..=1.0));
 
 
                 }

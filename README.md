@@ -8,9 +8,9 @@
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/iOS/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_ios_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Web/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_wasm_release.yml)
 [![Official Site](https://img.shields.io/badge/ethertia.com-blue.svg)](//ethertia.com)
-[![Docs](https://img.shields.io/badge/docs-blue.svg)](//docs.ethertia.com) ' 
+[![Docs](https://img.shields.io/badge/docs-blue.svg)](//docs.ethertia.com) 
 [![Discord](https://img.shields.io/discord/870689606570508319.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/k7ssbPJQnp)
-[![YouTube](https://img.shields.io/badge/YouTube-red.svg)](https://youtube.com/@dreamtowards) ' 
+[![YouTube](https://img.shields.io/badge/YouTube-red.svg)](https://youtube.com/@dreamtowards) 
 [![bilibili](https://img.shields.io/badge/bilibili-gray.svg)](https://space.bilibili.com/19483166)
 [![qq](https://img.shields.io/badge/QQ-gray.svg)](https://jq.qq.com/?_wv=1027&k=tgM29oDM)
 

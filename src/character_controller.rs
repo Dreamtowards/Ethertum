@@ -4,7 +4,7 @@ use bevy::{input::mouse::{MouseMotion, MouseWheel}, prelude::*};
 use bevy_xpbd_3d::{
     components::*,
     parry::na::ComplexField,
-    plugins::spatial_query::{ShapeCaster, ShapeHits},
+    plugins::{collision::Collider, spatial_query::{ShapeCaster, ShapeHits}},
     PhysicsSet,
 };
 use crate::{game_client::{condition, InputAction, ClientInfo}, util::SmoothValue};
@@ -15,7 +15,7 @@ impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<CharacterController>();
 
-        app.add_systems(Update, input_move.run_if(condition::in_world()));
+        app.add_systems(Update, input_move.run_if(condition::in_world));
 
         app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
     }
@@ -43,7 +43,7 @@ impl CharacterControllerBundle {
             character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
-            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Vec3::NEG_Y).with_max_time_of_impact(0.2),
+            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Direction3d::new_unchecked(Vec3::NEG_Y)).with_max_time_of_impact(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
             gravity_scale: GravityScale(2.),
@@ -131,8 +131,8 @@ impl Default for CharacterController {
 }
 
 fn input_move(
-    input_key: Res<Input<KeyCode>>,
-    input_mouse_button: Res<Input<MouseButton>>,
+    input_key: Res<ButtonInput<KeyCode>>,
+    input_mouse_button: Res<ButtonInput<MouseButton>>,
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
     touches: Res<Touches>,
@@ -225,21 +225,21 @@ fn input_move(
 
 
             // Move: WSAD
-            if input_key.pressed(KeyCode::A) {
+            if input_key.pressed(KeyCode::KeyA) {
                 movement.x -= 1.;
             }
-            if input_key.pressed(KeyCode::D) {
+            if input_key.pressed(KeyCode::KeyD) {
                 movement.x += 1.;
             }
-            if input_key.pressed(KeyCode::W) {
+            if input_key.pressed(KeyCode::KeyW) {
                 movement.z -= 1.;
             }
-            if input_key.pressed(KeyCode::S) {
+            if input_key.pressed(KeyCode::KeyS) {
                 movement.z += 1.;
             }
 
             // Input Sprint
-            if input_key.pressed(KeyCode::W) {
+            if input_key.pressed(KeyCode::KeyW) {
                 if input_key.pressed(KeyCode::ControlLeft) {
                     ctl.is_sprinting = true;
                 }
@@ -249,7 +249,7 @@ fn input_move(
 
             ctl.is_sneaking = input_key.pressed(KeyCode::ShiftLeft);
 
-            if input_key.just_pressed(KeyCode::L) {
+            if input_key.just_pressed(KeyCode::KeyL) {
                 ctl.is_flying = !ctl.is_flying;
             }
 
@@ -298,7 +298,7 @@ fn input_move(
             }
 
             // Sprint: Double W
-            if input_key.just_pressed(KeyCode::W) {
+            if input_key.just_pressed(KeyCode::KeyW) {
                 static mut LAST_W: f32 = 0.;
                 if time_now - unsafe { LAST_W } < 0.3 {
                     ctl.is_sprinting = true;
@@ -370,7 +370,7 @@ fn sync_camera(
     mut fov_val: Local<SmoothValue>,
     time: Res<Time>,
 
-    input_key: Res<Input<KeyCode>>,
+    input_key: Res<ButtonInput<KeyCode>>,
     cli: Res<ClientInfo>,
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
@@ -382,7 +382,7 @@ fn sync_camera(
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
-            fov_val.target = if input_key.pressed(KeyCode::C) {24.} else {
+            fov_val.target = if input_key.pressed(KeyCode::KeyC) {24.} else {
                 if ctl.is_sprinting { cli.cfg.fov + 20. } else { cli.cfg.fov }
             };
             fov_val.update(time.delta_seconds() * 16.);

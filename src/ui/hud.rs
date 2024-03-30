@@ -2,7 +2,7 @@
 use std::collections::VecDeque;
 
 use bevy::{prelude::*, reflect::List};
-use bevy_egui::{egui::{self, text::LayoutJob, Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, ScrollArea, Stroke, TextEdit, TextFormat, Vec2}, EguiContexts};
+use bevy_egui::{egui::{self, text::{CCursorRange, LayoutJob}, Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, ScrollArea, Stroke, TextEdit, TextFormat, Vec2}, EguiContexts};
 use bevy_renet::renet::RenetClient;
 use egui_extras::{Size, StripBuilder};
 
@@ -28,7 +28,7 @@ pub struct ChatHistory {
 
 fn set_cursor_pos(ctx: &egui::Context, id: egui::Id, pos: usize) {
     if let Some(mut state) = TextEdit::load_state(ctx, id) {
-        state.set_ccursor_range(Some(egui::text_edit::CCursorRange::one(egui::text::CCursor::new(pos))));
+        state.set_ccursor_range(Some(CCursorRange::one(egui::text::CCursor::new(pos))));
         state.store(ctx, id);
     }
 }
@@ -42,7 +42,7 @@ pub fn hud_chat(
 
     mut net_client: ResMut<RenetClient>,
 
-    input_key: Res<Input<KeyCode>>,
+    input_key: Res<ButtonInput<KeyCode>>,
     mut curr_ui: ResMut<State<CurrentUI>>,
     mut next_ui: ResMut<NextState<CurrentUI>>,
 ) {
@@ -250,7 +250,7 @@ pub fn hud_hotbar(
 
 pub fn hud_playerlist(
     mut ctx: EguiContexts,
-    input_key: Res<Input<KeyCode>>,
+    input_key: Res<ButtonInput<KeyCode>>,
     
     cli: Res<ClientInfo>,
     mut net_client: ResMut<RenetClient>,

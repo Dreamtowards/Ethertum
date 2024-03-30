@@ -295,11 +295,11 @@ worldinfo.name, worldinfo.daytime, worldinfo.time_inhabited, worldinfo.seed,
 chunk_sys.num_chunks());
     }
 
-    let frame_time = diagnostics.get(FrameTimeDiagnosticsPlugin::FRAME_TIME).map_or(time.delta_seconds_f64(), |d|d.smoothed().unwrap_or_default());
+    let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME).map_or(time.delta_seconds_f64(), |d|d.smoothed().unwrap_or_default());
 
-    let fps = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS).map_or(frame_time / 1.0, |d|d.smoothed().unwrap_or_default());
+    let fps = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS).map_or(frame_time / 1.0, |d|d.smoothed().unwrap_or_default());
 
-    let num_entity = diagnostics.get(EntityCountDiagnosticsPlugin::ENTITY_COUNT).map_or(0., |f|f.smoothed().unwrap_or_default()) as usize;
+    let num_entity = diagnostics.get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT).map_or(0., |f|f.smoothed().unwrap_or_default()) as usize;
 
     let str = format!(
 "fps: {fps:.1}, dt: {frame_time:.4}ms

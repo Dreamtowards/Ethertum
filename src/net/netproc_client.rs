@@ -2,10 +2,10 @@
 
 use std::sync::{Arc, RwLock};
 
-use bevy::{prelude::*, render::{primitives::Aabb, render_resource::PrimitiveTopology}, utils::HashMap};
+use bevy::{prelude::*, render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}, utils::HashMap};
 use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
-use bevy_xpbd_3d::components::{Collider, RigidBody};
+use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
@@ -136,8 +136,8 @@ pub fn client_sys(
                 {
                     let aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
 
-                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
-                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList));
+                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
     
                     chunk.entity = cmds
                         .spawn((
@@ -243,27 +243,27 @@ fn spawn_player(
                 radius: 0.3,
                 ..default()
             })),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         },
         DespawnOnWorldUnload,
     )).with_children(|parent| {
         if !is_theplayer {
-            parent.spawn(BillboardTextBundle {
-                transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
-                text: Text::from_sections([
-                    TextSection {
-                        value: name.clone(),
-                        style: TextStyle {
-                            font_size: 32.0,
-                            color: Color::WHITE,
-                            ..default()
-                        }
-                    },
-                ]).with_alignment(TextAlignment::Center),
-                ..default() 
-            });
+            // parent.spawn(BillboardTextBundle {
+            //     transform: Transform::from_translation(Vec3::new(0., 1., 0.)).with_scale(Vec3::splat(0.005)),
+            //     text: Text::from_sections([
+            //         TextSection {
+            //             value: name.clone(),
+            //             style: TextStyle {
+            //                 font_size: 32.0,
+            //                 color: Color::WHITE,
+            //                 ..default()
+            //             }
+            //         },
+            //     ]).with_alignment(JustifyText::Center),
+            //     ..default() 
+            // });
         }
         parent.spawn(SpotLightBundle {
             spot_light: SpotLight { 

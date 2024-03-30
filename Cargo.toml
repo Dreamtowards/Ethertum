@@ -1,6 +1,6 @@
 [package]
 name = "ethertia"
-version = "0.1.0"
+version = "0.2.6"
 edition = "2021"
 default-run = "ethertia"
 
@@ -19,33 +19,32 @@ experimental_channel = []
 
 
 [dev-dependencies]
-bevy = { version = "0.12", features = ["dynamic_linking", "file_watcher", "trace_tracy"] }
+bevy = { version = "0.13.1", features = ["dynamic_linking", "file_watcher"] }
 # cargo run --features bevy/trace_tracy
 
 
 [dependencies]
-bevy = { version = "0.12" }
+bevy = { version = "0.13.1" }
 
-bevy_xpbd_3d = "0.3"
+bevy_xpbd_3d = "0.4"
+bevy_renet = "0.0.11"
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
-bevy_renet = "0.0.10"
 
-bevy_atmosphere = { version = "0.8", optional = true }
-bevy_mod_billboard = "0.5"
-
-bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
-bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-bevy_editor_pls = { version = "0.7", optional = true }
-
-bevy_common_assets = { version = "0.9", features = ["json"] }
-bevy_obj = "0.12"
-
-bevy_touch_stick = { version = "0.1" }
-
-egui_extras = { version = "0.24", default-features = false, features = [] }
+#bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
+#bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
+bevy_egui = "0.26"
+bevy-inspector-egui = "0.23"
+bevy_editor_pls = { version = "0.8", optional = true }
+bevy_touch_stick = { version = "0.2" }
+egui_extras = { version = "0.26", default-features = false, features = [] }
 egui-notify = "0.13"
-leafwing-input-manager = { version = "0.12" }
+leafwing-input-manager = { version = "0.13" }
+
+bevy_atmosphere = { version = "0.9", optional = true }
+bevy_mod_billboard = "0.5"
+bevy_common_assets = { version = "0.10", features = ["json"] }
+bevy_obj = "0.13"
 
 noise = "0.8"
 bincode = "1.3"

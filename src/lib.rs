@@ -16,3 +16,6 @@ pub mod game_server;
 
 
 use crossbeam_channel as channel_impl;
+
+pub static VERSION: &str = "0.2.6";
+// pub static VERSION_NAME: &str = VERSION + " 2024.03c5";

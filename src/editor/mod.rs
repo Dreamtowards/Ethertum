@@ -81,6 +81,6 @@ fn res_editor_controls() -> bevy_editor_pls::controls::EditorControls {
 
 fn setup_editor_camera_controls(mut query: Query<&mut bevy_editor_pls::default_windows::cameras::camera_3d_free::FlycamControls>) {
     let mut controls = query.single_mut();
-    controls.key_up = KeyCode::E;
-    controls.key_down = KeyCode::Q;
+    controls.key_up = KeyCode::KeyE;
+    controls.key_down = KeyCode::KeyQ;
 }

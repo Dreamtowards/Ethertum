@@ -117,7 +117,7 @@ impl Plugin for ClientNetworkPlugin {
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 
-        app.add_systems(Update, netproc_client::client_sys.run_if(resource_exists::<RenetClient>()));
+        app.add_systems(Update, netproc_client::client_sys.run_if(resource_exists::<RenetClient>));
         
         // app.add_systems(Update, ui_client_net);
     }

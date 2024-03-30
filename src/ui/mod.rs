@@ -4,7 +4,7 @@ use bevy::{
 };
 use bevy_egui::{
     egui::{
-        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect, Response, Rounding, Stroke, Ui, Widget, WidgetText
+        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Pos2, Rangef, Rect, Response, Rounding, Stroke, Ui, Widget, WidgetText
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
@@ -48,13 +48,13 @@ impl Plugin for UiPlugin {
             app.add_systems(Update, (
                 hud::hud_hotbar,
                 hud::hud_chat,
-                hud::hud_playerlist.run_if(condition::manipulating()),
-            ).run_if(condition::in_world()));
+                hud::hud_playerlist.run_if(condition::manipulating),
+            ).run_if(condition::in_world));
             
             app.insert_resource(hud::ChatHistory::default());
         }
         
-        app.add_state::<CurrentUI>();
+        app.init_state::<CurrentUI>();
 
         app.add_systems(Update, 
             (
@@ -271,7 +271,7 @@ pub fn ui_lr_panel(
         strip.cell(|ui| {
             if separator {
                 let p = ui.cursor().left_top() + egui::Vec2::new(-ui.style().spacing.item_spacing.x, 0.);
-                let p2 = egui::pos2(p.x, p.y+ui.available_height());
+                let p2 = Pos2::new(p.x, p.y+ui.available_height());
                 ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
             }
             egui::ScrollArea::vertical().show(ui, |ui| {

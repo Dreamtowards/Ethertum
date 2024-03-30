@@ -35,8 +35,8 @@ impl Plugin for GameClientPlugin {
             }
 
             // Billiboard
-            use bevy_mod_billboard::prelude::*;
-            app.add_plugins(BillboardPlugin);
+            // use bevy_mod_billboard::prelude::*;
+            // app.add_plugins(BillboardPlugin);
     
             // ShadowMap sizes
             app.insert_resource(DirectionalLightShadowMap { size: 512 });
@@ -73,9 +73,9 @@ impl Plugin for GameClientPlugin {
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
-        app.add_systems(First, on_world_init.run_if(condition::load_world()));  // Camera, Player, Sun
+        app.add_systems(First, on_world_init.run_if(condition::load_world));  // Camera, Player, Sun
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
-        app.add_systems(Update, tick_world.run_if(condition::in_world()));  // Sun, World Timing.
+        app.add_systems(Update, tick_world.run_if(condition::in_world));  // Sun, World Timing.
         
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
@@ -87,7 +87,7 @@ impl Plugin for GameClientPlugin {
         // Debug
         {
             // Draw Basis
-            app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world()));
+            app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world));
             
             // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
@@ -116,21 +116,21 @@ pub struct DespawnOnWorldUnload;
 struct Sun;
 
 pub mod condition {
-    use bevy::ecs::{schedule::{common_conditions::{resource_added, resource_exists, resource_removed}, State}, system::Res};
+    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::resource_removed, State}, system::Res};
     use crate::ui::CurrentUI;
     use super::WorldInfo;
 
-    pub fn in_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_exists::<WorldInfo>()
+    pub fn in_world(res: Option<Res<WorldInfo>>) -> bool {
+        res.is_some()
     }
-    pub fn load_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_added::<WorldInfo>()
+    pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
+        res.is_some_and(|r|r.is_added())
     }
     pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
         resource_removed::<WorldInfo>()
     }
-    pub fn manipulating() -> impl FnMut(Res<State<CurrentUI>>) -> bool + Clone {
-        |curr_ui: Res<State<CurrentUI>>| *curr_ui == CurrentUI::None
+    pub fn manipulating(curr_ui: Res<State<CurrentUI>>) -> bool {
+        *curr_ui == CurrentUI::None
     }
 }
 
@@ -359,7 +359,7 @@ pub enum InputAction {
 
 
 fn handle_inputs(
-    key: Res<Input<KeyCode>>,
+    key: Res<ButtonInput<KeyCode>>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query_window: Query<&mut Window, With<PrimaryWindow>>,
     mut query_controller: Query<&mut CharacterController>,
@@ -428,7 +428,7 @@ fn handle_inputs(
     }
 
     // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Return)) {
+    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Enter)) {
         window.mode = if window.mode != WindowMode::Fullscreen {
             WindowMode::Fullscreen
         } else {
@@ -522,8 +522,12 @@ fn tick_world(
     }
 }
 
-fn debug_draw_gizmo(mut gizmo: Gizmos, mut gizmo_config: ResMut<GizmoConfig>, query_cam: Query<&Transform, With<CharacterControllerCamera>>) {
-    gizmo_config.depth_bias = -1.; // always in front
+fn debug_draw_gizmo(
+    mut gizmo: Gizmos, 
+    mut gizmo_config: ResMut<GizmoConfigStore>, 
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>
+) {
+    gizmo_config.config_mut::<DefaultGizmoConfigGroup>().0.depth_bias = -1.; // always in front
 
     // World Basis Axes
     let n = 5;

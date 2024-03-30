@@ -213,11 +213,9 @@ impl VertexBuffer {
         let norm: Vec<Vec3> = self.vertices.iter().map(|v| v.norm).collect();
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, norm);
 
-        mesh.set_indices(if self.is_indexed() {
-            Some(Indices::U32(self.indices.clone()))
-        } else {
-            None
-        })
+        if self.is_indexed() {
+            mesh.insert_indices(Indices::U32(self.indices.clone()));
+        }
     }
 }
 

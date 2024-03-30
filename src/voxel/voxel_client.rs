@@ -1,8 +1,8 @@
 
 
-use bevy::{asset::ReflectAsset, prelude::*, render::render_resource::{AsBindGroup, PrimitiveTopology}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
+use bevy::{asset::ReflectAsset, prelude::*, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, PrimitiveTopology}}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
 use bevy_renet::renet::RenetClient;
-use bevy_xpbd_3d::{components::Collider, plugins::spatial_query::{SpatialQuery, SpatialQueryFilter}};
+use bevy_xpbd_3d::plugins::{collision::Collider, spatial_query::{SpatialQuery, SpatialQueryFilter}};
 
 use crate::{
     character_controller::{CharacterController, CharacterControllerCamera}, game_client::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
@@ -27,7 +27,7 @@ impl Plugin for ClientVoxelPlugin {
             app.insert_resource(ChannelRx(rx));
         }
 
-        app.add_systems(First, on_world_init.run_if(condition::load_world()));
+        app.add_systems(First, on_world_init.run_if(condition::load_world));
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
 
@@ -39,7 +39,7 @@ impl Plugin for ClientVoxelPlugin {
                 draw_gizmos,
             )
             .chain()
-            .run_if(condition::in_world()),
+            .run_if(condition::in_world),
         );
     }
 }
@@ -168,7 +168,7 @@ fn chunks_remesh_enqueue(
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
                 _vbuf.0.to_mesh(&mut mesh);
                 _vbuf.0.clear();
 
@@ -176,7 +176,7 @@ fn chunks_remesh_enqueue(
                 // Foliage
                 _vbuf.1.compute_indexed_naive();
 
-                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList);
+                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
                 _vbuf.1.to_mesh(&mut mesh_foliage);
                 _vbuf.1.clear();
 
@@ -241,7 +241,7 @@ fn raycast(
 
     mut hit_result: ResMut<HitResult>,
 
-    mouse_btn: Res<Input<MouseButton>>,
+    mouse_btn: Res<ButtonInput<MouseButton>>,
 
     mut chunk_sys: ResMut<ClientChunkSystem>,
 
@@ -257,8 +257,8 @@ fn raycast(
 
     let player_entity = query_player.get_single().unwrap_or(Entity::PLACEHOLDER);
 
-    if let Some(hit) = spatial_query.cast_ray(ray_pos, ray_dir, 100.,
-        true, SpatialQueryFilter::default().without_entities(vec![player_entity]),
+    if let Some(hit) = spatial_query.cast_ray(ray_pos, Direction3d::new_unchecked(ray_dir), 100.,
+        true, SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
     ) {
         hit_result.is_hit = true;
         hit_result.normal = hit.normal;
