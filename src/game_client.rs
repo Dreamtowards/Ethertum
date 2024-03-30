@@ -47,6 +47,7 @@ impl Plugin for GameClientPlugin {
         }
         // .obj model loader.
         app.add_plugins(ObjPlugin);
+        app.insert_resource(GlobalVolume::new(1.0));  // Audio GlobalVolume
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
@@ -719,7 +720,7 @@ impl Default for ClientInfo {
             playerlist: Vec::new(),
             server_addr: String::new(),
 
-            dbg_text: true,
+            dbg_text: false,
             dbg_menubar: true,
             dbg_inspector: false,
             dbg_gizmo_remesh_chunks: true,

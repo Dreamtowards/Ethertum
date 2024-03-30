@@ -1,15 +1,13 @@
 
 use bevy::{
-    diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
+    audio::Source, diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin}, math::vec2, prelude::*, transform::commands
 };
 use bevy_egui::{
     egui::{
-        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect,
-        Rounding, Stroke, Ui, Widget,
+        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Rangef, Rect, Response, Rounding, Stroke, Ui, Widget, WidgetText
     },
     EguiContexts, EguiPlugin, EguiSettings,
 };
-use bevy_xpbd_3d::parry::na::ComplexField;
 use egui_extras::{Size, StripBuilder};
 
 use crate::game_client::{condition, ClientInfo};
@@ -30,6 +28,8 @@ impl Plugin for UiPlugin {
 
         // Setup Egui Style
         app.add_systems(Startup, setup_egui_style);
+
+        app.add_systems(First, play_bgm);
 
         // Debug UI
         {
@@ -178,10 +178,79 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
     // egui_settings.scale_factor = 1.;
 }
 
+// #[derive(Component)]
+// pub struct SfxButtonHover;
+// #[derive(Component)]
+// pub struct SfxButtonClick;
+
+
+// for SFX
+static mut SFX_BTN_HOVERED: bool = false;
+static mut SFX_BTN_CLICKED: bool = false;
+
+// static mut SFX_BTN_HOVER: Handle<AudioSource> = Handle::Weak(AssetId::invalid());
+// static mut SFX_BTN_CLICK: Handle<AudioSource> = Handle::Weak(AssetId::invalid());
+
+fn play_bgm(
+    asset_server: Res<AssetServer>, 
+    mut cmds: Commands,
+    mut limbo_played: Local<bool>,
+    mut last_hovered: Local<bool>,
+) {
+
+    if !*limbo_played {
+        *limbo_played = true;
+
+        cmds.spawn(AudioBundle {
+            source: asset_server.load("sounds/music/limbo.ogg"),
+            ..default()  //settings: PlaybackSettings::DESPAWN
+        });
+    }
+
+    unsafe {
+        // Switched to Hovered -> Play Sound
+        if SFX_BTN_HOVERED && !*last_hovered {
+            cmds.spawn(AudioBundle {
+                source: asset_server.load("sounds/ui/button.ogg"),
+                settings: PlaybackSettings::DESPAWN
+            });
+        }
+        *last_hovered = SFX_BTN_HOVERED;
+        SFX_BTN_HOVERED = false;
+
+        if SFX_BTN_CLICKED {
+            cmds.spawn(AudioBundle {
+                source: asset_server.load("sounds/ui/button_large.ogg"),
+                settings: PlaybackSettings::DESPAWN
+            });
+        }
+        SFX_BTN_CLICKED = false;
+    }
+
+    // unsafe {
+    //     SFX_BTN_CLICK = asset_server.load("sounds/ui/button_large.ogg");
+    //     SFX_BTN_HOVER = asset_server.load("sounds/ui/button.ogg");
+    // }
+    // SFX_BTN_CLICK = asset_server.load("sounds/ui/button_large.ogg");
+    // SFX_BTN_HOVER = asset_server.load("sounds/ui/button.ogg");
+
+    // cmds.spawn((AudioBundle {
+    //     source: asset_server.load("sounds/ui/button.ogg"),
+    //     ..default() 
+    // }, SfxButtonHover));
+
+    // cmds.spawn((AudioBundle {
+    //     source: asset_server.load("sounds/ui/button_large.ogg"),
+    //     ..default() 
+    // }, SfxButtonClick));
+}
 
 
 
 
+
+
+// UI Panel: Left-Navs and Right-Content
 pub fn ui_lr_panel(
     ui: &mut Ui,
     separator: bool,
@@ -235,4 +304,40 @@ pub fn ui_lr_panel(
             });
         });
     });
+}
+
+
+trait UiExtra {
+
+    fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response;
+
+    fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response;
+
+}
+
+impl UiExtra for Ui {
+
+    fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response {
+        self.add_space(4.);
+        let resp = self.add_sized([220., 24.], egui::Button::new(text));
+        if resp.hovered() {
+            unsafe{SFX_BTN_HOVERED = true;}
+            // cmds.spawn(AudioBundle {
+            //     source: unsafe{SFX_BTN_HOVER.clone()},
+            //     ..default()
+            // });
+        }
+        if resp.clicked() {
+            unsafe{SFX_BTN_CLICKED = true;}
+            // cmds.spawn(AudioBundle {
+            //     source: unsafe{SFX_BTN_CLICK.clone()},
+            //     ..default()
+            // });
+        }
+        resp
+    }
+    fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response {
+        self.add_sized([190., 22.], egui::SelectableLabel::new(false, text))
+    }
+
 }

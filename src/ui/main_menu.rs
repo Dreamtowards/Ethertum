@@ -1,12 +1,12 @@
 use bevy::{prelude::*, app::AppExit, ecs::{event::EventWriter, system::Commands}};
 use bevy_egui::{
-    egui::{self, pos2, Align2, Color32, Frame, Layout,Rounding, },
+    egui::{self, pos2, Align2, Color32, Frame, Layout, OpenUrl, RichText, Rounding },
     EguiContexts, 
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
-use super::CurrentUI;
+use super::{CurrentUI, UiExtra};
 
 
 pub fn ui_main_menu(
@@ -15,10 +15,11 @@ pub fn ui_main_menu(
     mut app_exit_events: EventWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
+    mut cmds: Commands,
 
     mut next_ui: ResMut<NextState<CurrentUI>>,
 
-    mut dbg_server_addr: Local<String>,
+    // mut dbg_server_addr: Local<String>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
@@ -30,49 +31,75 @@ pub fn ui_main_menu(
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
 
         ui.vertical_centered(|ui| {
-            ui.add_space(h * 0.12);
-            ui.heading("ethertia");
-            ui.add_space(h * 0.2);
+            ui.add_space(h * 0.16);
+            ui.add(egui::Label::new(RichText::new("ethertia").heading().color(Color32::WHITE)));
+            ui.add_space(h * 0.24);
 
-            let siz = [240., 24.];
-
-            if dbg_server_addr.is_empty() {
-                *dbg_server_addr = "127.0.0.1:4000".into();
-            }
-            
-            ui.add_sized(siz, egui::TextEdit::singleline(&mut *dbg_server_addr));
-            if ui.add_sized(siz, egui::Button::new("Connect to Server")).clicked() {
-                // 连接服务器 这两个操作会不会有点松散
-                next_ui.set(CurrentUI::ConnectingServer);
-                cli.connect_server(dbg_server_addr.clone());
-            }
-            // if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
-            //     // 临时的单人版方法 直接进入世界而不管网络
-            //     next_ui.set(CurrentUI::None);
-            //     commands.insert_resource(WorldInfo::default());  
+            // if dbg_server_addr.is_empty() {
+            //     *dbg_server_addr = "127.0.0.1:4000".into();
             // }
-            ui.label("·");
+            // ui.add_sized(siz, egui::TextEdit::singleline(&mut *dbg_server_addr));
+            // if ui.add_sized(siz, egui::Button::new("Connect to Server")).clicked() {
+            //     // 连接服务器 这两个操作会不会有点松散
+            //     next_ui.set(CurrentUI::ConnectingServer);
+            //     cli.connect_server(dbg_server_addr.clone());
+            // }
+            // // if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
+            // //     // 临时的单人版方法 直接进入世界而不管网络
+            // //     next_ui.set(CurrentUI::None);
+            // //     commands.insert_resource(WorldInfo::default());  
+            // // }
+            // ui.label("·");
 
-            if ui.add_sized(siz, egui::Button::new("Singleplayer")).clicked() {
+            // if ui.add_sized(siz, egui::Button::new("Singleplayer")).clicked() {
+            //     next_ui.set(CurrentUI::LocalSaves);
+            // }
+            if ui.btn_normal("Singleplayer").clicked() {
                 next_ui.set(CurrentUI::LocalSaves);
             }
-            if ui.add_sized(siz, egui::Button::new("Multiplayer")).clicked() {
+            if ui.btn_normal("Multiplayer").clicked() {
                 next_ui.set(CurrentUI::WtfServerList);
             }
-            if ui.add_sized(siz, egui::Button::new("Settings")).clicked() {
+            if ui.btn_normal("Settings").clicked() {
                 next_ui.set(CurrentUI::WtfSettings);
             }
-            if ui.add_sized(siz, egui::Button::new("Terminate")).clicked() {
+            if ui.btn_normal("Terminate").clicked() {
                 app_exit_events.send(AppExit);
             }
         });
 
         ui.with_layout(Layout::bottom_up(egui::Align::RIGHT), |ui| {
-            ui.label("Copyrights nullptr. Do not distribute!");
+            ui.label("Copyright © nil. Do distribute!");
         });
 
         ui.with_layout(Layout::bottom_up(egui::Align::LEFT), |ui| {
-            ui.label("0 mods loaded.");
+            ui.horizontal(|ui| {
+                if ui.selectable_label(false, "").on_hover_text("Github Repository").clicked() {
+                    ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
+                }  
+                if ui.selectable_label(false, "").on_hover_text("Steam").clicked() {
+                    ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
+                }
+                if ui.selectable_label(false, "").on_hover_text("YouTube").clicked() {
+                    ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
+                }
+                if ui.selectable_label(false, "⛓").on_hover_text("Wiki & Documentations").clicked() {
+                    ui.ctx().open_url(OpenUrl::new_tab("https://docs.ethertia.com"));
+                }
+                ui.label("|");
+                ui.selectable_label(false, "");  // Windows
+                ui.selectable_label(false, "🐧");
+                ui.selectable_label(false, "");
+                ui.selectable_label(false, "");  // Android
+                ui.label("·");
+                // ui.selectable_label(false, "");  // Texture
+                ui.selectable_label(false, "⛶");
+                ui.selectable_label(false, "⛭");
+                ui.selectable_label(false, "🖴");  // Disk
+                // ui.selectable_label(false, "☢");
+                ui.selectable_label(false, "⎆");
+            });
+            ui.label(format!("v{}\n0 mods loaded.", std::env!("CARGO_PKG_VERSION")));
         });
     });
 }

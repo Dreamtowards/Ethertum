@@ -5,6 +5,7 @@
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Linux/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_linux_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/macOS/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_macos_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Android/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_android_release.yml)
+[![CI](https://github.com/Dreamtowards/Ethertum/workflows/iOS/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_ios_release.yml)
 [![CI](https://github.com/Dreamtowards/Ethertum/workflows/Web/badge.svg)](https://github.com/Dreamtowards/Ethertum/actions/workflows/build_wasm_release.yml)
 [![Official Site](https://img.shields.io/badge/ethertia.com-blue.svg)](//ethertia.com)
 [![Docs](https://img.shields.io/badge/docs-blue.svg)](//docs.ethertia.com) ' 
