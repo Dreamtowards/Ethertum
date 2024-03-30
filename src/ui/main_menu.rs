@@ -6,7 +6,7 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
-use super::{CurrentUI, UiExtra};
+use super::{sfx_play, CurrentUI, UiExtra};
 
 
 pub fn ui_main_menu(
@@ -74,30 +74,30 @@ pub fn ui_main_menu(
 
         ui.with_layout(Layout::bottom_up(egui::Align::LEFT), |ui| {
             ui.horizontal(|ui| {
-                if ui.selectable_label(false, "").on_hover_text("Github Repository").clicked() {
+                if sfx_play(ui.selectable_label(false, "")).on_hover_text("Github Repository").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
                 }  
-                if ui.selectable_label(false, "").on_hover_text("Steam").clicked() {
+                if sfx_play(ui.selectable_label(false, "")).on_hover_text("Steam").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
                 }
-                if ui.selectable_label(false, "").on_hover_text("YouTube").clicked() {
+                if sfx_play(ui.selectable_label(false, "")).on_hover_text("YouTube").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
                 }
-                if ui.selectable_label(false, "⛓").on_hover_text("Wiki & Documentations").clicked() {
+                if sfx_play(ui.selectable_label(false, "⛓")).on_hover_text("Wiki & Documentations").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://docs.ethertia.com"));
                 }
                 ui.label("|");
-                ui.selectable_label(false, "");  // Windows
-                ui.selectable_label(false, "🐧");
-                ui.selectable_label(false, "");
-                ui.selectable_label(false, "");  // Android
+                sfx_play(ui.selectable_label(false, ""));  // Windows
+                sfx_play(ui.selectable_label(false, "🐧"));
+                sfx_play(ui.selectable_label(false, ""));
+                sfx_play(ui.selectable_label(false, ""));  // Android
                 ui.label("·");
                 // ui.selectable_label(false, "");  // Texture
-                ui.selectable_label(false, "⛶");
-                ui.selectable_label(false, "⛭");
-                ui.selectable_label(false, "🖴");  // Disk
+                sfx_play(ui.selectable_label(false, "⛶"));
+                sfx_play(ui.selectable_label(false, "⛭"));
+                sfx_play(ui.selectable_label(false, "🖴"));  // Disk
                 // ui.selectable_label(false, "☢");
-                ui.selectable_label(false, "⎆");
+                sfx_play(ui.selectable_label(false, "⎆"));
             });
             ui.label(format!("v{}\n0 mods loaded.", std::env!("CARGO_PKG_VERSION")));
         });

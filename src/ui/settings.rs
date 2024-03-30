@@ -14,7 +14,7 @@ use crate::{
     voxel::{ClientChunkSystem, HitResult}
 };
 
-use super::{new_egui_window, ui_lr_panel, CurrentUI};
+use super::{new_egui_window, sfx_play, ui_lr_panel, CurrentUI};
 
 
 #[derive(Default, PartialEq, Debug, Clone, Copy)]
@@ -52,15 +52,15 @@ pub fn ui_settings(
         let curr_settings_panel = settings_panel.clone(); 
 
         ui_lr_panel(ui, true, |ui| {
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::General, "General");
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::General, "General"));
             ui.separator();
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics");
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Audio, "Audio");
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Controls, "Controls");
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Language, "Languages");
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Graphics, "Graphics"));
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Audio, "Audio"));
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Controls, "Controls"));
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Language, "Languages"));
             ui.separator();
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods");
-            ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets");
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods"));
+            sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets"));
         }, &mut next_ui, |ui| {
 
             ui.style_mut().spacing.item_spacing.y = 12.;

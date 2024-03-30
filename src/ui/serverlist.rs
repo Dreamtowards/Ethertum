@@ -5,7 +5,7 @@ use bevy_egui::{egui::{self, Align2, Color32, Layout, Ui, Widget}, EguiContexts}
 use bevy_renet::renet::RenetClient;
 use crate::game_client::{ClientInfo, EthertiaClient, ServerListItem};
 
-use super::{ui_lr_panel, CurrentUI};
+use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 
 use super::new_egui_window;
 
@@ -35,7 +35,7 @@ pub fn ui_connecting_server(
             
             ui.add_space(h * 0.3);
             
-            if ui.button("Cancel").clicked() {
+            if ui.btn_normal("Cancel").clicked() {
                 // todo: Interrupt Connection without handle Result.
                 next_ui.set(CurrentUI::MainMenu);
                 net_client.disconnect();
@@ -64,7 +64,7 @@ pub fn ui_disconnected_reason(
             
             ui.add_space(h * 0.3);
             
-            if ui.button("Back to title").clicked() {
+            if ui.btn_normal("Back to title").clicked() {
                 next_ui.set(CurrentUI::MainMenu);
             }
         });
@@ -89,14 +89,13 @@ pub fn ui_serverlist(
         
 
         ui_lr_panel(ui, false, |ui| {
-            if ui.selectable_label(false, "Add Server").clicked() {
-                // next_ui_1 =  CurrentUI::ServerListItemAdd;
+            if sfx_play(ui.selectable_label(false, "Add Server")).clicked() {
                 do_new_server = true;
             }
-            if ui.selectable_label(false, "Direct Connect").clicked() {
+            if sfx_play(ui.selectable_label(false, "Direct Connect")).clicked() {
                 
             }
-            if ui.selectable_label(false, "Refresh").clicked() {
+            if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
                 do_refresh = true;
             }
         }, &mut next_ui, |ui| {
@@ -113,7 +112,7 @@ pub fn ui_serverlist(
                             ui.colored_label(Color32::WHITE, server_item.name.clone()).on_hover_text(server_item.addr.clone());
                             
                             ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                ui.label("21ms 12/64");
+                                ui.label("21ms · 12/64");
                             });
                         }
                     });
@@ -124,22 +123,22 @@ pub fn ui_serverlist(
                             ui.label(&server_item.addr);
                         }
 
-                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                        ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
                             if editing {
-                                if ui.button("Done").clicked() {
+                                if sfx_play(ui.button("✅")).clicked() {
                                     *edit_i = None;
                                 }
                             } else {
-                                if ui.button("🗑").on_hover_text("Delete").clicked() {
+                                if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {
                                     del_i = Some(idx);
                                 }
-                                if ui.button("🔧").on_hover_text("Edit").clicked() {
+                                if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {
                                     *edit_i = Some(idx);
                                 }
-                                if ui.button("⟲").on_hover_text("Refresh Status").clicked() {
+                                if sfx_play(ui.button("⟲")).on_hover_text("Refresh Status").clicked() {
                                     
                                 }
-                                if ui.button("Join").clicked() {
+                                if sfx_play(ui.button("▶")).on_hover_text("Join & Play").clicked() {
                                     join_addr = Some(server_item.addr.clone());
                                 }
                             }
@@ -152,6 +151,7 @@ pub fn ui_serverlist(
 
         if do_new_server {
             serverlist.push(ServerListItem { name: "Server Name".into(), addr: "0.0.0.0:4000".into() });
+            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
         }
         if do_refresh {
             match crate::util::get_server_list("https://ethertia.com/server-info.json") {
@@ -183,14 +183,14 @@ pub fn ui_localsaves(
     new_egui_window("Local Saves").show(ctx.ctx_mut(), |ui| {
 
         ui_lr_panel(ui, false, |ui| {
-            if ui.selectable_label(false, "New World").clicked() {
+            if sfx_play(ui.selectable_label(false, "New World")).clicked() {
                                     
             }
-            if ui.selectable_label(false, "Refresh").clicked() {
+            if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
                 
             }
         }, &mut next_ui, |ui| {
-            for i in 0..8 {
+            for i in 0..28 {
                 ui.group(|ui| {
                     ui.horizontal(|ui| {
                         ui.colored_label(Color32::WHITE, "World Name").on_hover_text(
@@ -205,15 +205,12 @@ Inhabited: 10.3 hours");
                     });
                     ui.horizontal(|ui| {
                         ui.label("Survival · Cheats");
-                        ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                            if ui.button("Del").clicked() {
-
+                        ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
+                            if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {
                             }
-                            if ui.button("Edit").clicked() {
-
+                            if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {
                             }
-                            if ui.button("Play").clicked() {
-
+                            if sfx_play(ui.button("▶")).on_hover_text("Play").clicked() {
                             }
                         });
                     });

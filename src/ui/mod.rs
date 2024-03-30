@@ -178,24 +178,17 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
     // egui_settings.scale_factor = 1.;
 }
 
-// #[derive(Component)]
-// pub struct SfxButtonHover;
-// #[derive(Component)]
-// pub struct SfxButtonClick;
 
 
 // for SFX
-static mut SFX_BTN_HOVERED: bool = false;
+static mut SFX_BTN_HOVERED_ID: egui::Id = egui::Id::NULL;
 static mut SFX_BTN_CLICKED: bool = false;
 
-// static mut SFX_BTN_HOVER: Handle<AudioSource> = Handle::Weak(AssetId::invalid());
-// static mut SFX_BTN_CLICK: Handle<AudioSource> = Handle::Weak(AssetId::invalid());
 
 fn play_bgm(
     asset_server: Res<AssetServer>, 
     mut cmds: Commands,
     mut limbo_played: Local<bool>,
-    mut last_hovered: Local<bool>,
 ) {
 
     if !*limbo_played {
@@ -208,15 +201,14 @@ fn play_bgm(
     }
 
     unsafe {
-        // Switched to Hovered -> Play Sound
-        if SFX_BTN_HOVERED && !*last_hovered {
+        static mut LAST_HOVERED_ID: egui::Id = egui::Id::NULL;
+        if SFX_BTN_HOVERED_ID != LAST_HOVERED_ID {
             cmds.spawn(AudioBundle {
                 source: asset_server.load("sounds/ui/button.ogg"),
                 settings: PlaybackSettings::DESPAWN
             });
         }
-        *last_hovered = SFX_BTN_HOVERED;
-        SFX_BTN_HOVERED = false;
+        LAST_HOVERED_ID = SFX_BTN_HOVERED_ID;
 
         if SFX_BTN_CLICKED {
             cmds.spawn(AudioBundle {
@@ -226,23 +218,6 @@ fn play_bgm(
         }
         SFX_BTN_CLICKED = false;
     }
-
-    // unsafe {
-    //     SFX_BTN_CLICK = asset_server.load("sounds/ui/button_large.ogg");
-    //     SFX_BTN_HOVER = asset_server.load("sounds/ui/button.ogg");
-    // }
-    // SFX_BTN_CLICK = asset_server.load("sounds/ui/button_large.ogg");
-    // SFX_BTN_HOVER = asset_server.load("sounds/ui/button.ogg");
-
-    // cmds.spawn((AudioBundle {
-    //     source: asset_server.load("sounds/ui/button.ogg"),
-    //     ..default() 
-    // }, SfxButtonHover));
-
-    // cmds.spawn((AudioBundle {
-    //     source: asset_server.load("sounds/ui/button_large.ogg"),
-    //     ..default() 
-    // }, SfxButtonClick));
 }
 
 
@@ -283,7 +258,7 @@ pub fn ui_lr_panel(
                     });
                     strip.cell(|ui| {
                         ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
-                            if ui.selectable_label(false, "⬅Back").clicked() {
+                            if sfx_play(ui.selectable_label(false, "⬅Back")).clicked() {
                                 next_ui.set(CurrentUI::MainMenu);
                             }
                         });
@@ -315,26 +290,21 @@ trait UiExtra {
 
 }
 
+pub fn sfx_play(resp: Response) -> Response {
+    if resp.hovered() {
+        unsafe{SFX_BTN_HOVERED_ID = resp.id;}
+    }
+    if resp.clicked() {
+        unsafe{SFX_BTN_CLICKED = true;}
+    }
+    resp
+}
+
 impl UiExtra for Ui {
 
     fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response {
         self.add_space(4.);
-        let resp = self.add_sized([220., 24.], egui::Button::new(text));
-        if resp.hovered() {
-            unsafe{SFX_BTN_HOVERED = true;}
-            // cmds.spawn(AudioBundle {
-            //     source: unsafe{SFX_BTN_HOVER.clone()},
-            //     ..default()
-            // });
-        }
-        if resp.clicked() {
-            unsafe{SFX_BTN_CLICKED = true;}
-            // cmds.spawn(AudioBundle {
-            //     source: unsafe{SFX_BTN_CLICK.clone()},
-            //     ..default()
-            // });
-        }
-        resp
+        sfx_play(self.add_sized([220., 24.], egui::Button::new(text)))
     }
     fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response {
         self.add_sized([190., 22.], egui::SelectableLabel::new(false, text))
