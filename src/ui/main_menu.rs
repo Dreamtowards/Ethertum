@@ -53,13 +53,13 @@ pub fn ui_main_menu(
             //     next_ui.set(CurrentUI::LocalSaves);
             // }
             if ui.btn_normal("Singleplayer").clicked() {
-                cli.data().curr_ui = CurrentUI::LocalSaves;
+                cli.data().curr_ui = CurrentUI::LocalWorldList;
             }
             if ui.btn_normal("Multiplayer").clicked() {
-                cli.data().curr_ui = CurrentUI::WtfServerList;
+                cli.data().curr_ui = CurrentUI::ServerList;
             }
             if ui.btn_normal("Settings").clicked() {
-                cli.data().curr_ui = CurrentUI::WtfSettings;
+                cli.data().curr_ui = CurrentUI::Settings;
             }
             if ui.btn_normal("Terminate").clicked() {
                 app_exit_events.send(AppExit);
@@ -147,7 +147,7 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Quests");
                 ui.separator();
                 if ui.toggle_value(&mut false, "Settings").clicked() {
-                    cli.curr_ui = CurrentUI::WtfSettings;
+                    cli.curr_ui = CurrentUI::Settings;
                 }
                 if ui.toggle_value(&mut false, "Quit").clicked() {
                     cli.curr_ui = CurrentUI::MainMenu;

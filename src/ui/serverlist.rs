@@ -176,13 +176,13 @@ pub fn ui_serverlist(
 
 pub fn ui_localsaves(
     mut ctx: EguiContexts, 
-    mut cli: ResMut<ClientInfo>,  // only curr_ui
+    mut cli: ResMut<ClientInfo>,
 ) {
-    new_egui_window("Local Saves").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Local Worlds").show(ctx.ctx_mut(), |ui| {
 
         ui_lr_panel(ui, false, |ui| {
             if sfx_play(ui.selectable_label(false, "New World")).clicked() {
-                                    
+                cli.curr_ui = CurrentUI::LocalWorldNew;
             }
             if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
                 
@@ -215,5 +215,85 @@ Inhabited: 10.3 hours");
                 });
             }
         });
+    });
+}
+
+#[derive(Default, Debug, PartialEq)]
+pub enum Difficulty {
+    Peace,
+    #[default]
+    Normal,
+    Hard,
+}
+
+pub fn ui_create_world(
+    mut ctx: EguiContexts, 
+    mut cli: ResMut<ClientInfo>,
+    mut tx_world_name: Local<String>,
+    mut tx_world_seed: Local<String>,
+    mut _difficulty: Local<Difficulty>,
+) {
+    new_egui_window("New World").show(ctx.ctx_mut(), |ui| {
+
+        // ui_lr_panel(ui, true, |ui| {
+        //     if sfx_play(ui.selectable_label(true, "General")).clicked() {
+
+        //     }
+        //     if sfx_play(ui.selectable_label(false, "Generation")).clicked() {
+                
+        //     }
+        //     if sfx_play(ui.selectable_label(false, "Gamerules")).clicked() {
+                
+        //     }
+        // }, |ui| {
+            let space = 14.;
+
+            ui.label("Name:");
+            sfx_play(ui.text_edit_singleline(&mut *tx_world_name));
+            ui.add_space(space);
+    
+            ui.label("Seed:");
+            sfx_play(ui.text_edit_singleline(&mut *tx_world_seed));
+            ui.add_space(space);
+    
+            ui.label("Gamemode:");
+            ui.horizontal(|ui| {
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Peace, "Survival"));
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Normal, "Creative"));
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Hard, "Spectator"));
+            });
+            ui.add_space(space);
+
+    
+            ui.label("Difficulty:");
+            ui.horizontal(|ui| {
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Peace, "Peace"));
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Normal, "Normal"));
+                sfx_play(ui.radio_value(&mut *_difficulty, Difficulty::Hard, "Hard"));
+            });
+            ui.add_space(space);
+    
+            ui.label("Difficulty:");
+            egui::ComboBox::from_id_source("Difficulty")
+                .selected_text(format!("{:?}", *_difficulty))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut *_difficulty, Difficulty::Peace, "Peace");
+                    ui.selectable_value(&mut *_difficulty, Difficulty::Normal, "Normal");
+                    ui.selectable_value(&mut *_difficulty, Difficulty::Hard, "Hard");
+                });
+
+            ui.add_space(space);
+    
+
+            ui.add_space(22.);
+
+            if sfx_play(ui.add_sized([290., 26.], egui::Button::new("Create World").fill(Color32::DARK_GREEN))).clicked() {
+    
+            }
+            ui.add_space(4.);
+            if sfx_play(ui.add_sized([290., 20.], egui::Button::new("Cancel"))).clicked() {
+                cli.curr_ui = CurrentUI::LocalWorldList;
+            }
+        // });
     });
 }

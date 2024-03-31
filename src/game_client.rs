@@ -410,7 +410,7 @@ fn handle_inputs(
     
     // Temporary F4 Debug Settings
     if key.just_pressed(KeyCode::F4) {
-        cli.curr_ui = CurrentUI::WtfSettings;
+        cli.curr_ui = CurrentUI::Settings;
     }
 
     // Temporary Toggle F9 Debug Inspector
@@ -657,20 +657,15 @@ impl Default for ClientSettings {
 
 pub const HOTBAR_SLOTS: u32 = 9;
 
+
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ClientInfo {
     // Networking
-    pub disconnected_reason: String,
-
-    // ping. (rtt, c2s, ping-begin) in ms.
-    pub ping: (u64, i64, i64, u64),
-
-    // as same as SPacket::PlayerList. username, ping.
-    pub playerlist: Vec<(String, u32)>,
-
     pub server_addr: String,  // just a record
-
+    pub disconnected_reason: String,
+    pub ping: (u64, i64, i64, u64),  // ping. (rtt, c2s, ping-begin) in ms.
+    pub playerlist: Vec<(String, u32)>,  // as same as SPacket::PlayerList. username, ping.
 
     // Debug Draw
     pub dbg_text: bool,
@@ -679,7 +674,6 @@ pub struct ClientInfo {
     pub dbg_gizmo_remesh_chunks: bool,
     pub dbg_gizmo_curr_chunk: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
-
 
     // Voxel Brush
     pub brush_size: f32,
@@ -690,7 +684,6 @@ pub struct ClientInfo {
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
 
-    pub vsync: bool,
 
     // Render Sky
     pub sky_fog_color: Color,
@@ -698,8 +691,9 @@ pub struct ClientInfo {
     pub sky_inscattering_color: Color,
     pub sky_extinction_color: Color,
     pub sky_fog_is_atomspheric: bool,
-    
     pub skylight_shadow: bool,
+
+    pub vsync: bool,
 
     #[reflect(ignore)]
     pub cfg: ClientSettings,
@@ -716,6 +710,7 @@ pub struct ClientInfo {
     pub health: u32,
     pub health_max: u32,
 
+    // UI
     #[reflect(ignore)]
     pub curr_ui: CurrentUI,
 }

@@ -56,14 +56,15 @@ impl Plugin for UiPlugin {
         
         app.add_systems(Update, 
             (
-                settings::ui_settings.run_if(condition::in_ui(CurrentUI::WtfSettings)),
+                settings::ui_settings.run_if(condition::in_ui(CurrentUI::Settings)),
                 main_menu::ui_pause_menu.run_if(condition::in_ui(CurrentUI::PauseMenu)),
 
                 // Menus
                 main_menu::ui_main_menu.run_if(condition::in_ui(CurrentUI::MainMenu)),
-                serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalSaves)),
+                serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalWorldList)),
+                serverlist::ui_create_world.run_if(condition::in_ui(CurrentUI::LocalWorldNew)),
 
-                serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::WtfServerList)),
+                serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::ServerList)),
                 serverlist::ui_connecting_server.run_if(condition::in_ui(CurrentUI::ConnectingServer)),
                 serverlist::ui_disconnected_reason.run_if(condition::in_ui(CurrentUI::DisconnectedReason)),
             )
@@ -82,12 +83,13 @@ pub enum CurrentUI {
     #[default]
     MainMenu,
     PauseMenu,
-    WtfSettings,
-    WtfServerList,
+    Settings,
+    ServerList,
     ConnectingServer,
     DisconnectedReason,
     ChatInput,
-    LocalSaves,
+    LocalWorldList,
+    LocalWorldNew,
 }
 
 // for fn new_egui_window
@@ -199,19 +201,20 @@ fn play_bgm(
 
         cmds.spawn(AudioBundle {
             source: asset_server.load("sounds/music/limbo.ogg"),
-            ..default()  //settings: PlaybackSettings::DESPAWN
+            settings: PlaybackSettings::DESPAWN,
         });
     }
 
     unsafe {
         static mut LAST_HOVERED_ID: egui::Id = egui::Id::NULL;
-        if SFX_BTN_HOVERED_ID != LAST_HOVERED_ID {
+        if SFX_BTN_HOVERED_ID != egui::Id::NULL && SFX_BTN_HOVERED_ID != LAST_HOVERED_ID {
             cmds.spawn(AudioBundle {
                 source: asset_server.load("sounds/ui/button.ogg"),
                 settings: PlaybackSettings::DESPAWN
             });
         }
         LAST_HOVERED_ID = SFX_BTN_HOVERED_ID;
+        SFX_BTN_HOVERED_ID = egui::Id::NULL;
 
         if SFX_BTN_CLICKED {
             cmds.spawn(AudioBundle {
