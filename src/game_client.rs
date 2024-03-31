@@ -76,7 +76,6 @@ impl Plugin for GameClientPlugin {
         app.add_systems(First, on_world_init.run_if(condition::load_world));  // Camera, Player, Sun
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world));  // Sun, World Timing.
-        // BUG 时序问题 这个tick可能会先于worldinit运行 导致资源不存在 崩溃。可能是因为in_world在Update之前被设置了
         
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 

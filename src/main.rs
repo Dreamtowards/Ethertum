@@ -1,10 +1,10 @@
 // #![rustfmt::skip] 
 
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::prelude::*;
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "full");
-    std::env::set_var("RUST_LOG", "info");
+    // std::env::set_var("RUST_BACKTRACE", "full");
+    // std::env::set_var("RUST_LOG", "info");
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -14,9 +14,6 @@ fn main() {
                 prevent_default_event_handling: true,  // web: avoid twice esc to pause problem.
                 ..default()
             }),
-            ..default()
-        }).set(LogPlugin {
-            filter: String::new(),
             ..default()
         }))
         .add_plugins(ethertia::game_client::GameClientPlugin)
