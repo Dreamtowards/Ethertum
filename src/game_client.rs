@@ -5,7 +5,6 @@ use bevy::{
     input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, 
     utils::HashSet, window::{CursorGrabMode, PresentMode, PrimaryWindow, WindowMode}
 };
-use bevy_obj::ObjPlugin;
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 use bevy_touch_stick::*;
 use bevy_xpbd_3d::prelude::*;
@@ -46,7 +45,7 @@ impl Plugin for GameClientPlugin {
             // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
         }
         // .obj model loader.
-        app.add_plugins(ObjPlugin);
+        app.add_plugins(bevy_obj::ObjPlugin);
         app.insert_resource(GlobalVolume::new(1.0));  // Audio GlobalVolume
 
         // Physics
@@ -107,34 +106,6 @@ impl Plugin for GameClientPlugin {
 
 
 
-/// Marker: Despawn the Entity on World Unload.
-#[derive(Component)]
-pub struct DespawnOnWorldUnload;
-
-// Marker: Sun
-#[derive(Component)]
-struct Sun;
-
-pub mod condition {
-    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::resource_removed, State}, system::Res};
-    use crate::ui::CurrentUI;
-    use super::WorldInfo;
-
-    // a.k.a. loaded_world
-    pub fn in_world(res: Option<Res<WorldInfo>>, res_vox: Option<Res<crate::voxel::ClientChunkSystem>>) -> bool {
-        res.is_some() && res_vox.is_some()
-    }
-    pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
-        res.is_some_and(|r|r.is_added())
-    }
-    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_removed::<WorldInfo>()
-    }
-    pub fn manipulating(curr_ui: Res<State<CurrentUI>>) -> bool {
-        *curr_ui == CurrentUI::None
-    }
-}
-
 
 
 
@@ -165,8 +136,42 @@ fn on_app_exit(
 
 
 
+pub mod condition {
+    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::resource_removed, State}, system::Res};
+    use crate::ui::CurrentUI;
+    use super::{ClientInfo, WorldInfo};
+
+    // a.k.a. loaded_world
+    pub fn in_world(res: Option<Res<WorldInfo>>, res_vox: Option<Res<crate::voxel::ClientChunkSystem>>) -> bool {
+        res.is_some() && res_vox.is_some()
+    }
+    pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
+        res.is_some_and(|r|r.is_added())
+    }
+    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
+        resource_removed::<WorldInfo>()
+    }
+    pub fn manipulating(cli: Res<ClientInfo>) -> bool {
+        cli.curr_ui == CurrentUI::None
+    }
+    pub fn in_ui(ui: CurrentUI) -> impl FnMut(Res<ClientInfo>) -> bool + Clone {
+        move |cli: Res<ClientInfo>| {
+            cli.curr_ui == ui
+        }
+    }
+}
 
 
+
+
+
+/// Marker: Despawn the Entity on World Unload.
+#[derive(Component)]
+pub struct DespawnOnWorldUnload;
+
+// Marker: Sun
+#[derive(Component)]
+struct Sun;
 
 fn on_world_init(
     mut cmds: Commands,
@@ -366,24 +371,19 @@ fn handle_inputs(
     mut query_controller: Query<&mut CharacterController>,
 
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    // mut last_is_manipulating: Local<bool>,
-    mut curr_ui: ResMut<State<CurrentUI>>,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
-
     mut cli: ResMut<ClientInfo>,
 ) {
     let mut window = query_window.single_mut();
 
     if key.just_pressed(KeyCode::Escape) {
         if worldinfo.is_some() {
-            next_ui.set(if *curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None });
+            cli.curr_ui = if cli.curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None };
         } else {
-            next_ui.set(CurrentUI::MainMenu);
+            cli.curr_ui = CurrentUI::MainMenu;
         }
     }
     // Toggle Game-Manipulating (grabbing mouse / character controlling) when CurrentUi!=None. 
-    let curr_manipulating = *curr_ui == CurrentUI::None;
-    // *last_is_manipulating = curr_manipulating;
+    let curr_manipulating = cli.curr_ui == CurrentUI::None;
     
     // Apply Cursor Grab
     let cursor_grab = curr_manipulating && cli.enable_cursor_look;
@@ -410,7 +410,7 @@ fn handle_inputs(
     
     // Temporary F4 Debug Settings
     if key.just_pressed(KeyCode::F4) {
-        next_ui.set(CurrentUI::WtfSettings);
+        cli.curr_ui = CurrentUI::WtfSettings;
     }
 
     // Temporary Toggle F9 Debug Inspector
@@ -715,6 +715,9 @@ pub struct ClientInfo {
 
     pub health: u32,
     pub health_max: u32,
+
+    #[reflect(ignore)]
+    pub curr_ui: CurrentUI,
 }
 
 impl Default for ClientInfo {
@@ -758,6 +761,8 @@ impl Default for ClientInfo {
             hotbar_index: 0,
             health: 20,
             health_max: 20,
+
+            curr_ui: CurrentUI::MainMenu,
         }
     }
 }

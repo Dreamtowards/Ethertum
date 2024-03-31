@@ -54,20 +54,18 @@ impl Plugin for UiPlugin {
             app.insert_resource(hud::ChatHistory::default());
         }
         
-        app.init_state::<CurrentUI>();
-
         app.add_systems(Update, 
             (
-                settings::ui_settings.run_if(in_state(CurrentUI::WtfSettings)),
-                main_menu::ui_pause_menu.run_if(in_state(CurrentUI::PauseMenu)),
+                settings::ui_settings.run_if(condition::in_ui(CurrentUI::WtfSettings)),
+                main_menu::ui_pause_menu.run_if(condition::in_ui(CurrentUI::PauseMenu)),
 
                 // Menus
-                main_menu::ui_main_menu.run_if(in_state(CurrentUI::MainMenu)),
-                serverlist::ui_localsaves.run_if(in_state(CurrentUI::LocalSaves)),
+                main_menu::ui_main_menu.run_if(condition::in_ui(CurrentUI::MainMenu)),
+                serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalSaves)),
 
-                serverlist::ui_serverlist.run_if(in_state(CurrentUI::WtfServerList)),
-                serverlist::ui_connecting_server.run_if(in_state(CurrentUI::ConnectingServer)),
-                serverlist::ui_disconnected_reason.run_if(in_state(CurrentUI::DisconnectedReason)),
+                serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::WtfServerList)),
+                serverlist::ui_connecting_server.run_if(condition::in_ui(CurrentUI::ConnectingServer)),
+                serverlist::ui_disconnected_reason.run_if(condition::in_ui(CurrentUI::DisconnectedReason)),
             )
             //.chain()
             //.before(debug::ui_menu_panel)
@@ -78,7 +76,7 @@ impl Plugin for UiPlugin {
 }
 
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Hash)]
 pub enum CurrentUI {
     None,
     #[default]
@@ -184,11 +182,16 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 static mut SFX_BTN_HOVERED_ID: egui::Id = egui::Id::NULL;
 static mut SFX_BTN_CLICKED: bool = false;
 
+// for ui_panel_lr set curr_ui Back without accessing UI Res
+static mut UI_BACK: bool = false;
+
 
 fn play_bgm(
     asset_server: Res<AssetServer>, 
     mut cmds: Commands,
     mut limbo_played: Local<bool>,
+
+    mut cli: ResMut<ClientInfo>,
 ) {
 
     if !*limbo_played {
@@ -217,6 +220,11 @@ fn play_bgm(
             });
         }
         SFX_BTN_CLICKED = false;
+
+        if UI_BACK {
+            UI_BACK = false;
+            cli.curr_ui = CurrentUI::MainMenu;
+        }
     }
 }
 
@@ -230,7 +238,6 @@ pub fn ui_lr_panel(
     ui: &mut Ui,
     separator: bool,
     mut add_nav: impl FnMut(&mut Ui),
-    next_ui: &mut ResMut<NextState<CurrentUI>>,
     mut add_main: impl FnMut(&mut Ui),
 ) {
     
@@ -259,7 +266,7 @@ pub fn ui_lr_panel(
                     strip.cell(|ui| {
                         ui.with_layout(Layout::bottom_up(egui::Align::Min), |ui| {
                             if sfx_play(ui.selectable_label(false, "⬅Back")).clicked() {
-                                next_ui.set(CurrentUI::MainMenu);
+                                unsafe{UI_BACK = true;}
                             }
                         });
                     });

@@ -25,16 +25,13 @@ pub fn client_sys(
     mut cli: ResMut<ClientInfo>,
 
     mut chats: ResMut<crate::ui::hud::ChatHistory>,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
     mut cmds: Commands,
+    mut chunk_sys: ResMut<ClientChunkSystem>,
     
     // 临时测试 待移除:
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
-
-    mut chunk_sys: ResMut<ClientChunkSystem>,
-
     mut entity_s2c: Local<HashMap<Entity, Entity>>,
 ) {
     if *last_connected != 1 && net_client.is_connecting() {
@@ -52,7 +49,7 @@ pub fn client_sys(
 
         cmds.remove_resource::<WorldInfo>();  // todo: cli.close_world();
         if net_client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
-            next_ui.set(CurrentUI::DisconnectedReason);
+            cli.curr_ui = CurrentUI::DisconnectedReason;
         }
         
         info!("Disconnected. {}", cli.disconnected_reason);
@@ -91,7 +88,7 @@ pub fn client_sys(
             SPacket::LoginSuccess { player_entity } => {
                 info!("Login Success!");
                 
-                next_ui.set(CurrentUI::None);
+                cli.curr_ui = CurrentUI::None;
                 
                 spawn_player(player_entity.client_entity(), true, &cli.cfg.username, &mut cmds, &asset_server, &mut meshes, &mut materials);
 

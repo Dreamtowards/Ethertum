@@ -17,8 +17,6 @@ pub fn ui_main_menu(
     mut cli: EthertiaClient,
     mut cmds: Commands,
 
-    mut next_ui: ResMut<NextState<CurrentUI>>,
-
     // mut dbg_server_addr: Local<String>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
@@ -55,13 +53,13 @@ pub fn ui_main_menu(
             //     next_ui.set(CurrentUI::LocalSaves);
             // }
             if ui.btn_normal("Singleplayer").clicked() {
-                next_ui.set(CurrentUI::LocalSaves);
+                cli.data().curr_ui = CurrentUI::LocalSaves;
             }
             if ui.btn_normal("Multiplayer").clicked() {
-                next_ui.set(CurrentUI::WtfServerList);
+                cli.data().curr_ui = CurrentUI::WtfServerList;
             }
             if ui.btn_normal("Settings").clicked() {
-                next_ui.set(CurrentUI::WtfSettings);
+                cli.data().curr_ui = CurrentUI::WtfSettings;
             }
             if ui.btn_normal("Terminate").clicked() {
                 app_exit_events.send(AppExit);
@@ -112,9 +110,9 @@ pub fn ui_main_menu(
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut commands: Commands,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
 
     mut net_client: ResMut<RenetClient>,
+    mut cli: ResMut<ClientInfo>,  // only curr_ui
     // mut worldinfo: ResMut<WorldInfo>,
 ) {
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
@@ -149,10 +147,10 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Quests");
                 ui.separator();
                 if ui.toggle_value(&mut false, "Settings").clicked() {
-                    next_ui.set(CurrentUI::WtfSettings);
+                    cli.curr_ui = CurrentUI::WtfSettings;
                 }
                 if ui.toggle_value(&mut false, "Quit").clicked() {
-                    next_ui.set(CurrentUI::MainMenu);
+                    cli.curr_ui = CurrentUI::MainMenu;
                     commands.remove_resource::<WorldInfo>();
                     net_client.disconnect();
                     // cli.close_world();

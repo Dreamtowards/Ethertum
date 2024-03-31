@@ -13,7 +13,7 @@ use super::new_egui_window;
 
 pub fn ui_connecting_server(
     mut ctx: EguiContexts,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
+    mut cli: ResMut<ClientInfo>,
     mut net_client: ResMut<RenetClient>,
 ) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
@@ -37,7 +37,7 @@ pub fn ui_connecting_server(
             
             if ui.btn_normal("Cancel").clicked() {
                 // todo: Interrupt Connection without handle Result.
-                next_ui.set(CurrentUI::MainMenu);
+                cli.curr_ui = CurrentUI::MainMenu;
                 net_client.disconnect();
             }
 
@@ -48,9 +48,7 @@ pub fn ui_connecting_server(
 
 pub fn ui_disconnected_reason(
     mut ctx: EguiContexts,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
-
-    cli: Res<ClientInfo>,
+    mut cli: ResMut<ClientInfo>,  // readonly. mut only for curr_ui.
 ) {
     new_egui_window("Disconnected Reason").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
@@ -65,7 +63,7 @@ pub fn ui_disconnected_reason(
             ui.add_space(h * 0.3);
             
             if ui.btn_normal("Back to title").clicked() {
-                next_ui.set(CurrentUI::MainMenu);
+                cli.curr_ui = CurrentUI::MainMenu;
             }
         });
 
@@ -75,12 +73,11 @@ pub fn ui_disconnected_reason(
 
 pub fn ui_serverlist(
     mut ctx: EguiContexts, 
-    mut next_ui: ResMut<NextState<CurrentUI>>,
     mut cli: EthertiaClient,
     mut edit_i: Local<Option<usize>>,
 ) { 
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
-        let serverlist = &mut cli.data().cfg.serverlist;
+        let mut serverlist = &mut cli.data().cfg.serverlist;
 
         let (mut do_new_server, mut do_refresh) = (false, false);
 
@@ -98,7 +95,7 @@ pub fn ui_serverlist(
             if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
                 do_refresh = true;
             }
-        }, &mut next_ui, |ui| {
+        }, |ui| {
             for (idx, server_item) in serverlist.iter_mut().enumerate() {
                 let editing = edit_i.is_some_and(|i| i == idx);
                 
@@ -166,19 +163,20 @@ pub fn ui_serverlist(
 
         if let Some(join_addr) = join_addr {
             // 连接服务器 这两个操作会不会有点松散
-            next_ui.set(CurrentUI::ConnectingServer);
+            cli.data().curr_ui = CurrentUI::ConnectingServer;
             cli.connect_server(join_addr);
         }
         // if next_ui_1 != CurrentUI::None {
         //     next_ui.set(next_ui_1);
         // }
+        // cli.data().cfg.serverlist = serverlist;  // cannot borrow &mut more than once. so copy and assign
     });
 }
 
 
 pub fn ui_localsaves(
     mut ctx: EguiContexts, 
-    mut next_ui: ResMut<NextState<CurrentUI>>,
+    mut cli: ResMut<ClientInfo>,  // only curr_ui
 ) {
     new_egui_window("Local Saves").show(ctx.ctx_mut(), |ui| {
 
@@ -189,7 +187,7 @@ pub fn ui_localsaves(
             if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
                 
             }
-        }, &mut next_ui, |ui| {
+        }, |ui| {
             for i in 0..28 {
                 ui.group(|ui| {
                     ui.horizontal(|ui| {

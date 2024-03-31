@@ -33,7 +33,6 @@ pub enum SettingsPanel {
 pub fn ui_settings(
     mut ctx: EguiContexts, 
     mut settings_panel: Local<SettingsPanel>, 
-    mut next_ui: ResMut<NextState<CurrentUI>>, 
 
     mut cli: ResMut<ClientInfo>,
     mut worldinfo: Option<ResMut<WorldInfo>>,
@@ -42,14 +41,13 @@ pub fn ui_settings(
     mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
     mut global_volume: ResMut<GlobalVolume>,
     
-    
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     new_egui_window("Settings").show(ctx.ctx_mut(), |ui| {
 
-        let curr_settings_panel = settings_panel.clone(); 
+        let curr_settings_panel = settings_panel.clone();
 
         ui_lr_panel(ui, true, |ui| {
             sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::General, "General"));
@@ -61,7 +59,7 @@ pub fn ui_settings(
             ui.separator();
             sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Mods, "Mods"));
             sfx_play(ui.selectable_value(&mut *settings_panel, SettingsPanel::Assets, "Assets"));
-        }, &mut next_ui, |ui| {
+        }, |ui| {
 
             ui.style_mut().spacing.item_spacing.y = 12.;
 

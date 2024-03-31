@@ -43,14 +43,13 @@ pub fn hud_chat(
     mut net_client: ResMut<RenetClient>,
 
     input_key: Res<ButtonInput<KeyCode>>,
-    mut curr_ui: ResMut<State<CurrentUI>>,
-    mut next_ui: ResMut<NextState<CurrentUI>>,
+    mut cli: ResMut<ClientInfo>,  // only curr_ui
 ) {
     let has_new_chat = state.scrollback.len() > *last_chat_count;
     *last_chat_count = state.scrollback.len();
 
-    if input_key.just_pressed(KeyCode::Slash) && *curr_ui == CurrentUI::None {
-        next_ui.set(CurrentUI::ChatInput);
+    if input_key.just_pressed(KeyCode::Slash) && cli.curr_ui == CurrentUI::None {
+        cli.curr_ui = CurrentUI::ChatInput;
     }
 
     // Hide ChatUi when long time no new message.
@@ -58,7 +57,7 @@ pub fn hud_chat(
     if has_new_chat {
         *last_time_new_chat = curr_time;
     } 
-    if *last_time_new_chat < curr_time - 8. && *curr_ui != CurrentUI::ChatInput {
+    if *last_time_new_chat < curr_time - 8. && cli.curr_ui != CurrentUI::ChatInput {
         return;  
     }
 
@@ -94,7 +93,7 @@ pub fn hud_chat(
                 });
 
             // hide input box when gaming.
-            if *curr_ui != CurrentUI::ChatInput {
+            if cli.curr_ui != CurrentUI::ChatInput {
                 return;
             }
 
@@ -151,7 +150,7 @@ pub fn hud_chat(
                 state.buf.clear();
 
                 // Close ChatUi after Enter.
-                next_ui.set(CurrentUI::None);
+                cli.curr_ui = CurrentUI::None;
             }
 
             // Clear on ctrl+l

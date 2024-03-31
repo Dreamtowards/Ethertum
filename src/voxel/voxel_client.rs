@@ -235,20 +235,13 @@ pub struct HitResult {
 
 fn raycast(
     spatial_query: SpatialQuery,
-
     query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>,  // ray
     query_player: Query<Entity, With<CharacterController>>,  // exclude collider
 
     mut hit_result: ResMut<HitResult>,
-
     mouse_btn: Res<ButtonInput<MouseButton>>,
-
     mut chunk_sys: ResMut<ClientChunkSystem>,
-
-    curr_ui: Res<State<CurrentUI>>,
-
     mut net_client: ResMut<RenetClient>,
-
     cli: Res<ClientInfo>,
 ) {
     let cam_trans = query_cam.single();
@@ -274,7 +267,7 @@ fn raycast(
 
     // ############ Break & Place ############
 
-    if *curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
+    if cli.curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
         return;
     }
 
