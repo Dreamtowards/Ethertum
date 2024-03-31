@@ -33,7 +33,7 @@ bevy_renet = "0.0.11"
 
 #bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
 #bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-bevy_egui = "0.26"
+bevy_egui = "0.25"
 bevy-inspector-egui = "0.23"
 bevy_editor_pls = { version = "0.8", optional = true }
 bevy_touch_stick = { version = "0.2" }
