@@ -1,6 +1,6 @@
 use std::{net::{SocketAddr, UdpSocket}, time::Duration};
 
-use crate::{game_server::ServerInfo, util::{current_timestamp, current_timestamp_millis}};
+use crate::{game_client::condition, game_server::ServerInfo, util::{current_timestamp, current_timestamp_millis}};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
@@ -117,7 +117,8 @@ impl Plugin for ClientNetworkPlugin {
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 
-        app.add_systems(Update, netproc_client::client_sys.run_if(resource_exists::<RenetClient>));
+        // 待考证: resource_exists::<RenetClient> 之前会造成 获取未加载的ChunkSystemClient
+        app.add_systems(Update, netproc_client::client_sys.run_if(condition::in_world));
         
         // app.add_systems(Update, ui_client_net);
     }

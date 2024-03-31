@@ -144,7 +144,7 @@ pub fn client_sys(
                             ChunkComponent::new(*chunkpos),
                             MaterialMeshBundle {
                                 mesh: chunk.mesh_handle.clone(),
-                                material: chunk_sys.shader_terrain.clone(),  //materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+                                material: chunk_sys.shader_terrain.clone(), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
                                 transform: Transform::from_translation(chunkpos.as_vec3()),
                                 visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
                                 ..default()
@@ -238,11 +238,10 @@ fn spawn_player(
     
     ec.insert((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Capsule {
-                depth: 1.3,
+            mesh: meshes.add(Capsule3d {
                 radius: 0.3,
-                ..default()
-            })),
+                half_length: 1.3,
+            }),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()

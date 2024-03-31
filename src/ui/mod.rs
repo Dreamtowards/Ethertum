@@ -291,7 +291,7 @@ trait UiExtra {
 }
 
 pub fn sfx_play(resp: Response) -> Response {
-    if resp.hovered() {
+    if resp.hovered() || resp.gained_focus() {
         unsafe{SFX_BTN_HOVERED_ID = resp.id;}
     }
     if resp.clicked() {

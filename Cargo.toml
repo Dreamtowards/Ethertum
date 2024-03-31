@@ -19,7 +19,7 @@ experimental_channel = []
 
 
 [dev-dependencies]
-bevy = { version = "0.13.1", features = ["dynamic_linking", "file_watcher"] }
+bevy = { version = "0.13.1", features = ["dynamic_linking", "file_watcher", "trace_chrome"] }
 # cargo run --features bevy/trace_tracy
 
 

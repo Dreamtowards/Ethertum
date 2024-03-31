@@ -51,6 +51,7 @@ fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
+    mut pbr_mtl: ResMut<Assets<StandardMaterial>>,
 ) {
     info!("Init ChunkSystem");
 
@@ -62,6 +63,7 @@ fn on_world_init(
         texture_dram: Some(asset_server.load("baked/atlas_dram.png")),
         ..default()
     });
+    chunk_sys.shader_dbg_pbr = pbr_mtl.add(Color::GREEN);
 
     // ChunkSystem entity. all chunk entities will be spawn as children. (for almost no reason. just for editor hierarchy)
     chunk_sys.entity = cmds
@@ -168,7 +170,7 @@ fn chunks_remesh_enqueue(
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD);
                 _vbuf.0.to_mesh(&mut mesh);
                 _vbuf.0.clear();
 
@@ -176,7 +178,7 @@ fn chunks_remesh_enqueue(
                 // Foliage
                 _vbuf.1.compute_indexed_naive();
 
-                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD);
+                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD);
                 _vbuf.1.to_mesh(&mut mesh_foliage);
                 _vbuf.1.clear();
 
@@ -420,6 +422,7 @@ pub struct ClientChunkSystem {
 
 
     pub shader_terrain: Handle<TerrainMaterial>,
+    pub shader_dbg_pbr: Handle<StandardMaterial>,
     pub entity: Entity,
 }
 
@@ -437,6 +440,7 @@ impl ClientChunkSystem {
             chunks_remesh: HashSet::default(),
 
             shader_terrain: Handle::default(),
+            shader_dbg_pbr: Handle::default(),
             entity: Entity::PLACEHOLDER,
         }
     }

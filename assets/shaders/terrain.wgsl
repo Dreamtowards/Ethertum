@@ -42,7 +42,7 @@ fn vertex(
 ) -> MyVertexOutput {
 
     let model = mesh_functions::get_model_matrix(in.instance_index);
-    let inst_idx = bevy_render::instance_index::get_instance_index(in.instance_index);
+    let inst_idx = in.instance_index;
 
     var out: MyVertexOutput;
     out.world_position = mesh_functions::mesh_position_local_to_world(model, vec4<f32>(in.position, 1.0));
@@ -65,11 +65,11 @@ struct Ubo {
     _padding: f32,
 }
 
-@group(1) @binding(0) var _sampler: sampler;
-@group(1) @binding(1) var tex_diffuse: texture_2d<f32>;
-@group(1) @binding(2) var tex_normal: texture_2d<f32>;
-@group(1) @binding(3) var tex_dram: texture_2d<f32>;
-@group(1) @binding(4) var<uniform> ubo: Ubo;
+@group(2) @binding(0) var _sampler: sampler;
+@group(2) @binding(1) var tex_diffuse: texture_2d<f32>;
+@group(2) @binding(2) var tex_normal: texture_2d<f32>;
+@group(2) @binding(3) var tex_dram: texture_2d<f32>;
+@group(2) @binding(4) var<uniform> ubo: Ubo;
 
 // @group(1) @binding(4) var<uniform> sample_scale: f32;
 // @group(1) @binding(5) var<uniform> normal_intensity: f32;

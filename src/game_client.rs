@@ -76,6 +76,7 @@ impl Plugin for GameClientPlugin {
         app.add_systems(First, on_world_init.run_if(condition::load_world));  // Camera, Player, Sun
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
         app.add_systems(Update, tick_world.run_if(condition::in_world));  // Sun, World Timing.
+        // BUG 时序问题 这个tick可能会先于worldinit运行 导致资源不存在 崩溃。可能是因为in_world在Update之前被设置了
         
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
@@ -120,8 +121,9 @@ pub mod condition {
     use crate::ui::CurrentUI;
     use super::WorldInfo;
 
-    pub fn in_world(res: Option<Res<WorldInfo>>) -> bool {
-        res.is_some()
+    // a.k.a. loaded_world
+    pub fn in_world(res: Option<Res<WorldInfo>>, res_vox: Option<Res<crate::voxel::ClientChunkSystem>>) -> bool {
+        res.is_some() && res_vox.is_some()
     }
     pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
         res.is_some_and(|r|r.is_added())
@@ -739,7 +741,7 @@ impl Default for ClientInfo {
             max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
 
-            vsync: false,
+            vsync: true,
 
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0,  // 280 for ExpSq, 1200 for Atmo
