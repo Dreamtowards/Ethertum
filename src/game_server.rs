@@ -27,6 +27,12 @@ impl Plugin for GameServerPlugin {
         app.add_systems(PreStartup, on_init);  // load settings.
         app.add_systems(Last, on_exit);  // save settings.
         
+
+        let rcon_port = 8001;
+        let http_server = tiny_http::Server::http(format!("0.0.0.0:{}", rcon_port)).unwrap();
+        info!("Start RCON endpoint on 0.0.0.0:{}", http_server.server_addr().to_ip().unwrap()); 
+        app.insert_resource(rcon::HttpServer { server: http_server });
+        app.add_systems(Update, rcon::on_http_recv);
     }
 }
 
@@ -35,7 +41,7 @@ fn on_init(
     mut serv: ResMut<ServerInfo>,
 ) {
     if let Err(err) = serv.load() {
-        panic!("{}", err)
+        panic!("{}", err);
     }
 }
 
@@ -47,6 +53,47 @@ fn on_exit(
 
     }
 }
+
+
+pub mod rcon {
+    use super::*;
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    pub struct Motd {
+        pub motd: String,
+        pub num_player_online: u32,
+        pub num_player_limit: u32,
+        pub protocol_version: u64,
+        pub favicon_url: String,
+        pub game_url: String,
+    }
+    
+    #[derive(Resource)]
+    pub struct HttpServer {
+        pub server: tiny_http::Server,
+    }
+    
+    pub fn on_http_recv(
+        http: Res<HttpServer>
+    ) {
+        if let Ok(Some(req)) = http.server.try_recv() {
+            info!("Req URL: {}", req.url());
+            let motd = Motd {
+                motd: "An Ethertum Server".into(),
+                num_player_limit: 80,
+                num_player_online: 0,
+                protocol_version: 0,
+                favicon_url: "".into(),
+                game_url: "".into(),
+            };
+            req.respond(tiny_http::Response::from_string(
+                serde_json::to_string(&motd).unwrap())
+            ).unwrap();
+        }
+    }
+    
+}
+
 
 
 

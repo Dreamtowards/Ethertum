@@ -148,3 +148,42 @@ fn main() {
 //         });
 //     });
 // }
+
+
+
+    // fn load_obj(cmds: &mut Commands, asset_server: &Res<AssetServer>, materials: &mut ResMut<Assets<StandardMaterial>>, name: &str, has_norm: bool, pos: Vec3) {
+
+    //     cmds.spawn((
+    //         PbrBundle {
+    //             mesh: asset_server.load(format!("models/{name}/mesh.obj")),
+    //             material: materials.add(StandardMaterial {
+    //                 base_color_texture: Some(asset_server.load(format!("models/{name}/diff.png"))),
+    //                 normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
+    //                 // double_sided: true,
+    //                 alpha_mode: AlphaMode::Mask(0.5),
+    //                 cull_mode: None,
+    //                 ..default()
+    //             }),
+    //             transform: Transform::from_translation(pos),
+    //             ..default()
+    //         },
+    //         // AsyncCollider(ComputedCollider::ConvexHull),
+    //         // RigidBody::Static,
+    //         DespawnOnWorldUnload,
+    //     ));
+    // }
+
+    // ui.horizontal(|ui| {
+
+    //     static mut PATH: String = String::new();
+    //     ui.text_edit_singleline(unsafe { crate::util::raw::as_mut(std::ptr::addr_of_mut!(PATH)) });
+
+    //     if ui.button("Load").clicked() {
+    //         load_obj(&mut cmds, &asset_server, &mut materials, unsafe{PATH.as_str()}, false, query_campos.single().translation);
+    //     }
+        
+    // });
+
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bucket", true, vec3(0., 0., -5.*1.));
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bench", false, vec3(0., 0., -5.*2.));
+    // load_obj(&mut cmds, &asset_server, &mut materials, "bookcase", false, vec3(0., 0., -5.*3.));

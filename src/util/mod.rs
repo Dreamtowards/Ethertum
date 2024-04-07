@@ -52,6 +52,7 @@ pub mod iter {
 
 
 use bevy::prelude::*;
+use serde::de::DeserializeOwned;
 
 pub fn hash(i: i32) -> f32 {
     let i = (i << 13) ^ i;
@@ -136,19 +137,24 @@ pub fn generate_simple_user_name() -> String {
     format!("{}{}{}", ADJS[rng.gen_range(0..ADJS.len())], NOUNS[rng.gen_range(0..NOUNS.len())], rng.gen_range(5..9999))
 }
 
-pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game_client::ServerListItem>> {
-    #[cfg(target_arch = "wasm32")]
-    {
-        Err(anyhow::anyhow!("Not supported at this time"))
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let client = reqwest::blocking::Client::builder()
-            //.timeout(instant::Duration::from_secs_f64(5.0))
-            .build()?;
-        //let res = client.get(url).send()?.json::<std::collections::HashMap<String, String>>()?;
-        //Ok(res.get("entry").ok_or(crate::err_opt_is_none!())?.clone())
-        Ok(serde_json::from_value(client.get(url).send()?.json()?)?)
-    }
+pub fn http_get_json<T: DeserializeOwned>(url: &str) -> anyhow::Result<T> {
+    let client = reqwest::blocking::Client::builder().build()?;
+    Ok(serde_json::from_value(client.get(url).send()?.json()?)?)
 }
+
+pub async fn http_get_json_async<T: DeserializeOwned>(url: &str) -> anyhow::Result<T> {
+    // let client = reqwest::Client::builder().build()?;
+    // Ok(serde_json::from_value(client.get(url).send().await?.json().await?)?)
+    Ok(serde_json::from_value(reqwest::get(url).await?.json().await?)?)
+}
+
+// pub fn get_server_list(url: &str) -> anyhow::Result<Vec<crate::game_client::ServerListItem>> {
+//     #[cfg(target_arch = "wasm32")]
+//     {
+//         Err(anyhow::anyhow!("Not supported at this time"))
+//     }
+//     #[cfg(not(target_arch = "wasm32"))]
+//     {
+//         http_get_json(url)
+//     }
+// }

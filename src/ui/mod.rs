@@ -126,7 +126,7 @@ pub fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {
     Color32::from_rgba_premultiplied(g, g, g, a)
 }
 
-fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContexts) {
+fn setup_egui_style(mut ctx: EguiContexts) {
     ctx.ctx_mut().style_mut(|style| {
         let mut visuals = &mut style.visuals;
         let round = Rounding::from(2.);
@@ -175,7 +175,6 @@ fn setup_egui_style(mut egui_settings: ResMut<EguiSettings>, mut ctx: EguiContex
 
     ctx.ctx_mut().set_fonts(fonts);
 
-    // egui_settings.scale_factor = 1.;
 }
 
 

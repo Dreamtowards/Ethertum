@@ -1,9 +1,10 @@
 use std::{borrow::Borrow, fs, sync::{Arc, Mutex}};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, tasks::{AsyncComputeTaskPool, Task}, utils::{HashMap, HashSet}};
 use bevy_egui::{egui::{self, Align2, Color32, Layout, Ui, Widget}, EguiContexts};
 use bevy_renet::renet::RenetClient;
-use crate::game_client::{ClientInfo, EthertiaClient, ServerListItem};
+use futures_lite::FutureExt;
+use crate::{game_client::{ClientInfo, EthertiaClient, ServerListItem}, game_server::{self, rcon::Motd}, util};
 
 use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 
@@ -74,102 +75,164 @@ pub fn ui_disconnected_reason(
 pub fn ui_serverlist(
     mut ctx: EguiContexts, 
     mut cli: EthertiaClient,
-    mut edit_i: Local<Option<usize>>,
+    mut editing_idx: Local<Option<usize>>,
+    mut refreshing_indices: Local<HashMap<usize, (Task<anyhow::Result<Motd>>, u64)>>,
 ) { 
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
-        let mut serverlist = &mut cli.data().cfg.serverlist;
+        let serverlist = &mut cli.data().cfg.serverlist;
 
-        let (mut do_new_server, mut do_refresh) = (false, false);
+        // all access defer to one closure.
+        let do_new_server = std::cell::Cell::new(false);
+        let do_refresh_all = std::cell::Cell::new(false);
+        let mut do_stop_refreshing = false;
+        let mut do_acquire_list = false;
 
-        let mut join_addr = None;
-        let mut del_i = None;
+        let mut do_join_addr = None;
+        let mut do_del_idx = None;
         
 
-        ui_lr_panel(ui, false, |ui| {
+        let show_stop_refresh = !refreshing_indices.is_empty();
+        ui_lr_panel(ui, true, |ui| {
             if sfx_play(ui.selectable_label(false, "Add Server")).clicked() {
-                do_new_server = true;
+                do_new_server.set(true);
+            }
+            if sfx_play(ui.selectable_label(false, "Refresh All")).clicked() {
+                do_refresh_all.set(true);
+            }
+            if show_stop_refresh {
+                if sfx_play(ui.selectable_label(false, "Stop Refresh")).clicked() {
+                    do_stop_refreshing = true;
+                }
+            }
+            ui.separator();
+            if sfx_play(ui.selectable_label(false, "Aquire List")).clicked() {
+                do_acquire_list = true;
             }
             if sfx_play(ui.selectable_label(false, "Direct Connect")).clicked() {
                 
             }
-            if sfx_play(ui.selectable_label(false, "Refresh")).clicked() {
-                do_refresh = true;
-            }
         }, |ui| {
+
             for (idx, server_item) in serverlist.iter_mut().enumerate() {
-                let editing = edit_i.is_some_and(|i| i == idx);
+                let is_editing = editing_idx.is_some_and(|i| i == idx);
+                let is_accessable = server_item.ping != 0;
+                let mut is_refreshing = refreshing_indices.contains_key(&idx);
                 
                 ui.group(|ui| {
+                    // First Line
                     ui.horizontal(|ui| {
-                        // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.name).hint_text("name"));
-                        // ui_input_server_line(ui, egui::TextEdit::singleline(&mut server_info.address).hint_text("address"));
-                        if editing {
+                        if is_editing {
                             ui.text_edit_singleline(&mut server_item.name);
                         } else {
+                            // Name
                             ui.colored_label(Color32::WHITE, server_item.name.clone()).on_hover_text(server_item.addr.clone());
-                            
-                            ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
-                                ui.label("21ms · 12/64");
-                            });
+                            ui.small(&server_item.addr);
+
+                            // Status
+                            if is_accessable {
+                                ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
+                                    ui.label(format!("{}ms · {}/{}", server_item.ping, server_item.num_players_online, server_item.num_players_limit));
+                                });
+                            }
                         }
                     });
+                    // Second Line
                     ui.horizontal(|ui| {
-                        if editing {
+                        if is_editing {
                             ui.text_edit_singleline(&mut server_item.addr);
+                        } else if is_refreshing {
+                            ui.spinner();
+                        } else if is_accessable {
+                            ui.label(&server_item.motd);
+                            
                         } else {
-                            ui.label(&server_item.addr);
+                            ui.colored_label(Color32::DARK_RED, "Inaccessible 🚫");
                         }
 
+                        // Operations
                         ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
-                            if editing {
+                            if is_editing {
                                 if sfx_play(ui.button("✅")).clicked() {
-                                    *edit_i = None;
+                                    *editing_idx = None;
                                 }
                             } else {
                                 if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {
-                                    del_i = Some(idx);
+                                    do_del_idx = Some(idx);
                                 }
                                 if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {
-                                    *edit_i = Some(idx);
+                                    *editing_idx = Some(idx);
                                 }
-                                if sfx_play(ui.button("⟲")).on_hover_text("Refresh Status").clicked() {
-                                    
+                                if is_refreshing {
+                                    if sfx_play(ui.button("❌")).on_hover_text("Stop Refreshing").clicked() {
+                                        refreshing_indices.remove(&idx);
+                                        is_refreshing = false;     
+                                    }
+                                } else {
+                                    if sfx_play(ui.button("⟲")).on_hover_text("Refresh Server Status").clicked() {
+                                        is_refreshing = true;
+                                    }
                                 }
                                 if sfx_play(ui.button("▶")).on_hover_text("Join & Play").clicked() {
-                                    join_addr = Some(server_item.addr.clone());
+                                    do_join_addr = Some(server_item.addr.clone());
                                 }
                             }
                         });
                     });
                 });
+
+                if is_refreshing || do_refresh_all.get() {
+                    let addr = server_item.addr.clone();  // opt
+                    let (task, _) = refreshing_indices.entry(idx).or_insert_with(|| {
+                        (AsyncComputeTaskPool::get().spawn(async move {
+                            util::http_get_json::<game_server::rcon::Motd>(&format!("http://{}", addr))
+                        }), util::current_timestamp_millis())
+                    });
+
+                    if task.is_finished() {
+                        let (task, time) = refreshing_indices.remove(&idx).unwrap();
+                        
+                        match futures_lite::future::block_on(futures_lite::future::poll_once(task)).unwrap() {
+                            Ok(r) => {
+                                server_item.motd = r.motd;
+                                server_item.num_players_limit = r.num_player_limit;
+                                server_item.num_players_online = r.num_player_online;
+                                server_item.ping = (util::current_timestamp_millis() - time) as u32;
+                            }
+                            Err(err) => {
+                                info!("Failed to access server status: {}", err);
+                            }
+                        }
+                    }
+                }
             }
-            
+
+            if do_new_server.get() {
+                serverlist.push(ServerListItem { name: "Server Name".into(), addr: "0.0.0.0:4000".into(), ..default() });
+                ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+            }
         });
 
-        if do_new_server {
-            serverlist.push(ServerListItem { name: "Server Name".into(), addr: "0.0.0.0:4000".into() });
-            ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+
+        if do_stop_refreshing {
+            refreshing_indices.clear();
         }
-        if do_refresh {
-            match crate::util::get_server_list("https://ethertia.com/server-info.json") {
+
+        if do_acquire_list {
+            match crate::util::http_get_json("https://ethertia.com/server-info.json") {
                 Ok(ret) => *serverlist = ret,
                 Err(err) => info!("{}", err),
             }
         }
 
-        if let Some(del_i) = del_i {
-            serverlist.remove(del_i);
+        if let Some(idx) = do_del_idx {
+            serverlist.remove(idx);
         }
 
-        if let Some(join_addr) = join_addr {
+        if let Some(addr) = do_join_addr {
             // 连接服务器 这两个操作会不会有点松散
             cli.data().curr_ui = CurrentUI::ConnectingServer;
-            cli.connect_server(join_addr);
+            cli.connect_server(addr);
         }
-        // if next_ui_1 != CurrentUI::None {
-        //     next_ui.set(next_ui_1);
-        // }
-        // cli.data().cfg.serverlist = serverlist;  // cannot borrow &mut more than once. so copy and assign
     });
 }
 
@@ -205,6 +268,7 @@ Inhabited: 10.3 hours");
                         ui.label("Survival · Cheats");
                         ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
                             if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {
+
                             }
                             if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {
                             }

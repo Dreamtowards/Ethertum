@@ -2486,6 +2486,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "chunked_transfer"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e4de3bc4ea267985becf712dc6d9eed8b04c953b3fcfb339ebc87acd9804901"
+
+[[package]]
 name = "cipher"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3231,6 +3237,7 @@ dependencies = [
  "egui-notify",
  "egui_extras",
  "env_logger",
+ "futures-lite 2.3.0",
  "human_bytes",
  "image",
  "instant",
@@ -3246,6 +3253,7 @@ dependencies = [
  "serde_json",
  "sysinfo 0.29.11",
  "thread_local",
+ "tiny_http",
 ]
 
 [[package]]
@@ -6296,6 +6304,18 @@ dependencies = [
  "flate2",
  "jpeg-decoder",
  "weezl",
+]
+
+[[package]]
+name = "tiny_http"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "389915df6413a2e74fb181895f933386023c71110878cd0825588928e64cdc82"
+dependencies = [
+ "ascii",
+ "chunked_transfer",
+ "httpdate",
+ "log",
 ]
 
 [[package]]

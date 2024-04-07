@@ -622,10 +622,19 @@ impl Default for WorldInfo {
 // ClientSettings Configs
 
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
 pub struct ServerListItem {
     pub name: String,
     pub addr: String,
+    
+    #[serde(skip)]
+    pub motd: String,
+    #[serde(skip)]
+    pub num_players_online: u32,
+    #[serde(skip)]
+    pub num_players_limit: u32,
+    #[serde(skip)]
+    pub ping: u32,
 }
 
 const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
@@ -713,6 +722,8 @@ pub struct ClientInfo {
     // UI
     #[reflect(ignore)]
     pub curr_ui: CurrentUI,
+
+    pub ui_scale: f32,
 }
 
 impl Default for ClientInfo {
@@ -758,6 +769,7 @@ impl Default for ClientInfo {
             health_max: 20,
 
             curr_ui: CurrentUI::MainMenu,
+            ui_scale: 1.0,
         }
     }
 }
