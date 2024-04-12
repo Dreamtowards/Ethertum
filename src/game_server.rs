@@ -113,7 +113,7 @@ impl ServerInfo {
     }
 
     fn load(&mut self) -> anyhow::Result<()> {
-        Ok(match std::fs::read_to_string(SERVER_SETTINGS_FILE) {
+        match std::fs::read_to_string(SERVER_SETTINGS_FILE) {
             Ok(s) => {
                 info!("Loading server settings from {SERVER_SETTINGS_FILE}");
 
@@ -125,7 +125,8 @@ impl ServerInfo {
                 let s = serde_json::to_string_pretty(&self.cfg)?;
                 std::fs::write(SERVER_SETTINGS_FILE, s)?;
             }
-        })
+        };
+        Ok(())
     }
 }
 

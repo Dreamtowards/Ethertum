@@ -28,7 +28,7 @@ impl Registry {
     }
 
     pub fn build_num_id(&mut self) {
-        self.vec.sort_unstable_by(|a, b| (a).cmp(&b));
+        self.vec.sort_unstable();
     }
 
     pub fn len(&self) -> usize {

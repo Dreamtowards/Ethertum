@@ -243,7 +243,7 @@ impl MeshGen {
     }
 
     pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        iter::iter_xzy(Chunk::SIZE as i32, |lp| {
+        iter::iter_xzy(Chunk::SIZE, |lp| {
             let c = chunk.get_cell(lp);
 
             if c.tex_id != 0 {

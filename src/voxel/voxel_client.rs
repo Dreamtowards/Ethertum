@@ -284,7 +284,7 @@ fn raycast(
 
             // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
 
-            let pack = map.entry(chunkpos).or_insert_with(|| Vec::new());
+            let pack = map.entry(chunkpos).or_insert_with(Vec::new);
 
             let chunk = chunk_sys.get_chunk(chunkpos).unwrap().read().unwrap();
 

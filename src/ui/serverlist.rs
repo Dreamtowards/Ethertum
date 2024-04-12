@@ -174,10 +174,8 @@ pub fn ui_serverlist(
                                             refreshing_indices.remove(&idx);
                                             is_refreshing = false;
                                         }
-                                    } else {
-                                        if sfx_play(ui.button("⟲")).on_hover_text("Refresh Server Status").clicked() {
-                                            is_refreshing = true;
-                                        }
+                                    } else if sfx_play(ui.button("⟲")).on_hover_text("Refresh Server Status").clicked() {
+                                        is_refreshing = true;
                                     }
                                     if sfx_play(ui.button("▶")).on_hover_text("Join & Play").clicked() {
                                         do_join_addr = Some(server_item.addr.clone());
