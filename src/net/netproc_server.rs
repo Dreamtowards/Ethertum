@@ -1,14 +1,20 @@
-
-
 use std::{str::FromStr, time::Duration};
 
-use bevy::{prelude::*, utils::{HashMap, HashSet}};
-use bevy_renet::{client_just_connected, renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent}};
+use bevy::{
+    prelude::*,
+    utils::{HashMap, HashSet},
+};
+use bevy_renet::{
+    client_just_connected,
+    renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent},
+};
 
-use crate::{game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::current_timestamp_millis, voxel::{ChunkSystem, ServerChunkSystem}};
-
-
-
+use crate::{
+    game_server::{PlayerInfo, ServerInfo},
+    net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
+    util::current_timestamp_millis,
+    voxel::{ChunkSystem, ServerChunkSystem},
+};
 
 pub fn server_sys(
     mut server_events: EventReader<ServerEvent>,
@@ -22,7 +28,8 @@ pub fn server_sys(
     for event in server_events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
-                let result_string: String = transport.user_data(*client_id)
+                let result_string: String = transport
+                    .user_data(*client_id)
                     .unwrap_or([0; bevy_renet::renet::transport::NETCODE_USER_DATA_BYTES])
                     .iter()
                     .map(|&byte| byte as char)
@@ -34,9 +41,8 @@ pub fn server_sys(
                 info!("Cli Disconnected {} {}", client_id, reason);
 
                 if let Some(player) = serverinfo.online_players.remove(client_id) {
-                    
                     server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
-                    
+
                     server.broadcast_packet(&SPacket::EntityDel { entity_id: player.entity_id });
                 }
             }
@@ -68,7 +74,11 @@ pub fn server_sys(
                         },
                     );
                 }
-                CPacket::Login { uuid, access_token, username } => {
+                CPacket::Login {
+                    uuid,
+                    access_token,
+                    username,
+                } => {
                     info!("Login Requested: {} {} {}", uuid, access_token, username);
 
                     if serverinfo.online_players.values().any(|v| &v.username == &username) {
@@ -83,27 +93,47 @@ pub fn server_sys(
                     // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess { player_entity: entity_id });
 
-                    server.broadcast_packet_chat(format!("Player {} joined. ({}/N)", &username, serverinfo.online_players.len()+1));
-                    
+                    server.broadcast_packet_chat(format!("Player {} joined. ({}/N)", &username, serverinfo.online_players.len() + 1));
 
-                    server.broadcast_packet_except(client_id, &SPacket::EntityNew { entity_id, name: username.clone() });
+                    server.broadcast_packet_except(
+                        client_id,
+                        &SPacket::EntityNew {
+                            entity_id,
+                            name: username.clone(),
+                        },
+                    );
 
                     // Send Server Players to the client. Note: Before insert of online_players
                     for player in serverinfo.online_players.values() {
-                        server.send_packet(client_id, &SPacket::EntityNew { entity_id: player.entity_id, name: player.username.clone() });
-                        server.send_packet(client_id, &SPacket::EntityPos { entity_id: player.entity_id, position: player.position });
+                        server.send_packet(
+                            client_id,
+                            &SPacket::EntityNew {
+                                entity_id: player.entity_id,
+                                name: player.username.clone(),
+                            },
+                        );
+                        server.send_packet(
+                            client_id,
+                            &SPacket::EntityPos {
+                                entity_id: player.entity_id,
+                                position: player.position,
+                            },
+                        );
                     }
 
-                    serverinfo.online_players.insert(client_id, PlayerInfo { 
-                        username, 
-                        user_id: uuid,
+                    serverinfo.online_players.insert(
                         client_id,
-                        entity_id,
-                        position: Vec3::ZERO,
-                        chunks_loaded: HashSet::default(),
-                        chunks_load_distance: IVec2::new(4, 2),
-                        ping_rtt: 0,
-                    });
+                        PlayerInfo {
+                            username,
+                            user_id: uuid,
+                            client_id,
+                            entity_id,
+                            position: Vec3::ZERO,
+                            chunks_loaded: HashSet::default(),
+                            chunks_load_distance: IVec2::new(4, 2),
+                            ping_rtt: 0,
+                        },
+                    );
                 }
                 // Play Stage:
                 _ => {
@@ -113,9 +143,9 @@ pub fn server_sys(
                     if player.is_none() {
                         server.send_packet_disconnect(client_id, "illegal play-stage packet. you have not login yet".into());
                         continue;
-                    } 
+                    }
                     let player = player.unwrap();
-                    
+
                     match packet {
                         CPacket::ChatMessage { message } => {
                             server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
@@ -125,8 +155,13 @@ pub fn server_sys(
 
                             player.position = position;
 
-                            server.broadcast_packet_except(client_id, 
-                                &SPacket::EntityPos { entity_id: player.entity_id, position });
+                            server.broadcast_packet_except(
+                                client_id,
+                                &SPacket::EntityPos {
+                                    entity_id: player.entity_id,
+                                    position,
+                                },
+                            );
                         }
                         CPacket::Ping { client_time, last_rtt } => {
                             player.ping_rtt = last_rtt;
@@ -140,13 +175,10 @@ pub fn server_sys(
                             );
                         }
                         CPacket::PlayerList => {
-
-                            let playerlist = serverinfo.online_players.iter()
-                                .map(|e| (e.1.username.clone(), e.1.ping_rtt)).collect();
+                            let playerlist = serverinfo.online_players.iter().map(|e| (e.1.username.clone(), e.1.ping_rtt)).collect();
                             server.send_packet(client_id, &SPacket::PlayerList { playerlist });
                         }
                         CPacket::ChunkModify { chunkpos, voxel } => {
-
                             // todo: NonLock
                             let mut chunk = chunk_sys.get_chunk(chunkpos).unwrap().write().unwrap();
 
@@ -159,9 +191,7 @@ pub fn server_sys(
                         }
                     }
                 }
-
             }
-
         }
     }
 }

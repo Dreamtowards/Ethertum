@@ -1,13 +1,16 @@
-use bevy::{prelude::*, app::AppExit, ecs::{event::EventWriter, system::Commands}};
+use bevy::{
+    app::AppExit,
+    ecs::{event::EventWriter, system::Commands},
+    prelude::*,
+};
 use bevy_egui::{
-    egui::{self, pos2, Align2, Color32, Frame, Layout, OpenUrl, RichText, Rounding },
-    EguiContexts, 
+    egui::{self, pos2, Align2, Color32, Frame, Layout, OpenUrl, RichText, Rounding},
+    EguiContexts,
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
-use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 use super::{sfx_play, CurrentUI, UiExtra};
-
+use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
@@ -16,7 +19,6 @@ pub fn ui_main_menu(
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
     mut cmds: Commands,
-
     // mut dbg_server_addr: Local<String>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {
@@ -45,7 +47,7 @@ pub fn ui_main_menu(
             // // if ui.add_sized(siz, egui::Button::new("Debug Local")).clicked() {
             // //     // 临时的单人版方法 直接进入世界而不管网络
             // //     next_ui.set(CurrentUI::None);
-            // //     commands.insert_resource(WorldInfo::default());  
+            // //     commands.insert_resource(WorldInfo::default());
             // // }
             // ui.label("·");
 
@@ -74,7 +76,7 @@ pub fn ui_main_menu(
             ui.horizontal(|ui| {
                 if sfx_play(ui.selectable_label(false, "")).on_hover_text("Github Repository").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
-                }  
+                }
                 if sfx_play(ui.selectable_label(false, "")).on_hover_text("Steam").clicked() {
                     ui.ctx().open_url(OpenUrl::new_tab("https://github.com/Dreamtowards/Ethertum"));
                 }
@@ -85,35 +87,30 @@ pub fn ui_main_menu(
                     ui.ctx().open_url(OpenUrl::new_tab("https://docs.ethertia.com"));
                 }
                 ui.label("|");
-                sfx_play(ui.selectable_label(false, ""));  // Windows
+                sfx_play(ui.selectable_label(false, "")); // Windows
                 sfx_play(ui.selectable_label(false, "🐧"));
                 sfx_play(ui.selectable_label(false, ""));
-                sfx_play(ui.selectable_label(false, ""));  // Android
+                sfx_play(ui.selectable_label(false, "")); // Android
                 ui.label("·");
                 // ui.selectable_label(false, "");  // Texture
                 sfx_play(ui.selectable_label(false, "⛶"));
                 sfx_play(ui.selectable_label(false, "⛭"));
-                sfx_play(ui.selectable_label(false, "🖴"));  // Disk
-                // ui.selectable_label(false, "☢");
+                sfx_play(ui.selectable_label(false, "🖴")); // Disk
+                                                           // ui.selectable_label(false, "☢");
                 sfx_play(ui.selectable_label(false, "⎆"));
             });
-            ui.label(format!("v{}\n0 mods loaded.", std::env!("CARGO_PKG_VERSION")));
+            ui.label(format!("v{}\n0 mods loaded.", crate::VERSION));
         });
     });
 }
-
-
-
-
-
 
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut commands: Commands,
 
     mut net_client: ResMut<RenetClient>,
-    mut cli: ResMut<ClientInfo>,  // only curr_ui
-    // mut worldinfo: ResMut<WorldInfo>,
+    mut cli: ResMut<ClientInfo>, // only curr_ui
+                                 // mut worldinfo: ResMut<WorldInfo>,
 ) {
     // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
     egui::CentralPanel::default()

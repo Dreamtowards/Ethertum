@@ -1,25 +1,35 @@
-
-
-use bevy::{asset::ReflectAsset, prelude::*, render::{render_asset::RenderAssetUsages, render_resource::{AsBindGroup, PrimitiveTopology}}, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
-use bevy_renet::renet::RenetClient;
-use bevy_xpbd_3d::plugins::{collision::Collider, spatial_query::{SpatialQuery, SpatialQueryFilter}};
-
-use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera}, game_client::{condition, ClientInfo, DespawnOnWorldUnload}, net::{CPacket, CellData, RenetClientHelper, SPacket}, ui::CurrentUI, util::iter
+use bevy::{
+    asset::ReflectAsset,
+    prelude::*,
+    render::{
+        render_asset::RenderAssetUsages,
+        render_resource::{AsBindGroup, PrimitiveTopology},
+    },
+    tasks::AsyncComputeTaskPool,
+    utils::{HashMap, HashSet},
 };
-use super::{material::mtl, meshgen::MeshGen, Chunk, ChunkPtr, ChunkSystem, ChannelRx, ChannelTx};
+use bevy_renet::renet::RenetClient;
+use bevy_xpbd_3d::plugins::{
+    collision::Collider,
+    spatial_query::{SpatialQuery, SpatialQueryFilter},
+};
 
-
-
+use super::{material::mtl, meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
+use crate::{
+    character_controller::{CharacterController, CharacterControllerCamera},
+    game_client::{condition, ClientInfo, DespawnOnWorldUnload},
+    net::{CPacket, CellData, RenetClientHelper, SPacket},
+    ui::CurrentUI,
+    util::iter,
+};
 
 pub struct ClientVoxelPlugin;
 
 impl Plugin for ClientVoxelPlugin {
     fn build(&self, app: &mut App) {
-
         // Render Shader.
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
-        app.register_asset_reflect::<TerrainMaterial>();  // debug
+        app.register_asset_reflect::<TerrainMaterial>(); // debug
 
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
@@ -30,28 +40,12 @@ impl Plugin for ClientVoxelPlugin {
         app.add_systems(First, on_world_init.run_if(condition::load_world));
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
-
         app.insert_resource(HitResult::default());
-        app.add_systems(Update,
-            (
-                raycast,
-                chunks_remesh_enqueue,
-                draw_gizmos,
-            )
-            .chain()
-            .run_if(condition::in_world),
-        );
+        app.add_systems(Update, (raycast, chunks_remesh_enqueue, draw_gizmos).chain().run_if(condition::in_world));
     }
 }
 
-
-
-
-fn on_world_init(
-    mut cmds: Commands,
-    asset_server: Res<AssetServer>,
-    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
-) {
+fn on_world_init(mut cmds: Commands, asset_server: Res<AssetServer>, mut terrain_materials: ResMut<Assets<TerrainMaterial>>) {
     info!("Init ChunkSystem");
 
     let mut chunk_sys = ClientChunkSystem::new();
@@ -73,27 +67,21 @@ fn on_world_init(
             DespawnOnWorldUnload,
         ))
         .id();
-    
+
     cmds.insert_resource(chunk_sys);
 }
 
-fn on_world_exit(
-    mut cmds: Commands,
-) {
-
+fn on_world_exit(mut cmds: Commands) {
     info!("Clear ClientChunkSystem");
     cmds.remove_resource::<ClientChunkSystem>();
 }
 
-
-
-
 type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>);
 
-use once_cell::sync::Lazy;
-use thread_local::ThreadLocal;
-use std::{cell::RefCell, sync::Arc};
 use crate::voxel::meshgen::VertexBuffer;
+use once_cell::sync::Lazy;
+use std::{cell::RefCell, sync::Arc};
+use thread_local::ThreadLocal;
 
 static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
 
@@ -104,7 +92,6 @@ fn chunks_remesh_enqueue(
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
-
     mut cli: ResMut<ClientInfo>,
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
@@ -130,9 +117,11 @@ fn chunks_remesh_enqueue(
             let tx = tx_chunks_meshing.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
-                let mut _vbuf = THREAD_LOCAL_VERTEX_BUFFERS.get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default()))).borrow_mut();
+                let mut _vbuf = THREAD_LOCAL_VERTEX_BUFFERS
+                    .get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default())))
+                    .borrow_mut();
                 // 0: vbuf_terrain, 1: vbuf_foliage
-                
+
                 // let dbg_time = Instant::now();
                 let entity;
                 let mesh_handle;
@@ -168,36 +157,40 @@ fn chunks_remesh_enqueue(
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD);
+                let mut mesh = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+                );
                 _vbuf.0.to_mesh(&mut mesh);
                 _vbuf.0.clear();
-
 
                 // Foliage
                 _vbuf.1.compute_indexed_naive();
 
-                let mut mesh_foliage = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD);
+                let mut mesh_foliage = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+                );
                 _vbuf.1.to_mesh(&mut mesh_foliage);
                 _vbuf.1.clear();
-
 
                 // Build Collider of TriMesh
                 let collider = Collider::trimesh_from_mesh(&mesh);
 
-                tx.send((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)).unwrap();
+                tx.send((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage))
+                    .unwrap();
             });
             task.detach();
 
             // info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
-        } 
+        }
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
     while let Ok((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
-
         // Update Mesh Asset
         *meshes.get_mut(mesh_handle).unwrap() = mesh;
-        
+
         *meshes.get_mut(mesh_handle_foliage).unwrap() = mesh_foliage;
 
         // Update Phys Collider TriMesh
@@ -218,10 +211,6 @@ fn chunks_remesh_enqueue(
 
 // }
 
-
-
-
-
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct HitResult {
@@ -235,8 +224,8 @@ pub struct HitResult {
 
 fn raycast(
     spatial_query: SpatialQuery,
-    query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>,  // ray
-    query_player: Query<Entity, With<CharacterController>>,  // exclude collider
+    query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>, // ray
+    query_player: Query<Entity, With<CharacterController>>,              // exclude collider
 
     mut hit_result: ResMut<HitResult>,
     mouse_btn: Res<ButtonInput<MouseButton>>,
@@ -250,8 +239,12 @@ fn raycast(
 
     let player_entity = query_player.get_single().unwrap_or(Entity::PLACEHOLDER);
 
-    if let Some(hit) = spatial_query.cast_ray(ray_pos, Direction3d::new_unchecked(ray_dir), 100.,
-        true, SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
+    if let Some(hit) = spatial_query.cast_ray(
+        ray_pos,
+        Direction3d::new_unchecked(ray_dir),
+        100.,
+        true,
+        SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
     ) {
         hit_result.is_hit = true;
         hit_result.normal = hit.normal;
@@ -267,7 +260,8 @@ fn raycast(
 
     // ############ Break & Place ############
 
-    if cli.curr_ui != CurrentUI::None {  // todo: cli.is_manipulating()
+    if cli.curr_ui != CurrentUI::None {
+        // todo: cli.is_manipulating()
         return;
     }
 
@@ -281,13 +275,16 @@ fn raycast(
         let mut map = HashMap::new();
         iter::iter_aabb(n, n, |lp| {
             // +0.01*norm: for placing cube like MC.
-            
-            let p = (hit_result.position + if do_place {1.} else {-1.} * 0.01 * hit_result.normal).floor().as_ivec3() + lp;
+
+            let p = (hit_result.position + if do_place { 1. } else { -1. } * 0.01 * hit_result.normal)
+                .floor()
+                .as_ivec3()
+                + lp;
             let chunkpos = Chunk::as_chunkpos(p);
 
             // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
 
-            let pack = map.entry(chunkpos).or_insert_with(|| Vec::new() );
+            let pack = map.entry(chunkpos).or_insert_with(|| Vec::new());
 
             let chunk = chunk_sys.get_chunk(chunkpos).unwrap().read().unwrap();
 
@@ -297,21 +294,21 @@ fn raycast(
 
             c.set_isovalue(c.isovalue() + if do_break { -f } else { f });
 
-            if f > 0.0 || (n == 0 && f == 0.0) {  // placing single 
-                if do_place {// && c.tex_id == 0 {
+            if f > 0.0 || (n == 0 && f == 0.0) {
+                // placing single
+                if do_place {
+                    // && c.tex_id == 0 {
                     c.tex_id = cli.brush_tex;
                     c.shape_id = cli.brush_shape;
 
                     // placing Block
-                    if cli.brush_shape != 0 {  
+                    if cli.brush_shape != 0 {
                         c.set_isovalue(0.0);
                     }
                 } else if c.is_isoval_empty() {
                     c.tex_id = 0;
                 }
-                
             }
-            
 
             pack.push(CellData::from_cell(Chunk::local_idx(Chunk::as_localpos(p)) as u16, &c));
         });
@@ -323,27 +320,7 @@ fn raycast(
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-fn draw_gizmos(
-    mut gizmos: Gizmos, 
-    chunk_sys: Res<ClientChunkSystem>, 
-    cli: Res<ClientInfo>,
-    query_cam: Query<&Transform, With<CharacterController>>,
-) {
+fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<ClientInfo>, query_cam: Query<&Transform, With<CharacterController>>) {
     // // chunks loading
     // for cp in chunk_sys.chunks_loading.keys() {
     //     gizmos.cuboid(
@@ -380,7 +357,7 @@ fn draw_gizmos(
                 Color::ORANGE,
             );
         }
-        
+
         // chunks meshing
         for cp in cli.chunks_meshing.iter() {
             gizmos.cuboid(
@@ -389,28 +366,18 @@ fn draw_gizmos(
             );
         }
     }
-
 }
-
-
-
-
-
-
 
 ///////////////////////////////////////////////////
 //////////////// ClientChunkSystem ////////////////
 ///////////////////////////////////////////////////
 
-
 #[derive(Resource)]
 pub struct ClientChunkSystem {
-    
     pub chunks: HashMap<IVec3, ChunkPtr>,
 
     // mark to ReMesh
     pub chunks_remesh: HashSet<IVec3>,
-
 
     pub shader_terrain: Handle<TerrainMaterial>,
     pub entity: Entity,
@@ -423,7 +390,6 @@ impl ChunkSystem for ClientChunkSystem {
 }
 
 impl ClientChunkSystem {
-
     pub fn new() -> Self {
         Self {
             chunks: HashMap::default(),
@@ -433,7 +399,6 @@ impl ClientChunkSystem {
             entity: Entity::PLACEHOLDER,
         }
     }
-    
 
     pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
         self.chunks_remesh.insert(chunkpos);
@@ -456,7 +421,6 @@ impl ClientChunkSystem {
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        
                         let mut neib_chunk = neib_chunkptr.write().unwrap();
 
                         // update neighbor's `neighbor_chunk`
@@ -465,7 +429,6 @@ impl ClientChunkSystem {
                         if neib_chunk.is_neighbors_complete() {
                             neighbors_nearby_completed.push(neib_chunk.chunkpos);
                         }
-                        
 
                         Some(Arc::downgrade(neib_chunkptr))
                     } else {
@@ -475,7 +438,7 @@ impl ClientChunkSystem {
             }
 
             // if chunk.is_neighbors_complete() {
-                self.mark_chunk_remesh(chunkpos);
+            self.mark_chunk_remesh(chunkpos);
             // }
             for cp in neighbors_nearby_completed {
                 self.mark_chunk_remesh(cp);
@@ -492,7 +455,6 @@ impl ClientChunkSystem {
         // self.set_chunk_meshing(chunkpos, ChunkMeshingState::Pending);
     }
 
-    
     pub fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
         let chunk = self.chunks.remove(&chunkpos)?;
 
@@ -501,13 +463,6 @@ impl ClientChunkSystem {
         Some(chunk)
     }
 }
-
-
-
-
-
-
-
 
 ////////////////////////////////////////
 //////////////// Render ////////////////
@@ -528,7 +483,6 @@ pub struct TerrainMaterial {
     // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
     #[uniform(4)]
     pub wasm0: Vec4,
-
     // pub sample_scale: f32,
     // #[uniform(5)]
     // pub normal_intensity: f32,
@@ -566,6 +520,3 @@ impl Material for TerrainMaterial {
         AlphaMode::Opaque
     }
 }
-
-
-

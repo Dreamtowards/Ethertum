@@ -219,26 +219,9 @@ impl VertexBuffer {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub struct MeshGen {}
 
 impl MeshGen {
-
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
         Self::sn_contouring(vbuf, chunk);
 
@@ -250,23 +233,17 @@ impl MeshGen {
                     let c = chunk.get_cell(lp);
 
                     if c.tex_id != 0 {
-
                         if c.shape_id == 1 {
-                            
                             put_cube(vbuf, lp, chunk, c.tex_id);
-
-                        } 
+                        }
                     }
                 }
             }
         }
     }
 
-    
     pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        
         iter::iter_xzy(Chunk::SIZE as i32, |lp| {
-
             let c = chunk.get_cell(lp);
 
             if c.tex_id != 0 {
@@ -278,28 +255,6 @@ impl MeshGen {
             }
         });
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     const AXES: [IVec3; 3] = [ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(0, 0, 1)];
     const ADJACENT: [[IVec3; 6]; 3] = [
@@ -421,7 +376,8 @@ impl MeshGen {
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
         )
         // Normalize may fail since Isovalue may non-differenced e.g. all water isoval == 0.1
-        .try_normalize().unwrap_or(Vec3::NEG_Y)  // NEG_Y will be Y after grad-to-normal flip.
+        .try_normalize()
+        .unwrap_or(Vec3::NEG_Y) // NEG_Y will be Y after grad-to-normal flip.
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
@@ -433,10 +389,9 @@ impl MeshGen {
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
-                        
                         let c1 = match chunk.get_cell_neighbor(lp + Self::AXES[axis_i]) {
-                            None => continue,   // do not generate face if it's a Nil Cell (non-loaded)
-                            Some(c1) => c1
+                            None => continue, // do not generate face if it's a Nil Cell (non-loaded)
+                            Some(c1) => c1,
                         };
                         if !Self::sn_signchanged(c0, &c1) {
                             continue;
@@ -486,7 +441,7 @@ static CUBE_POS: [f32; 6 * 6 * 3] = [
 #[rustfmt::skip]
 static CUBE_UV: [f32; 6 * 6 * 2] = [
     1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., // One Face.
-    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., 
+    1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
     1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
     1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1., 
     1., 1., 1., 0., 0., 0., 1., 1., 0., 0., 0., 1.,
@@ -495,10 +450,10 @@ static CUBE_UV: [f32; 6 * 6 * 2] = [
 
 #[rustfmt::skip]
 static CUBE_NORM: [f32; 6 * 6 * 3] = [
-    -1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0., 
-     1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 
-     0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 
-     0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 
+    -1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,
+     1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0.,
+     0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0.,
+     0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0.,
      0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1., 0., 0.,-1.,
      0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1., 0., 0., 1.,
 ];
@@ -530,16 +485,17 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
 // put a -X face in middle of pos. for foliages.
 fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: Vec2) {
     // -X Face
-    for i in 0..6 {  // 6 verts
-        let p = Vec3::from_slice(&CUBE_POS[i*3..]) - vec3(0.0, 0.5, 0.5);  // -0.5: centerized for proper rotation
+    for i in 0..6 {
+        // 6 verts
+        let p = Vec3::from_slice(&CUBE_POS[i * 3..]) - vec3(0.0, 0.5, 0.5); // -0.5: centerized for proper rotation
         let p = (rot * (p * vec3(1.0, scale.y, scale.x))) + pos;
 
-        let n = Vec3::from_slice(&CUBE_NORM[i*3..]);
+        let n = Vec3::from_slice(&CUBE_NORM[i * 3..]);
         let n = rot * n;
 
-        let uv = Vec2::from_slice(&CUBE_UV[i*2..]);
+        let uv = Vec2::from_slice(&CUBE_UV[i * 2..]);
         let uv = mtl_tex::map_uv(uv, tex_id);
-        
+
         vbuf.push_vertex(p, uv, n);
     }
 }
@@ -548,21 +504,21 @@ fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let deg45 = PI / 4.;
     let siz = 1.4;
 
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4,1.0)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Z, deg45), vec2(1.0, 1.4)*siz);
-    put_face(vbuf,tex_id,pos+0.5,Quat::from_axis_angle(Vec3::Z, -deg45), vec2(1.0, 1.4)*siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4, 1.0) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4, 1.0) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, deg45), vec2(1.0, 1.4) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, -deg45), vec2(1.0, 1.4) * siz);
 }
 
 fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let ang = PI / 3.0;
     let siz = 1.4;
 
-    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang), Vec2::ONE*siz);
-    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang*2.), Vec2::ONE*siz);
-    put_face(vbuf,tex_id,pos+0.5, Quat::from_axis_angle(Vec3::Y, ang*3.), Vec2::ONE*siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, ang), Vec2::ONE * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, ang * 2.), Vec2::ONE * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, ang * 3.), Vec2::ONE * siz);
 }
 
 // fn mat_model(pos: Vec3, rot: Mat3, scale: Vec3) {
-    
+
 // }

@@ -10,12 +10,10 @@ use bevy_egui::{
     EguiContexts, EguiPlugin, EguiSettings,
 };
 
-
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-
         // Editor
         use bevy_editor_pls::prelude::*;
         app.add_plugins(
@@ -29,7 +27,6 @@ impl Plugin for EditorPlugin {
         app.insert_resource(res_editor_controls());
         app.add_systems(Startup, setup_editor_camera_controls);
         // app.add_systems(Update, handle_inputs);
-
     }
 }
 

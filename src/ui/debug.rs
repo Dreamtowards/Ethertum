@@ -1,19 +1,21 @@
-
 use bevy::{
-    app::AppExit, diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin}, prelude::*, transform::commands
+    app::AppExit,
+    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin},
+    prelude::*,
+    transform::commands,
 };
 use bevy_egui::{
-    egui::{
-        self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget
-    },
+    egui::{self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget},
     EguiContexts,
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    character_controller::CharacterControllerCamera, game_client::{condition, ClientInfo, EthertiaClient, WorldInfo}, ui::color32_of, voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
+    character_controller::CharacterControllerCamera,
+    game_client::{condition, ClientInfo, EthertiaClient, WorldInfo},
+    ui::color32_of,
+    voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
 };
-
 
 pub fn ui_menu_panel(
     mut ctx: EguiContexts,
@@ -24,7 +26,7 @@ pub fn ui_menu_panel(
 
     net_client: Option<Res<RenetClient>>,
     net_transport: Option<Res<NetcodeClientTransport>>,
-    
+
     mut app_exit_events: EventWriter<AppExit>,
 ) {
     const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
@@ -32,7 +34,11 @@ pub fn ui_menu_panel(
     const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
-    let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused { color32_of(DARK_RED) } else { color32_of(DARK) };
+    let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused {
+        color32_of(DARK_RED)
+    } else {
+        color32_of(DARK)
+    };
     // color32_of(worldinfo.map_or(DARK, |v| v.is_paused));
 
     egui::TopBottomPanel::top("menu_panel")
@@ -61,23 +67,29 @@ pub fn ui_menu_panel(
                             use human_bytes::human_bytes;
                             let ni = net_client.network_info();
                             let ping = cli.ping;
-                            let bytes_per_sec = ni.bytes_sent_per_second+ni.bytes_received_per_second;
+                            let bytes_per_sec = ni.bytes_sent_per_second + ni.bytes_received_per_second;
 
                             ui.menu_button(format!("{}ms {}/s", ping.0, human_bytes(bytes_per_sec)), |ui| {
-                                ui.label(&cli.server_addr).on_hover_text("Server Addr");  // transport.netcode_client.server_addr()
+                                ui.label(&cli.server_addr).on_hover_text("Server Addr"); // transport.netcode_client.server_addr()
                                 ui.add_space(12.);
                                 ui.horizontal(|ui| {
                                     ui.label(format!("{}ms", ping.0)).on_hover_text("Latency / RTT");
-                                    ui.small(format!("{}ms\n{}ms", ping.1, ping.2)).on_hover_text("Latency (Client to Server / Server to Client)");
+                                    ui.small(format!("{}ms\n{}ms", ping.1, ping.2))
+                                        .on_hover_text("Latency (Client to Server / Server to Client)");
                                     ui.separator();
                                     ui.label(format!("{}/s", human_bytes(bytes_per_sec))).on_hover_text("Bandwidth");
-                                    ui.small(format!("{}/s\n{}/s", human_bytes(ni.bytes_sent_per_second), human_bytes(ni.bytes_received_per_second))).on_hover_text("Bandwidth (Upload/Download)");
+                                    ui.small(format!(
+                                        "{}/s\n{}/s",
+                                        human_bytes(ni.bytes_sent_per_second),
+                                        human_bytes(ni.bytes_received_per_second)
+                                    ))
+                                    .on_hover_text("Bandwidth (Upload/Download)");
                                     // ui.separator();
                                     // ui.label("109M").on_hover_text("Transit");
                                     // ui.small("108M\n30K").on_hover_text("Transit (Upload/Download)");
                                 });
                                 ui.small(format!("loss: {}", ni.packet_loss));
-                            }); 
+                            });
                         }
                     }
 
@@ -104,9 +116,7 @@ pub fn ui_menu_panel(
                         ui.add_space(12.);
                         ui.menu_button("System", |ui| {
                             ui.menu_button("Connect to Server", |ui| {
-                                if ui.button("Add Server").clicked() {
-
-                                }
+                                if ui.button("Add Server").clicked() {}
                                 ui.separator();
                             });
                             ui.menu_button("Open World", |ui| {
@@ -128,7 +138,6 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("World", |ui| {
-
                             ui.label("Gizmos:");
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
                             ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Curr Chunk");
@@ -137,7 +146,7 @@ pub fn ui_menu_panel(
 
                             if let Some(mut chunk_sys) = chunk_sys {
                                 if ui.button("ReMesh All Chunks").clicked() {
-                                    let ls =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+                                    let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
                                     for chunkpos in ls {
                                         chunk_sys.mark_chunk_remesh(chunkpos);
                                     }
@@ -145,7 +154,7 @@ pub fn ui_menu_panel(
                                 if ui.button("Gen Tree").clicked() {
                                     let p = query_cam.single().translation.as_ivec3();
                                     let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
-    
+
                                     worldgen::gen_tree(&mut chunk, Chunk::as_localpos(p), 0.8);
                                 }
                             }
@@ -162,7 +171,6 @@ pub fn ui_menu_panel(
                             ui.separator();
                             ui.toggle_value(&mut cli.dbg_text, "Debug Text");
                             ui.toggle_value(&mut cli.dbg_inspector, "Inspector");
-
                         });
                     });
                 });
@@ -170,17 +178,12 @@ pub fn ui_menu_panel(
         });
 }
 
-
-
-
-
 pub fn hud_debug_text(
     mut ctx: EguiContexts,
     time: Res<Time>,
     diagnostics: Res<DiagnosticsStore>,
 
-    #[cfg(feature = "target_native_os")]
-    mut sys: Local<sysinfo::System>,
+    #[cfg(feature = "target_native_os")] mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
     cli: Res<ClientInfo>,
@@ -190,12 +193,11 @@ pub fn hud_debug_text(
     query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
 ) {
-
     let mut str_sys = String::default();
     #[cfg(feature = "target_native_os")]
     {
         use crate::util::TimeIntervals;
-    
+
         if time.at_interval(2.0) {
             sys.refresh_cpu();
             sys.refresh_memory();
@@ -213,10 +215,10 @@ pub fn hud_debug_text(
         let dist_id = std::env::consts::OS;
         let os_ver = sys.long_os_version().unwrap_or_default();
         let os_ver_sm = sys.os_version().unwrap_or_default();
-        
+
         // let curr_path = std::env::current_exe().unwrap().display().to_string();
         let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
-        //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
+                                                                       //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
         let cpu_cores = sys.physical_core_count().unwrap_or_default();
         let cpu_name = sys.global_cpu_info().brand().trim().to_string();
@@ -246,12 +248,13 @@ pub fn hud_debug_text(
         }
 
         str_sys = format!(
-"\nOS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
+            "\nOS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
 CPU: {cpu_name}, usage {cpu_usage:.1}%
 GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
-RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB\n\n");
+RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB\n\n"
+        );
     }
-    
+
     let mut cam_visible_entities_num = 0;
     let mut str_world = String::default();
     if let Some(worldinfo) = worldinfo {
@@ -263,7 +266,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         *last_cam_pos = cam_pos;
         cam_visible_entities_num = cam_visible_entities.entities.len();
 
-        let num_chunks_loading = -1;//chunk_sys.chunks_loading.len();
+        let num_chunks_loading = -1; //chunk_sys.chunks_loading.len();
         let num_chunks_remesh = chunk_sys.chunks_remesh.len();
         let num_chunks_meshing = cli.chunks_meshing.len();
 
@@ -274,35 +277,46 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
                 hit_result.position, hit_result.normal, hit_result.distance, hit_result.is_voxel
             );
         }
-        
+
         let mut cam_cell_str = "none".into();
         if let Some(c) = chunk_sys.get_cell(cam_pos.as_ivec3()) {
-            cam_cell_str = format!(
-                "tex: {}, shape: {}, isoval: {}",
-                c.tex_id, c.shape_id, c.isovalue()
-            );
+            cam_cell_str = format!("tex: {}, shape: {}, isoval: {}", c.tex_id, c.shape_id, c.isovalue());
         }
 
         str_world = format!(
-"
+            "
 Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph.
 Hit: {hit_str},
 CamCell: {cam_cell_str}
 World: '{}', daytime: {}. inhabited: {}, seed: {}
 Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
-cam_pos.x, cam_pos.y, cam_pos.z, cam_pos_spd, cam_pos_spd * 3.6,
-worldinfo.name, worldinfo.daytime, worldinfo.time_inhabited, worldinfo.seed,
-chunk_sys.num_chunks());
+            cam_pos.x,
+            cam_pos.y,
+            cam_pos.z,
+            cam_pos_spd,
+            cam_pos_spd * 3.6,
+            worldinfo.name,
+            worldinfo.daytime,
+            worldinfo.time_inhabited,
+            worldinfo.seed,
+            chunk_sys.num_chunks()
+        );
     }
 
-    let frame_time = diagnostics.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME).map_or(time.delta_seconds_f64(), |d|d.smoothed().unwrap_or_default());
+    let frame_time = diagnostics
+        .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
+        .map_or(time.delta_seconds_f64(), |d| d.smoothed().unwrap_or_default());
 
-    let fps = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS).map_or(frame_time / 1.0, |d|d.smoothed().unwrap_or_default());
+    let fps = diagnostics
+        .get(&FrameTimeDiagnosticsPlugin::FPS)
+        .map_or(frame_time / 1.0, |d| d.smoothed().unwrap_or_default());
 
-    let num_entity = diagnostics.get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT).map_or(0., |f|f.smoothed().unwrap_or_default()) as usize;
+    let num_entity = diagnostics
+        .get(&EntityCountDiagnosticsPlugin::ENTITY_COUNT)
+        .map_or(0., |f| f.smoothed().unwrap_or_default()) as usize;
 
     let str = format!(
-"fps: {fps:.1}, dt: {frame_time:.4}ms
+        "fps: {fps:.1}, dt: {frame_time:.4}ms
 entity vis: {cam_visible_entities_num} / all {num_entity}
 {str_sys}
 {str_world}
@@ -316,5 +330,4 @@ entity vis: {cam_visible_entities_num} / all {num_entity}
         FontId::proportional(12.),
         Color32::WHITE,
     );
-
 }

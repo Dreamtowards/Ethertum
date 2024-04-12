@@ -1,10 +1,21 @@
-use std::{net::{SocketAddr, UdpSocket}, time::Duration};
+use std::{
+    net::{SocketAddr, UdpSocket},
+    time::Duration,
+};
 
-use crate::{game_client::condition, game_server::ServerInfo, util::{current_timestamp, current_timestamp_millis}};
+use crate::{
+    game_client::condition,
+    game_server::ServerInfo,
+    util::{current_timestamp, current_timestamp_millis},
+};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
-        transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES}, ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType, ServerEvent
+        transport::{
+            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig,
+            NETCODE_USER_DATA_BYTES,
+        },
+        ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType, ServerEvent,
     },
     transport::{NetcodeClientPlugin, NetcodeServerPlugin},
     RenetClientPlugin, RenetServerPlugin,
@@ -12,11 +23,10 @@ use bevy_renet::{
 use serde::{Deserialize, Serialize};
 
 mod packet;
-pub use packet::{CPacket, SPacket, CellData};
+pub use packet::{CPacket, CellData, SPacket};
 
 pub mod netproc_client;
 mod netproc_server;
-
 
 const PROTOCOL_ID: u64 = 1;
 
@@ -38,7 +48,7 @@ pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<V
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let current_time = current_timestamp();
     let client_id = current_time.as_millis() as u64;
-    
+
     let user_data = user_data.map(|vec| {
         let mut data = [0u8; NETCODE_USER_DATA_BYTES];
         assert!(vec.len() <= NETCODE_USER_DATA_BYTES);
@@ -83,7 +93,6 @@ pub struct ServerNetworkPlugin;
 
 impl Plugin for ServerNetworkPlugin {
     fn build(&self, app: &mut App) {
-
         app.add_plugins(RenetServerPlugin);
         app.add_plugins(NetcodeServerPlugin);
 
@@ -99,10 +108,7 @@ impl Plugin for ServerNetworkPlugin {
     }
 }
 
-fn bind_endpoint(
-    mut cmds: Commands,
-    serv: Res<ServerInfo>,
-) {
+fn bind_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
     let addr = serv.cfg().addr().parse().unwrap();
 
     cmds.insert_resource(new_netcode_server_transport(addr, 64));
@@ -113,17 +119,15 @@ pub struct ClientNetworkPlugin;
 
 impl Plugin for ClientNetworkPlugin {
     fn build(&self, app: &mut App) {
-        
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
 
         // 待考证: resource_exists::<RenetClient> 之前会造成 获取未加载的ChunkSystemClient
         app.add_systems(Update, netproc_client::client_sys.run_if(condition::in_world));
-        
+
         // app.add_systems(Update, ui_client_net);
     }
 }
-
 
 // An unique id shared in Server and Client. in client with a big offset to avoid id collision.
 
@@ -131,7 +135,6 @@ impl Plugin for ClientNetworkPlugin {
 pub struct EntityId(u32);
 
 impl EntityId {
-
     pub fn from_server(entity: Entity) -> EntityId {
         EntityId(entity.index())
     }
@@ -144,8 +147,6 @@ impl EntityId {
         self.0
     }
 }
-
-
 
 // fn ui_client_net(
 //     mut ctx: EguiContexts,
@@ -212,13 +213,13 @@ impl EntityId {
 
 pub trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
-    
+
     fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);
-    
+
     fn broadcast_packet_except<P: Serialize>(&mut self, except_id: ClientId, packet: &P);
-    
+
     fn broadcast_packet_chat(&mut self, message: String);
 }
 impl RenetServerHelper for RenetServer {

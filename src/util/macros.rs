@@ -11,10 +11,8 @@ macro_rules! hashmap {
 
 #[macro_export]
 macro_rules! err_opt_is_none {
-    () => {
-        {
-            let e = anyhow::anyhow!("Option is None");
-            e
-        }
-    };
+    () => {{
+        let e = anyhow::anyhow!("Option is None");
+        e
+    }};
 }

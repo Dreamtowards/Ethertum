@@ -1,21 +1,25 @@
-
-use std::sync::{Arc, RwLock};
-use bevy::{prelude::*, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}};
+use bevy::{
+    prelude::*,
+    tasks::AsyncComputeTaskPool,
+    utils::{HashMap, HashSet},
+};
 use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
+use std::sync::{Arc, RwLock};
 
-use crate::{game_server::ServerInfo, net::{CellData, SPacket, RenetServerHelper}, util::iter};
-use super::{Chunk, ChunkComponent, ChunkPtr, ChunkSystem, ChannelRx, ChannelTx, WorldGen};
-
+use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, WorldGen};
+use crate::{
+    game_server::ServerInfo,
+    net::{CellData, RenetServerHelper, SPacket},
+    util::iter,
+};
 
 type ChunkLoadingData = (IVec3, ChunkPtr);
-
 
 pub struct ServerVoxelPlugin;
 
 impl Plugin for ServerVoxelPlugin {
     fn build(&self, app: &mut App) {
-        
         app.insert_resource(ServerChunkSystem::new());
 
         {
@@ -25,14 +29,11 @@ impl Plugin for ServerVoxelPlugin {
         }
 
         app.add_systems(Update, chunks_load);
-
     }
 }
 
 fn in_load_distance(mid_cp: IVec3, cp: IVec3, vd: IVec2) -> bool {
-    (mid_cp.x - cp.x).abs() <= vd.x * Chunk::SIZE &&
-    (mid_cp.z - cp.z).abs() <= vd.x * Chunk::SIZE &&
-    (mid_cp.y - cp.y).abs() <= vd.y * Chunk::SIZE
+    (mid_cp.x - cp.x).abs() <= vd.x * Chunk::SIZE && (mid_cp.z - cp.z).abs() <= vd.x * Chunk::SIZE && (mid_cp.y - cp.y).abs() <= vd.y * Chunk::SIZE
 }
 
 fn chunks_load(
@@ -41,7 +42,7 @@ fn chunks_load(
     mut server: ResMut<ServerInfo>,
     mut cmds: Commands,
 
-    mut chunks_loading: Local<HashSet<IVec3>>,  // for detect/skip if is loading
+    mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
     tx_chunks_loading: Res<ChannelTx<ChunkLoadingData>>,
     rx_chunks_loading: Res<ChannelRx<ChunkLoadingData>>,
 ) {
@@ -56,13 +57,14 @@ fn chunks_load(
 
         iter::iter_center_spread(vd.x, vd.y, |rp| {
             let chunkpos = rp * Chunk::SIZE + cp;
-            if chunks_loading.len() > 8 {  // max_concurrent_loading_chunks
+            if chunks_loading.len() > 8 {
+                // max_concurrent_loading_chunks
                 return;
             }
             if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
                 return;
             }
-            
+
             let tx = tx_chunks_loading.clone();
             let task = AsyncComputeTaskPool::get().spawn(async move {
                 // info!("Load Chunk: {:?}", chunkpos);
@@ -88,12 +90,14 @@ fn chunks_load(
         {
             let mut chunk = chunkptr.write().unwrap();
 
-            chunk.entity = cmds.spawn((
-                ChunkComponent::new(chunkpos),
-                Transform::from_translation(chunkpos.as_vec3()),
-                GlobalTransform::IDENTITY,  // really?
-                RigidBody::Static,
-            )).id();
+            chunk.entity = cmds
+                .spawn((
+                    ChunkComponent::new(chunkpos),
+                    Transform::from_translation(chunkpos.as_vec3()),
+                    GlobalTransform::IDENTITY, // really?
+                    RigidBody::Static,
+                ))
+                .id();
         }
 
         chunk_sys.spawn_chunk(chunkptr);
@@ -101,10 +105,9 @@ fn chunks_load(
         info!("ChunkLoad Completed {} / {}", chunk_sys.num_chunks(), chunkpos);
     }
 
-
     // Unload Chunks
     // 野蛮区块卸载检测
-    let chunkpos_all =  Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+    let chunkpos_all = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
     for chunkpos in chunkpos_all {
         let mut any_desire = false;
 
@@ -120,7 +123,7 @@ fn chunks_load(
             cmds.entity(entity).despawn_recursive();
 
             net_server.broadcast_packet(&SPacket::ChunkDel { chunkpos });
-            
+
             for player in server.online_players.values_mut() {
                 player.chunks_loaded.remove(&chunkpos);
             }
@@ -129,7 +132,6 @@ fn chunks_load(
         }
     }
 
-
     // Send Chunk to Players
     // 野蛮的方法 把所有区块发给所有玩家
     for player in server.online_players.values_mut() {
@@ -137,37 +139,42 @@ fn chunks_load(
         let cp = Chunk::as_chunkpos(player.position.as_ivec3());
 
         let mut num_sent = 0;
-        
+
         iter::iter_center_spread(vd.x, vd.y, |rp| {
             let chunkpos = rp * Chunk::SIZE + cp;
-            if num_sent > 4 {  // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
-                return; 
+            if num_sent > 4 {
+                // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
+                return;
             }
             if player.chunks_loaded.contains(&chunkpos) {
-                return; 
+                return;
             }
             if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
                 player.chunks_loaded.insert(chunkpos);
-                num_sent+=1;
+                num_sent += 1;
 
-                info!("Send Chunk {}/{} {} to Player {}", player.chunks_loaded.len(), chunk_sys.num_chunks(), num_sent, player.username);
+                info!(
+                    "Send Chunk {}/{} {} to Player {}",
+                    player.chunks_loaded.len(),
+                    chunk_sys.num_chunks(),
+                    num_sent,
+                    player.username
+                );
                 let data = CellData::from_chunk(&chunkptr.read().unwrap());
-                net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos: chunkpos, voxel: data });
+                net_server.send_packet(
+                    player.client_id,
+                    &SPacket::ChunkNew {
+                        chunkpos: chunkpos,
+                        voxel: data,
+                    },
+                );
             }
         });
     }
-
-
 }
-
-
-
-
-
 
 #[derive(Resource)]
 pub struct ServerChunkSystem {
-
     pub chunks: HashMap<IVec3, ChunkPtr>,
 }
 
@@ -179,9 +186,7 @@ impl ChunkSystem for ServerChunkSystem {
 
 impl ServerChunkSystem {
     fn new() -> Self {
-        Self {
-            chunks: HashMap::default(),
-        }
+        Self { chunks: HashMap::default() }
     }
 
     fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {

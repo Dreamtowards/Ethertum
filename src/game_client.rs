@@ -1,9 +1,17 @@
 use std::f32::consts::{PI, TAU};
 
 use bevy::{
-    app::AppExit, ecs::{reflect, system::{CommandQueue, SystemParam}}, 
-    input::mouse::MouseWheel, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, 
-    utils::HashSet, window::{CursorGrabMode, PresentMode, PrimaryWindow, WindowMode}
+    app::AppExit,
+    ecs::{
+        reflect,
+        system::{CommandQueue, SystemParam},
+    },
+    input::mouse::MouseWheel,
+    math::vec3,
+    pbr::DirectionalLightShadowMap,
+    prelude::*,
+    utils::HashSet,
+    window::{CursorGrabMode, PresentMode, PrimaryWindow, WindowMode},
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 use bevy_touch_stick::*;
@@ -12,18 +20,18 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::{character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin}, util::TimeIntervals};
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
+use crate::{
+    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin},
+    util::TimeIntervals,
+};
 use crate::{ui::CurrentUI, voxel::ClientVoxelPlugin};
-
-
 
 pub struct GameClientPlugin;
 
 impl Plugin for GameClientPlugin {
     fn build(&self, app: &mut App) {
-
         // Render
         {
             // Atmosphere
@@ -36,17 +44,17 @@ impl Plugin for GameClientPlugin {
             // Billiboard
             // use bevy_mod_billboard::prelude::*;
             // app.add_plugins(BillboardPlugin);
-    
+
             // ShadowMap sizes
             app.insert_resource(DirectionalLightShadowMap { size: 512 });
-    
+
             // SSAO
             // app.add_plugins(TemporalAntiAliasPlugin);
             // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
         }
         // .obj model loader.
         app.add_plugins(bevy_obj::ObjPlugin);
-        app.insert_resource(GlobalVolume::new(1.0));  // Audio GlobalVolume
+        app.insert_resource(GlobalVolume::new(1.0)); // Audio GlobalVolume
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
@@ -72,22 +80,21 @@ impl Plugin for GameClientPlugin {
         app.register_type::<WorldInfo>();
 
         // World Setup/Cleanup, Tick
-        app.add_systems(First, on_world_init.run_if(condition::load_world));  // Camera, Player, Sun
+        app.add_systems(First, on_world_init.run_if(condition::load_world)); // Camera, Player, Sun
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
-        app.add_systems(Update, tick_world.run_if(condition::in_world));  // Sun, World Timing.
-        
+        app.add_systems(Update, tick_world.run_if(condition::in_world)); // Sun, World Timing.
+
         app.add_systems(Update, handle_inputs); // toggle: PauseGameControl, Fullscreen
 
         // App Init/Exit
-        app.add_systems(PreStartup, on_app_init);  // load settings
-        app.add_systems(Last, on_app_exit);  // save settings
-
+        app.add_systems(PreStartup, on_app_init); // load settings
+        app.add_systems(Last, on_app_exit); // save settings
 
         // Debug
         {
             // Draw Basis
             app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world));
-            
+
             // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
@@ -102,18 +109,7 @@ impl Plugin for GameClientPlugin {
     }
 }
 
-
-
-
-
-
-
-
-
-
-fn on_app_init(
-    mut cli: ResMut<ClientInfo>,
-) {
+fn on_app_init(mut cli: ResMut<ClientInfo>) {
     info!("Loading {CLIENT_SETTINGS_FILE}");
     if let Ok(str) = std::fs::read_to_string(CLIENT_SETTINGS_FILE) {
         if let Ok(val) = serde_json::from_str(&str) {
@@ -122,31 +118,30 @@ fn on_app_init(
     }
 }
 
-fn on_app_exit(
-    mut exit_events: EventReader<AppExit>,
-    cli: Res<ClientInfo>,
-) {
+fn on_app_exit(mut exit_events: EventReader<AppExit>, cli: Res<ClientInfo>) {
     for _ in exit_events.read() {
         info!("Program Terminate");
-        
+
         info!("Saving {CLIENT_SETTINGS_FILE}");
-        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();   
+        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();
     }
 }
 
-
-
 pub mod condition {
-    use bevy::ecs::{change_detection::DetectChanges, schedule::{common_conditions::resource_removed, State}, system::Res};
-    use crate::ui::CurrentUI;
     use super::{ClientInfo, WorldInfo};
+    use crate::ui::CurrentUI;
+    use bevy::ecs::{
+        change_detection::DetectChanges,
+        schedule::{common_conditions::resource_removed, State},
+        system::Res,
+    };
 
     // a.k.a. loaded_world
     pub fn in_world(res: Option<Res<WorldInfo>>, res_vox: Option<Res<crate::voxel::ClientChunkSystem>>) -> bool {
         res.is_some() && res_vox.is_some()
     }
     pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
-        res.is_some_and(|r|r.is_added())
+        res.is_some_and(|r| r.is_added())
     }
     pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
         resource_removed::<WorldInfo>()
@@ -155,15 +150,9 @@ pub mod condition {
         cli.curr_ui == CurrentUI::None
     }
     pub fn in_ui(ui: CurrentUI) -> impl FnMut(Res<ClientInfo>) -> bool + Clone {
-        move |cli: Res<ClientInfo>| {
-            cli.curr_ui == ui
-        }
+        move |cli: Res<ClientInfo>| cli.curr_ui == ui
     }
 }
-
-
-
-
 
 /// Marker: Despawn the Entity on World Unload.
 #[derive(Component)]
@@ -189,16 +178,13 @@ fn on_world_init(
             camera: Camera { hdr: true, ..default() },
             ..default()
         },
-
         #[cfg(feature = "target_native_os")]
         AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
-
         FogSettings {
             // color, falloff shoud be set in ClientInfo.sky_fog_visibility, etc. due to dynamic debug reason.
             // falloff: FogFalloff::Atmospheric { extinction: Vec3::ZERO, inscattering:  Vec3::ZERO },  // mark as Atmospheric. value will be re-set by ClientInfo.sky_fog...
             ..default()
         },
-
         CharacterControllerCamera,
         Name::new("Camera"),
         DespawnOnWorldUnload,
@@ -219,7 +205,6 @@ fn on_world_init(
         Name::new("Sun"),
         DespawnOnWorldUnload,
     ));
-
 
     // TouchStick  Move-Left
     cmds.spawn((
@@ -245,7 +230,8 @@ fn on_world_init(
             },
             ..default()
         },
-    )).with_children(|parent| {
+    ))
+    .with_children(|parent| {
         parent.spawn((
             TouchStickUiKnob,
             ImageBundle {
@@ -296,7 +282,8 @@ fn on_world_init(
             },
             ..default()
         },
-    )).with_children(|parent| {
+    ))
+    .with_children(|parent| {
         parent.spawn((
             TouchStickUiKnob,
             ImageBundle {
@@ -322,31 +309,18 @@ fn on_world_init(
             },
         ));
     });
-
 }
 
-fn on_world_exit(
-    mut cmds: Commands,
-    query_despawn: Query<Entity, With<DespawnOnWorldUnload>>,
-) {
+fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOnWorldUnload>>) {
     info!("Unload World");
 
     for entity in query_despawn.iter() {
         cmds.entity(entity).despawn_recursive();
     }
-    
+
     cmds.remove_resource::<RenetClient>();
     cmds.remove_resource::<NetcodeClientTransport>();
 }
-
-
-
-
-
-
-
-
-
 
 #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
 pub enum InputStickId {
@@ -361,9 +335,6 @@ pub enum InputAction {
     Look,
 }
 
-
-
-
 fn handle_inputs(
     key: Res<ButtonInput<KeyCode>>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
@@ -377,37 +348,40 @@ fn handle_inputs(
 
     if key.just_pressed(KeyCode::Escape) {
         if worldinfo.is_some() {
-            cli.curr_ui = if cli.curr_ui == CurrentUI::None { CurrentUI::PauseMenu } else { CurrentUI::None };
+            cli.curr_ui = if cli.curr_ui == CurrentUI::None {
+                CurrentUI::PauseMenu
+            } else {
+                CurrentUI::None
+            };
         } else {
             cli.curr_ui = CurrentUI::MainMenu;
         }
     }
-    // Toggle Game-Manipulating (grabbing mouse / character controlling) when CurrentUi!=None. 
+    // Toggle Game-Manipulating (grabbing mouse / character controlling) when CurrentUi!=None.
     let curr_manipulating = cli.curr_ui == CurrentUI::None;
-    
+
     // Apply Cursor Grab
     let cursor_grab = curr_manipulating && cli.enable_cursor_look;
     window.cursor.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
     window.cursor.visible = !cursor_grab;
-    
+
     // Enable Character Controlling
     if let Ok(ctr) = &mut query_controller.get_single_mut() {
         ctr.enable_input = curr_manipulating;
         ctr.enable_input_cursor_look = cursor_grab;
     }
 
-    // Toggle Cursor-Look 
+    // Toggle Cursor-Look
     if curr_manipulating && key.just_pressed(KeyCode::Comma) {
         cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
     if curr_manipulating {
-        let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc+v.x+v.y);
+        let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
 
         cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(HOTBAR_SLOTS as i32) as u32;
     }
 
-    
     // Temporary F4 Debug Settings
     if key.just_pressed(KeyCode::F4) {
         cli.curr_ui = CurrentUI::Settings;
@@ -440,13 +414,12 @@ fn handle_inputs(
     window.present_mode = if cli.vsync { PresentMode::AutoVsync } else { PresentMode::AutoNoVsync };
 
     unsafe {
-        crate::ui::_WINDOW_SIZE = Vec2::new(window.resolution.width(), window.resolution.height()); 
+        crate::ui::_WINDOW_SIZE = Vec2::new(window.resolution.width(), window.resolution.height());
     }
 }
 
 fn tick_world(
-    #[cfg(feature = "target_native_os")]
-    mut atmosphere: AtmosphereMut<Nishita>,
+    #[cfg(feature = "target_native_os")] mut atmosphere: AtmosphereMut<Nishita>,
 
     mut query_sun: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
@@ -487,7 +460,7 @@ fn tick_world(
     if let Ok(player_loc) = query_player.get_single() {
         let player_pos = player_loc.translation;
 
-        if player_pos.distance_squared(*last_player_pos) > 0.01*0.01 {
+        if player_pos.distance_squared(*last_player_pos) > 0.01 * 0.01 {
             *last_player_pos = player_pos;
             net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
         }
@@ -495,13 +468,17 @@ fn tick_world(
 
     // Ping Network
     if time.at_interval(1.0) {
-        net_client.send_packet(&CPacket::Ping { client_time: crate::util::current_timestamp_millis(), last_rtt: cli.ping.0 as u32 });
+        net_client.send_packet(&CPacket::Ping {
+            client_time: crate::util::current_timestamp_millis(),
+            last_rtt: cli.ping.0 as u32,
+        });
     }
 
     // Fog
     let mut fog = query_fog.single_mut();
     fog.color = cli.sky_fog_color;
-    if cli.sky_fog_is_atomspheric {  // let FogFalloff::Atmospheric { .. } = fog.falloff {
+    if cli.sky_fog_is_atomspheric {
+        // let FogFalloff::Atmospheric { .. } = fog.falloff {
         fog.falloff = FogFalloff::from_visibility_colors(cli.sky_fog_visibility, cli.sky_extinction_color, cli.sky_inscattering_color);
     } else {
         fog.falloff = FogFalloff::from_visibility_squared(cli.sky_fog_visibility / 4.0);
@@ -509,7 +486,7 @@ fn tick_world(
 
     // Sun Pos
     let sun_angle = worldinfo.daytime * PI * 2.;
-    
+
     #[cfg(feature = "target_native_os")]
     {
         atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
@@ -524,9 +501,9 @@ fn tick_world(
 }
 
 fn debug_draw_gizmo(
-    mut gizmo: Gizmos, 
-    // mut gizmo_config: ResMut<GizmoConfigStore>, 
-    query_cam: Query<&Transform, With<CharacterControllerCamera>>
+    mut gizmo: Gizmos,
+    // mut gizmo_config: ResMut<GizmoConfigStore>,
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 ) {
     // gizmo.config.depth_bias = -1.; // always in front
 
@@ -555,15 +532,7 @@ fn debug_draw_gizmo(
         gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
         gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
     }
-
 }
-
-
-
-
-
-
-
 
 /// the resource only exixts when world is loaded
 
@@ -589,9 +558,7 @@ pub struct WorldInfo {
 
     pub is_paused: bool,
     pub paused_steps: i32,
-
     // pub is_manipulating: bool,
-
 }
 
 impl Default for WorldInfo {
@@ -610,23 +577,18 @@ impl Default for WorldInfo {
 
             is_paused: false,
             paused_steps: 0,
-
             // is_manipulating: true,
-
         }
     }
 }
 
-
-
 // ClientSettings Configs
-
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
 pub struct ServerListItem {
     pub name: String,
     pub addr: String,
-    
+
     #[serde(skip)]
     pub motd: String,
     #[serde(skip)]
@@ -659,22 +621,16 @@ impl Default for ClientSettings {
     }
 }
 
-
-
-
-
-
 pub const HOTBAR_SLOTS: u32 = 9;
-
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ClientInfo {
     // Networking
-    pub server_addr: String,  // just a record
+    pub server_addr: String, // just a record
     pub disconnected_reason: String,
-    pub ping: (u64, i64, i64, u64),  // ping. (rtt, c2s, ping-begin) in ms.
-    pub playerlist: Vec<(String, u32)>,  // as same as SPacket::PlayerList. username, ping.
+    pub ping: (u64, i64, i64, u64),     // ping. (rtt, c2s, ping-begin) in ms.
+    pub playerlist: Vec<(String, u32)>, // as same as SPacket::PlayerList. username, ping.
 
     // Debug Draw
     pub dbg_text: bool,
@@ -693,10 +649,9 @@ pub struct ClientInfo {
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
 
-
     // Render Sky
     pub sky_fog_color: Color,
-    pub sky_fog_visibility: f32,  
+    pub sky_fog_visibility: f32,
     pub sky_inscattering_color: Color,
     pub sky_extinction_color: Color,
     pub sky_fog_is_atomspheric: bool,
@@ -709,7 +664,7 @@ pub struct ClientInfo {
 
     // Control
     pub enable_cursor_look: bool,
-    
+
     // ClientPlayerInfo
     #[reflect(ignore)]
     pub inventory: Inventory,
@@ -730,7 +685,7 @@ impl Default for ClientInfo {
     fn default() -> Self {
         Self {
             disconnected_reason: String::new(),
-            ping: (0,0,0,0),
+            ping: (0, 0, 0, 0),
             playerlist: Vec::new(),
             server_addr: String::new(),
 
@@ -752,15 +707,15 @@ impl Default for ClientInfo {
             vsync: true,
 
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
-            sky_fog_visibility: 1200.0,  // 280 for ExpSq, 1200 for Atmo
+            sky_fog_visibility: 1200.0, // 280 for ExpSq, 1200 for Atmo
             sky_fog_is_atomspheric: true,
-            sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0),  // bevy demo: Color::rgb(0.7, 0.844, 1.0),
+            sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0), // bevy demo: Color::rgb(0.7, 0.844, 1.0),
             sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
 
             skylight_shadow: false,
 
             cfg: ClientSettings::default(),
-            
+
             enable_cursor_look: true,
 
             inventory: Inventory::new(36),
@@ -774,30 +729,16 @@ impl Default for ClientInfo {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 // A helper on Client
 
 #[derive(SystemParam)]
-pub struct EthertiaClient<'w,'s> {
-
+pub struct EthertiaClient<'w, 's> {
     clientinfo: ResMut<'w, ClientInfo>,
 
-    cmds: Commands<'w,'s>,
+    cmds: Commands<'w, 's>,
 }
 
-impl<'w,'s> EthertiaClient<'w,'s> {
-
+impl<'w, 's> EthertiaClient<'w, 's> {
     /// for Singleplayer
     // pub fn load_world(&mut self, cmds: &mut Commands, server_addr: String)
 
@@ -810,13 +751,20 @@ impl<'w,'s> EthertiaClient<'w,'s> {
         self.clientinfo.server_addr = server_addr.clone();
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
-        
+
         let username = &self.clientinfo.cfg.username;
-        net_client.send_packet(&CPacket::Login { uuid: crate::util::hashcode(username), access_token: 123, username: username.clone() });
+        net_client.send_packet(&CPacket::Login {
+            uuid: crate::util::hashcode(username),
+            access_token: 123,
+            username: username.clone(),
+        });
 
         self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(server_addr.trim().parse().unwrap(), Some("userData123".to_string().into_bytes())));
-        
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(
+            server_addr.trim().parse().unwrap(),
+            Some("userData123".to_string().into_bytes()),
+        ));
+
         // clear DisconnectReason on new connect, to prevents display old invalid reason.
         self.clientinfo.disconnected_reason.clear();
 
@@ -827,14 +775,12 @@ impl<'w,'s> EthertiaClient<'w,'s> {
         // cmd.push(move |world: &mut World| {
         //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
         //     world.insert_resource(RenetClient::new(bevy_renet::renet::ConnectionConfig::default()));
-            
+
         //     let mut net_client = world.resource_mut::<RenetClient>();
 
         //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
         // });
     }
 
-    pub fn enter_world() {
-
-    }
+    pub fn enter_world() {}
 }

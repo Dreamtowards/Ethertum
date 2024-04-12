@@ -50,7 +50,6 @@ pub mod iter {
     }
 }
 
-
 use bevy::prelude::*;
 use serde::de::DeserializeOwned;
 
@@ -58,15 +57,17 @@ pub fn hash(i: i32) -> f32 {
     let i = (i << 13) ^ i;
     // (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
     // wrapping_mul: avoid overflow
-    let i = i.wrapping_mul(i).wrapping_mul(15731).wrapping_add(789221).wrapping_mul(i).wrapping_add(1376312589);
+    let i = i
+        .wrapping_mul(i)
+        .wrapping_mul(15731)
+        .wrapping_add(789221)
+        .wrapping_mul(i)
+        .wrapping_add(1376312589);
     (i as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
 }
 pub fn hash3(v: IVec3) -> Vec3 {
     Vec3::new(hash(v.x), hash(v.y), hash(v.z))
 }
-
-
-
 
 pub fn current_timestamp() -> Duration {
     SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
@@ -93,17 +94,14 @@ impl TimeIntervals for bevy::time::Time {
     }
 }
 
-
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 pub fn hashcode<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
 }
-
-
 
 #[derive(Default)]
 pub struct SmoothValue {
@@ -129,12 +127,19 @@ pub mod raw {
 
 pub fn generate_simple_user_name() -> String {
     static ADJS: [&str; 5] = ["Happy", "Sunny", "Sweet", "Bright", "Cheerful"];
-    static NOUNS: [&str; 10] = ["Apple", "Banana", "Orange", "Mango", "Grapes", "Cherry", "Lime", "Peach", "Pear", "Steven"];
+    static NOUNS: [&str; 10] = [
+        "Apple", "Banana", "Orange", "Mango", "Grapes", "Cherry", "Lime", "Peach", "Pear", "Steven",
+    ];
 
     use rand::Rng;
 
     let mut rng = rand::thread_rng();
-    format!("{}{}{}", ADJS[rng.gen_range(0..ADJS.len())], NOUNS[rng.gen_range(0..NOUNS.len())], rng.gen_range(5..9999))
+    format!(
+        "{}{}{}",
+        ADJS[rng.gen_range(0..ADJS.len())],
+        NOUNS[rng.gen_range(0..NOUNS.len())],
+        rng.gen_range(5..9999)
+    )
 }
 
 pub fn http_get_json<T: DeserializeOwned>(url: &str) -> anyhow::Result<T> {

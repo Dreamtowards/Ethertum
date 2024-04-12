@@ -1,9 +1,11 @@
-use std::{sync::{Arc, RwLock, Weak}, usize};
+use std::{
+    sync::{Arc, RwLock, Weak},
+    usize,
+};
 
 use bevy::{math::ivec3, prelude::*};
 
 // Voxel System
-
 
 enum CellShape {
     Isosurface,
@@ -17,7 +19,6 @@ enum CellShape {
 
 #[derive(Clone, Copy)]
 pub struct Cell {
-    
     pub tex_id: u16,
 
     pub shape_id: u16,
@@ -25,7 +26,6 @@ pub struct Cell {
     /// SDF value, used for Isosurface Extraction.
     /// 0 -> surface, +0 positive -> void, -0 negative -> solid.
     pub isoval: u8,
-
     // Cached FeaturePoint
     // pub cached_fp: Vec3,
     // pub cached_norm: Vec3,
@@ -43,7 +43,6 @@ impl Default for Cell {
     }
 }
 
-
 // todo: bugfix 自从压缩成u8后，地下有一些小碎片三角形 可能是由于精度误差 -0.01 变成 0.01 之类的了。要
 // 修复这种bug 应该是把接近0的数值扩大 再转成u8.
 fn isoval_f32_u8(f: f32) -> u8 {
@@ -54,10 +53,14 @@ fn isoval_u8_f32(u: u8) -> f32 {
     u as f32 / 255.0 * 2.0 - 1.0
 }
 
-
 impl Cell {
     pub fn new(tex_id: u16, shape_id: u16, isovalue: f32) -> Self {
-        Self { tex_id, shape_id, isoval: isoval_f32_u8(isovalue), ..default() }
+        Self {
+            tex_id,
+            shape_id,
+            isoval: isoval_f32_u8(isovalue),
+            ..default()
+        }
     }
 
     pub fn isovalue(&self) -> f32 {
@@ -88,7 +91,7 @@ pub struct Chunk {
     pub chunkpos: IVec3,
 
     pub entity: Entity,
-    pub mesh_handle: Handle<Mesh>,  // solid terrain
+    pub mesh_handle: Handle<Mesh>, // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
@@ -194,12 +197,10 @@ impl Chunk {
     }
     // [0, 16)
     pub fn is_localpos(p: IVec3) -> bool {
-        p.x >= 0 && p.x < 16 && 
-        p.y >= 0 && p.y < 16 && 
-        p.z >= 0 && p.z < 16
+        p.x >= 0 && p.x < 16 && p.y >= 0 && p.y < 16 && p.z >= 0 && p.z < 16
     }
 
-    pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
+    pub const LOCAL_IDX_CAP: usize = 4096; // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
 
     // the index range is [0, 16^3 or 4096)
     pub fn local_idx(localpos: IVec3) -> usize {
@@ -211,12 +212,24 @@ impl Chunk {
     }
 
     pub fn at_boundary_naive(localpos: IVec3) -> i32 {
-        if localpos.x == 0  { return 0; }
-        if localpos.x == 15 { return 1; }
-        if localpos.y == 0  { return 2; }
-        if localpos.y == 15 { return 3; }
-        if localpos.z == 0  { return 4; }
-        if localpos.z == 15 { return 5; }
+        if localpos.x == 0 {
+            return 0;
+        }
+        if localpos.x == 15 {
+            return 1;
+        }
+        if localpos.y == 0 {
+            return 2;
+        }
+        if localpos.y == 15 {
+            return 3;
+        }
+        if localpos.z == 0 {
+            return 4;
+        }
+        if localpos.z == 15 {
+            return 5;
+        }
         -1
         // localpos.x == 0 || localpos.x == 15 ||
         // localpos.y == 0 || localpos.y == 15 ||

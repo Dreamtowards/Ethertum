@@ -1,17 +1,19 @@
-
-use bevy::{prelude::*, utils::{HashMap, HashSet}};
+use bevy::{
+    prelude::*,
+    utils::{HashMap, HashSet},
+};
 use bevy_renet::renet::ClientId;
 use bevy_xpbd_3d::plugins::PhysicsPlugins;
 
-use crate::{net::{EntityId, ServerNetworkPlugin}, voxel::ServerVoxelPlugin};
-
-
+use crate::{
+    net::{EntityId, ServerNetworkPlugin},
+    voxel::ServerVoxelPlugin,
+};
 
 pub struct GameServerPlugin;
 
 impl Plugin for GameServerPlugin {
     fn build(&self, app: &mut App) {
-
         app.insert_resource(ServerInfo::default());
 
         // Network
@@ -19,41 +21,30 @@ impl Plugin for GameServerPlugin {
 
         // ChunkSystem
         app.add_plugins(ServerVoxelPlugin);
-        
+
         // Physics
         // app.add_plugins(PhysicsPlugins::default());
 
-        
-        app.add_systems(PreStartup, on_init);  // load settings.
-        app.add_systems(Last, on_exit);  // save settings.
-        
+        app.add_systems(PreStartup, on_init); // load settings.
+        app.add_systems(Last, on_exit); // save settings.
 
         let rcon_port = 8001;
         let http_server = tiny_http::Server::http(format!("0.0.0.0:{}", rcon_port)).unwrap();
-        info!("Start RCON endpoint on 0.0.0.0:{}", http_server.server_addr().to_ip().unwrap()); 
+        info!("Start RCON endpoint on 0.0.0.0:{}", http_server.server_addr().to_ip().unwrap());
         app.insert_resource(rcon::HttpServer { server: http_server });
         app.add_systems(Update, rcon::on_http_recv);
     }
 }
 
-
-fn on_init(
-    mut serv: ResMut<ServerInfo>,
-) {
+fn on_init(mut serv: ResMut<ServerInfo>) {
     if let Err(err) = serv.load() {
         panic!("{}", err);
     }
 }
 
-fn on_exit(
-    mut exit_events: EventReader<bevy::app::AppExit>,
-    serv: ResMut<ServerInfo>,
-) {
-    for _ in exit_events.read() {
-
-    }
+fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, serv: ResMut<ServerInfo>) {
+    for _ in exit_events.read() {}
 }
-
 
 pub mod rcon {
     use super::*;
@@ -67,15 +58,13 @@ pub mod rcon {
         pub favicon_url: String,
         pub game_url: String,
     }
-    
+
     #[derive(Resource)]
     pub struct HttpServer {
         pub server: tiny_http::Server,
     }
-    
-    pub fn on_http_recv(
-        http: Res<HttpServer>
-    ) {
+
+    pub fn on_http_recv(http: Res<HttpServer>) {
         if let Ok(Some(req)) = http.server.try_recv() {
             info!("Req URL: {}", req.url());
             let motd = Motd {
@@ -86,16 +75,11 @@ pub mod rcon {
                 favicon_url: "".into(),
                 game_url: "".into(),
             };
-            req.respond(tiny_http::Response::from_string(
-                serde_json::to_string(&motd).unwrap())
-            ).unwrap();
+            req.respond(tiny_http::Response::from_string(serde_json::to_string(&motd).unwrap()))
+                .unwrap();
         }
     }
-    
 }
-
-
-
 
 const SERVER_SETTINGS_FILE: &str = "server.settings.json";
 
@@ -106,9 +90,7 @@ pub struct ServerSettings {
 
 impl Default for ServerSettings {
     fn default() -> Self {
-        Self {
-            addr: "0.0.0.0:4000".into(),
-        }
+        Self { addr: "0.0.0.0:4000".into() }
     }
 }
 
@@ -134,25 +116,24 @@ impl ServerInfo {
         Ok(match std::fs::read_to_string(SERVER_SETTINGS_FILE) {
             Ok(s) => {
                 info!("Loading server settings from {SERVER_SETTINGS_FILE}");
-                
+
                 self.cfg = serde_json::from_str(&s)?
-            },
+            }
             Err(_) => {
                 info!("Saving server settings to {SERVER_SETTINGS_FILE}");
 
                 let s = serde_json::to_string_pretty(&self.cfg)?;
                 std::fs::write(SERVER_SETTINGS_FILE, s)?;
-            },
+            }
         })
     }
 }
-
 
 pub struct PlayerInfo {
     pub username: String,
     pub user_id: u64,
 
-    pub client_id: ClientId,  // network client id. renet
+    pub client_id: ClientId, // network client id. renet
 
     pub entity_id: EntityId,
     pub position: Vec3,
@@ -164,8 +145,6 @@ pub struct PlayerInfo {
 }
 
 impl PlayerInfo {
-
     // fn update(&self) {
     // }
-
 }

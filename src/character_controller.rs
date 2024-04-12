@@ -1,13 +1,22 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use bevy::{input::mouse::{MouseMotion, MouseWheel}, prelude::*};
+use crate::{
+    game_client::{condition, ClientInfo, InputAction},
+    util::SmoothValue,
+};
+use bevy::{
+    input::mouse::{MouseMotion, MouseWheel},
+    prelude::*,
+};
 use bevy_xpbd_3d::{
     components::*,
     parry::na::ComplexField,
-    plugins::{collision::Collider, spatial_query::{ShapeCaster, ShapeHits}},
+    plugins::{
+        collision::Collider,
+        spatial_query::{ShapeCaster, ShapeHits},
+    },
     PhysicsSet,
 };
-use crate::{game_client::{condition, InputAction, ClientInfo}, util::SmoothValue};
 
 pub struct CharacterControllerPlugin;
 
@@ -43,7 +52,8 @@ impl CharacterControllerBundle {
             character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
-            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Direction3d::new_unchecked(Vec3::NEG_Y)).with_max_time_of_impact(0.2),
+            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Direction3d::new_unchecked(Vec3::NEG_Y))
+                .with_max_time_of_impact(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
             gravity_scale: GravityScale(2.),
@@ -89,10 +99,8 @@ pub struct CharacterController {
 
     /// enable:  Yaw/Pitch by CursorMove,           and make Cursor Grabbed/Invisible.  like MC-PC
     /// disable: Yaw/Pitch by CursorDrag/TouchMove. and make Cursor Visible             like MC-PE
-    /// only valid on enable_input=true, 
+    /// only valid on enable_input=true,
     pub enable_input_cursor_look: bool,
-
-
     // fly_speed: f32,
     // walk_speed: f32,
 
@@ -149,12 +157,11 @@ fn input_move(
     )>,
     mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
-    let mouse_delta = mouse_motion_events.read().fold(Vec2::ZERO, |acc, v| acc+v.delta);
-    let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc+v.x+v.y);
+    let mouse_delta = mouse_motion_events.read().fold(Vec2::ZERO, |acc, v| acc + v.delta);
+    let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
     let dt_sec = time.delta_seconds();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
-        
         // A Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
         let mut movement = Vec3::ZERO;
 
@@ -174,9 +181,9 @@ fn input_move(
             // Touch Look
             for touch in touches.iter() {
                 let mov = touch.delta();
-                
-                ctl.pitch   -= look_sensitivity * mov.y;
-                ctl.yaw     -= look_sensitivity * mov.x;
+
+                ctl.pitch -= look_sensitivity * mov.y;
+                ctl.yaw -= look_sensitivity * mov.x;
             }
 
             // TouchStickUi / Gamepad: Look
@@ -184,16 +191,16 @@ fn input_move(
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Look).unwrap().xy();
 
                 let look_sensitivity = look_sensitivity * 10.;
-                ctl.pitch   += look_sensitivity * axis_value.y;
-                ctl.yaw     -= look_sensitivity * axis_value.x;
+                ctl.pitch += look_sensitivity * axis_value.y;
+                ctl.yaw -= look_sensitivity * axis_value.x;
             }
 
             // TouchStickUi / Gamepad: Move
             if action_state.pressed(&InputAction::Move) {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
-        
+
                 info!("moving: {axis_value}");
-        
+
                 movement.x += axis_value.x;
                 movement.z -= axis_value.y;
             }
@@ -204,10 +211,9 @@ fn input_move(
                 ctl.yaw = ctl.yaw.rem_euclid(2. * PI);
             }
 
-
             // 3rd Person Camera: Distance Control.
             if input_key.pressed(KeyCode::AltLeft) {
-                let d = (ctl.cam_distance*0.18).max(0.3) * -wheel_delta;
+                let d = (ctl.cam_distance * 0.18).max(0.3) * -wheel_delta;
                 if cam_dist_smoothed.target < 4. {
                     if cam_dist_smoothed.target != 0. {
                         cam_dist_smoothed.target = 0.;
@@ -222,7 +228,6 @@ fn input_move(
                 cam_dist_smoothed.update(time.delta_seconds() * 18.);
                 ctl.cam_distance = cam_dist_smoothed.current;
             }
-
 
             // Move: WSAD
             if input_key.pressed(KeyCode::KeyA) {
@@ -252,7 +257,6 @@ fn input_move(
             if input_key.just_pressed(KeyCode::KeyL) {
                 ctl.is_flying = !ctl.is_flying;
             }
-
 
             if ctl.is_flying {
                 if input_key.pressed(KeyCode::ShiftLeft) {
@@ -363,7 +367,6 @@ fn input_move(
     }
 }
 
-
 fn sync_camera(
     mut query_cam: Query<(&mut Transform, &mut Projection), With<CharacterControllerCamera>>,
     query_char: Query<(&Position, &CharacterController), Without<CharacterControllerCamera>>,
@@ -377,13 +380,19 @@ fn sync_camera(
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
             // // stop rotate Tracker when hold alt. thus can free view the Tracker.
             // if !input_key.pressed(KeyCode::AltLeft) {
-                cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
+            cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);
             // }
             cam_trans.translation = char_pos.0 + Vec3::new(0., 0.8, 0.) + cam_trans.forward() * -ctl.cam_distance;
 
             // Smoothed FOV on sprinting
-            fov_val.target = if input_key.pressed(KeyCode::KeyC) {24.} else {
-                if ctl.is_sprinting { cli.cfg.fov + 20. } else { cli.cfg.fov }
+            fov_val.target = if input_key.pressed(KeyCode::KeyC) {
+                24.
+            } else {
+                if ctl.is_sprinting {
+                    cli.cfg.fov + 20.
+                } else {
+                    cli.cfg.fov
+                }
             };
             fov_val.update(time.delta_seconds() * 16.);
 

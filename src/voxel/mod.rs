@@ -1,14 +1,13 @@
-
 mod chunk;
-pub use chunk::{Chunk, Cell};
+pub use chunk::{Cell, Chunk};
 
 // mod chunk_system;
 // pub use chunk_system::{ChunkPtr};
 
-mod voxel_server;
 mod voxel_client;
-pub use voxel_server::{ServerVoxelPlugin, ServerChunkSystem};
-pub use voxel_client::{ClientVoxelPlugin, ClientChunkSystem, HitResult};
+mod voxel_server;
+pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult};
+pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 
 mod material;
 mod meshgen;
@@ -16,8 +15,7 @@ pub mod worldgen;
 pub use worldgen::WorldGen;
 
 use std::sync::{Arc, RwLock};
-pub type ChunkPtr = Arc<RwLock<Chunk>>;  // Box<Chunk>;         not supported for SharedPtr
-
+pub type ChunkPtr = Arc<RwLock<Chunk>>; // Box<Chunk>;         not supported for SharedPtr
 
 use bevy::{prelude::*, utils::HashMap};
 
@@ -26,9 +24,6 @@ struct ChannelTx<T>(crate::channel_impl::Sender<T>);
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelRx<T>(crate::channel_impl::Receiver<T>);
-
-
-
 
 #[derive(Component)]
 pub struct ChunkComponent {
@@ -41,10 +36,7 @@ impl ChunkComponent {
     }
 }
 
-
-
 pub trait ChunkSystem {
-    
     fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr>;
 
     fn get_chunk(&self, chunkpos: IVec3) -> Option<&ChunkPtr> {
@@ -58,7 +50,7 @@ pub trait ChunkSystem {
     }
 
     fn num_chunks(&self) -> usize {
-        self.get_chunks().len() 
+        self.get_chunks().len()
     }
 
     fn get_cell(&self, p: IVec3) -> Option<Cell> {
@@ -66,10 +58,7 @@ pub trait ChunkSystem {
 
         Some(*chunkptr.read().unwrap().get_cell(Chunk::as_localpos(p)))
     }
-
 }
-
-
 
 // #[derive(Component)]
 // struct ChunkMeshingTask;//(Task<Mesh>);
