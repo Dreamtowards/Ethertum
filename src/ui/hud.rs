@@ -67,128 +67,128 @@ pub fn hud_chat(
         return;
     }
 
-    egui::Window::new("Chat")
-        .default_size([620., 320.])
-        .title_bar(false)
-        .resizable(true)
-        .collapsible(false)
-        .anchor(Align2::LEFT_BOTTOM, [0., -100.])
-        // .frame(Frame::default().fill(Color32::from_black_alpha(140)))
-        .show(ctx.ctx_mut(), |ui| {
-            ui.vertical(|ui| {
-                let scroll_height = ui.available_height() - 38.0;
+    // egui::Window::new("Chat")
+    //     .default_size([620., 320.])
+    //     .title_bar(false)
+    //     .resizable(true)
+    //     .collapsible(false)
+    //     .anchor(Align2::LEFT_BOTTOM, [0., -100.])
+    //     // .frame(Frame::default().fill(Color32::from_black_alpha(140)))
+    //     .show(ctx.ctx_mut(), |ui| {
+    //         ui.vertical(|ui| {
+    //             let scroll_height = ui.available_height() - 38.0;
 
-                ui.add_space(4.);
+    //             ui.add_space(4.);
 
-                // Scroll area
-                ScrollArea::vertical()
-                    .auto_shrink([false, true])
-                    .stick_to_bottom(true)
-                    .max_height(scroll_height)
-                    .show(ui, |ui| {
-                        ui.vertical(|ui| {
-                            for line in &state.scrollback {
-                                ui.colored_label(Color32::WHITE, line);
-                            }
-                        });
+    //             // Scroll area
+    //             ScrollArea::vertical()
+    //                 .auto_shrink([false, true])
+    //                 .stick_to_bottom(true)
+    //                 .max_height(scroll_height)
+    //                 .show(ui, |ui| {
+    //                     ui.vertical(|ui| {
+    //                         for line in &state.scrollback {
+    //                             ui.colored_label(Color32::WHITE, line);
+    //                         }
+    //                     });
 
-                        // Scroll to bottom if have new message
-                        // if has_new_chat {
-                        //     ui.scroll_to_cursor(Some(Align::BOTTOM));
-                        // }
-                    });
+    //                     // Scroll to bottom if have new message
+    //                     // if has_new_chat {
+    //                     //     ui.scroll_to_cursor(Some(Align::BOTTOM));
+    //                     // }
+    //                 });
 
-                // hide input box when gaming.
-                if cli.curr_ui != CurrentUI::ChatInput {
-                    return;
-                }
+    //             // hide input box when gaming.
+    //             if cli.curr_ui != CurrentUI::ChatInput {
+    //                 return;
+    //             }
 
-                // Input
-                let text_edit = TextEdit::singleline(&mut state.buf).desired_width(f32::INFINITY).lock_focus(true);
+    //             // Input
+    //             let text_edit = TextEdit::singleline(&mut state.buf).desired_width(f32::INFINITY).lock_focus(true);
 
-                let text_edit_response = ui.add(text_edit);
+    //             let text_edit_response = ui.add(text_edit);
 
-                ui.add_space(5.);
+    //             ui.add_space(5.);
 
-                // Handle enter
-                if text_edit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    let history_size = 20;
+    //             // Handle enter
+    //             if text_edit_response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+    //                 let history_size = 20;
 
-                    // let msg = format!("{}{}", state.symbol, state.buf);
-                    // state.scrollback.push(msg.into());
-                    let cmdstr = state.buf.clone();
+    //                 // let msg = format!("{}{}", state.symbol, state.buf);
+    //                 // state.scrollback.push(msg.into());
+    //                 let cmdstr = state.buf.clone();
 
-                    if state.history.len() == 0 {
-                        state.history.push_front(String::default()); // editing line
-                    }
-                    state.history.insert(1, cmdstr.clone());
-                    if state.history.len() > history_size + 1 {
-                        state.history.pop_back();
-                    }
+    //                 if state.history.len() == 0 {
+    //                     state.history.push_front(String::default()); // editing line
+    //                 }
+    //                 state.history.insert(1, cmdstr.clone());
+    //                 if state.history.len() > history_size + 1 {
+    //                     state.history.pop_back();
+    //                 }
 
-                    net_client.send_packet(&CPacket::ChatMessage { message: cmdstr.clone() });
+    //                 net_client.send_packet(&CPacket::ChatMessage { message: cmdstr.clone() });
 
-                    // let mut args = Shlex::new(&state.buf).collect::<Vec<_>>();
+    //                 // let mut args = Shlex::new(&state.buf).collect::<Vec<_>>();
 
-                    // if !args.is_empty() {
-                    //     let command_name = args.remove(0);
-                    //     debug!("Command entered: `{command_name}`, with args: `{args:?}`");
+    //                 // if !args.is_empty() {
+    //                 //     let command_name = args.remove(0);
+    //                 //     debug!("Command entered: `{command_name}`, with args: `{args:?}`");
 
-                    //     let command = config.commands.get(command_name.as_str());
+    //                 //     let command = config.commands.get(command_name.as_str());
 
-                    //     if command.is_some() {
-                    //         command_entered
-                    //             .send(ConsoleCommandEntered { command_name, args });
-                    //     } else {
-                    //         debug!(
-                    //             "Command not recognized, recognized commands: `{:?}`",
-                    //             config.commands.keys().collect::<Vec<_>>()
-                    //         );
+    //                 //     if command.is_some() {
+    //                 //         command_entered
+    //                 //             .send(ConsoleCommandEntered { command_name, args });
+    //                 //     } else {
+    //                 //         debug!(
+    //                 //             "Command not recognized, recognized commands: `{:?}`",
+    //                 //             config.commands.keys().collect::<Vec<_>>()
+    //                 //         );
 
-                    //         state.scrollback.push("error: Invalid command".into());
-                    //     }
-                    // }
+    //                 //         state.scrollback.push("error: Invalid command".into());
+    //                 //     }
+    //                 // }
 
-                    state.buf.clear();
+    //                 state.buf.clear();
 
-                    // Close ChatUi after Enter.
-                    cli.curr_ui = CurrentUI::None;
-                }
+    //                 // Close ChatUi after Enter.
+    //                 cli.curr_ui = CurrentUI::None;
+    //             }
 
-                // Clear on ctrl+l
-                // if keyboard_input_events
-                //     .iter()
-                //     .any(|&k| k.state.is_pressed() && k.key_code == Some(KeyCode::L))
-                //     && (keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]))
-                // {
-                //     state.scrollback.clear();
-                // }
+    //             // Clear on ctrl+l
+    //             // if keyboard_input_events
+    //             //     .iter()
+    //             //     .any(|&k| k.state.is_pressed() && k.key_code == Some(KeyCode::L))
+    //             //     && (keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]))
+    //             // {
+    //             //     state.scrollback.clear();
+    //             // }
 
-                // Handle up and down through history
-                if text_edit_response.has_focus()
-                    && ui.input(|i| i.key_pressed(egui::Key::ArrowUp))
-                    && state.history.len() > 1
-                    && state.history_index < state.history.len() - 1
-                {
-                    if state.history_index == 0 && !state.buf.trim().is_empty() {
-                        *state.history.get_mut(0).unwrap() = state.buf.clone().into();
-                    }
+    //             // Handle up and down through history
+    //             if text_edit_response.has_focus()
+    //                 && ui.input(|i| i.key_pressed(egui::Key::ArrowUp))
+    //                 && state.history.len() > 1
+    //                 && state.history_index < state.history.len() - 1
+    //             {
+    //                 if state.history_index == 0 && !state.buf.trim().is_empty() {
+    //                     *state.history.get_mut(0).unwrap() = state.buf.clone().into();
+    //                 }
 
-                    state.history_index += 1;
-                    state.buf = state.history.get(state.history_index).unwrap().clone();
+    //                 state.history_index += 1;
+    //                 state.buf = state.history.get(state.history_index).unwrap().clone();
 
-                    set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
-                } else if text_edit_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) && state.history_index > 0 {
-                    state.history_index -= 1;
-                    state.buf = state.history.get(state.history_index).unwrap().clone();
+    //                 set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
+    //             } else if text_edit_response.has_focus() && ui.input(|i| i.key_pressed(egui::Key::ArrowDown)) && state.history_index > 0 {
+    //                 state.history_index -= 1;
+    //                 state.buf = state.history.get(state.history_index).unwrap().clone();
 
-                    set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
-                }
+    //                 set_cursor_pos(ui.ctx(), text_edit_response.id, state.buf.len());
+    //             }
 
-                // Focus on input
-                ui.memory_mut(|m| m.request_focus(text_edit_response.id));
-            });
-        });
+    //             // Focus on input
+    //             ui.memory_mut(|m| m.request_focus(text_edit_response.id));
+    //         });
+    //     });
 }
 
 pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>) {

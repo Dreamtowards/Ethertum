@@ -7,15 +7,15 @@ use bevy::{math::ivec3, prelude::*};
 
 // Voxel System
 
-enum CellShape {
-    Isosurface,
-    Cube,
-    Leaves,
-    Grass,
-    // CustomMesh {
-    //     mesh_id: u16,
-    // }
-}
+// enum CellShape {
+//     Isosurface,
+//     Cube,
+//     Leaves,
+//     Grass,
+//     // CustomMesh {
+//     //     mesh_id: u16,
+//     // }
+// }
 
 #[derive(Clone, Copy)]
 pub struct Cell {

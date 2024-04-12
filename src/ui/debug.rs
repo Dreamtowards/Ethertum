@@ -28,9 +28,9 @@ pub fn ui_menu_panel(
 
     mut app_exit_events: EventWriter<AppExit>,
 ) {
-    const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
-    const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
-    const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
+    // const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
+    // const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
+    // const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
     const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
     const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
     let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused {
