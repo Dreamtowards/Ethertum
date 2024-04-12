@@ -1,4 +1,3 @@
-
 // enum VoxelShapeId {
 //     Isosurface = 0,
 //     Silhouette = 1,

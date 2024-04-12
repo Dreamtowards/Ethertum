@@ -103,10 +103,8 @@ pub fn ui_menu_panel(
                                 //⏩
                                 worldinfo.paused_steps += 1;
                             }
-                        } else {
-                            if egui::Button::new("⏸").ui(ui).clicked() {
-                                worldinfo.is_paused = true;
-                            }
+                        } else if egui::Button::new("⏸").ui(ui).clicked() {
+                            worldinfo.is_paused = true;
                         }
                     }
 
@@ -115,22 +113,22 @@ pub fn ui_menu_panel(
                         ui.add_space(12.);
                         ui.menu_button("System", |ui| {
                             ui.menu_button("Connect to Server", |ui| {
-                                if ui.button("Add Server").clicked() {}
+                                ui.button("Add Server").clicked();
                                 ui.separator();
                             });
                             ui.menu_button("Open World", |ui| {
-                                if ui.button("New World").clicked() {}
-                                if ui.button("Open World..").clicked() {}
+                                ui.button("New World").clicked();
+                                ui.button("Open World..").clicked();
                                 ui.separator();
                             });
-                            if ui.button("Edit World..").clicked() {}
-                            if ui.button("Close World").clicked() {}
+                            ui.button("Edit World..").clicked();
+                            ui.button("Close World").clicked();
                             ui.separator();
-                            if ui.button("Settings").clicked() {}
-                            if ui.button("Mods").clicked() {}
-                            if ui.button("Assets").clicked() {}
-                            if ui.button("Controls").clicked() {}
-                            if ui.button("About").clicked() {}
+                            ui.button("Settings").clicked();
+                            ui.button("Mods").clicked();
+                            ui.button("Assets").clicked();
+                            ui.button("Controls").clicked();
+                            ui.button("About").clicked();
                             ui.separator();
                             if ui.button("Terminate").clicked() {
                                 app_exit_events.send(AppExit);

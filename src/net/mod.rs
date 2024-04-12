@@ -3,17 +3,12 @@ use std::{
     time::Duration,
 };
 
-use crate::{
-    game_client::condition,
-    game_server::ServerInfo,
-    util::{current_timestamp},
-};
+use crate::{game_client::condition, game_server::ServerInfo, util::current_timestamp};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
         transport::{
-            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig,
-            NETCODE_USER_DATA_BYTES,
+            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES,
         },
         ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType,
     },
@@ -35,7 +30,7 @@ pub fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize)
     let socket = UdpSocket::bind(public_addr).unwrap();
     let server_config = ServerConfig {
         current_time: current_timestamp(),
-        max_clients: max_clients,
+        max_clients,
         protocol_id: PROTOCOL_ID,
         public_addresses: vec![public_addr],
         authentication: ServerAuthentication::Unsecure,
@@ -101,14 +96,14 @@ impl Plugin for ServerNetworkPlugin {
             ..default()
         }));
 
-        app.add_systems(Startup, bind_endpoint);
+        app.add_systems(Startup, bind_server_endpoint);
         app.add_systems(Update, netproc_server::server_sys);
 
         // app.add_systems(Update, ui_server_net);
     }
 }
 
-fn bind_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
+fn bind_server_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
     let addr = serv.cfg().addr().parse().unwrap();
 
     cmds.insert_resource(new_netcode_server_transport(addr, 64));

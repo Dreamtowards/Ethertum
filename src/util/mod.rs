@@ -63,7 +63,7 @@ pub fn hash(i: i32) -> f32 {
         .wrapping_add(789221)
         .wrapping_mul(i)
         .wrapping_add(1376312589);
-    (i as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
+    i as u32 as f32 / 0xffffffffu32 as f32
 }
 pub fn hash3(v: IVec3) -> Vec3 {
     Vec3::new(hash(v.x), hash(v.y), hash(v.z))

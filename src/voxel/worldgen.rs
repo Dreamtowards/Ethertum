@@ -114,12 +114,12 @@ impl WorldGen {
                 }
 
                 // Vines
-                if hash(x ^ z * 7384) < (18.0 / 256.0) {
+                if hash(x ^ (z * 7384)) < (18.0 / 256.0) {
                     for ly in 0..Chunk::SIZE - 1 {
                         let lp = ivec3(lx, ly, lz);
 
                         if chunk.get_cell(lp).tex_id == 0 && chunk.get_cell(lp + IVec3::Y).tex_id == mtl::STONE {
-                            for i in 0..(12.0 * hash(x ^ z * 121)) as i32 {
+                            for i in 0..(12.0 * hash(x ^ (z * 121))) as i32 {
                                 let lp = lp + IVec3::NEG_Y * i;
                                 if lp.y < 0 {
                                     break;
@@ -137,7 +137,7 @@ impl WorldGen {
                 }
 
                 // Trees
-                if hash(x ^ z * 9572) < (3.0 / 256.0) {
+                if hash(x ^ (z * 9572)) < (3.0 / 256.0) {
                     for ly in 0..Chunk::SIZE {
                         let lp = ivec3(lx, ly, lz);
 

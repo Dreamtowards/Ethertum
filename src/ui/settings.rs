@@ -42,7 +42,7 @@ pub fn ui_settings(
 ) {
     let is_world_loaded = worldinfo.is_some();
     new_egui_window("Settings").show(ctx.ctx_mut(), |ui| {
-        let curr_settings_panel = settings_panel.clone();
+        let curr_settings_panel = *settings_panel;
 
         ui_lr_panel(
             ui,
@@ -101,7 +101,7 @@ pub fn ui_settings(
                                 });
 
                                 ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
-                                    if ui.button("Log out").clicked() {}
+                                    ui.button("Log out").clicked();
                                     if ui.button("Account Info").clicked() {
                                         ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
                                     }

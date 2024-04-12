@@ -389,6 +389,12 @@ impl ChunkSystem for ClientChunkSystem {
     }
 }
 
+impl Default for ClientChunkSystem {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClientChunkSystem {
     pub fn new() -> Self {
         Self {

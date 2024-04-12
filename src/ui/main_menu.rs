@@ -1,13 +1,9 @@
-use bevy::{
-    app::AppExit,
-    ecs::{event::EventWriter, system::Commands},
-    prelude::*,
-};
+use bevy::{app::AppExit, prelude::*};
 use bevy_egui::{
     egui::{self, Color32, Frame, Layout, OpenUrl, RichText, Rounding},
     EguiContexts,
 };
-use bevy_renet::renet::{RenetClient};
+use bevy_renet::renet::RenetClient;
 
 use super::{sfx_play, CurrentUI, UiExtra};
 use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};

@@ -174,7 +174,7 @@ fn input_move(
             let mouse_delta = mouse_delta * look_sensitivity; //ctl.mouse_sensitivity;
 
             if ctl.enable_input_cursor_look || input_mouse_button.pressed(MouseButton::Left) {
-                ctl.pitch = ctl.pitch - mouse_delta.y;
+                ctl.pitch -= mouse_delta.y;
                 ctl.yaw -= mouse_delta.x;
             }
 
@@ -387,12 +387,10 @@ fn sync_camera(
             // Smoothed FOV on sprinting
             fov_val.target = if input_key.pressed(KeyCode::KeyC) {
                 24.
+            } else if ctl.is_sprinting {
+                cli.cfg.fov + 20.
             } else {
-                if ctl.is_sprinting {
-                    cli.cfg.fov + 20.
-                } else {
-                    cli.cfg.fov
-                }
+                cli.cfg.fov
             };
             fov_val.update(time.delta_seconds() * 16.);
 

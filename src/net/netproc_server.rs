@@ -1,12 +1,7 @@
-use std::{time::Duration};
+use std::time::Duration;
 
-use bevy::{
-    prelude::*,
-    utils::{HashSet},
-};
-use bevy_renet::{
-    renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent},
-};
+use bevy::{prelude::*, utils::HashSet};
+use bevy_renet::renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent};
 
 use crate::{
     game_server::{PlayerInfo, ServerInfo},

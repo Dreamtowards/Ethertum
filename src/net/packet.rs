@@ -1,6 +1,4 @@
-use bevy::{
-    math::{IVec3, Vec3},
-};
+use bevy::math::{IVec3, Vec3};
 use serde::{Deserialize, Serialize};
 
 use crate::voxel::{Cell, Chunk};

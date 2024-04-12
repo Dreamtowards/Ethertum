@@ -161,13 +161,7 @@ fn chunks_load(
                     player.username
                 );
                 let data = CellData::from_chunk(&chunkptr.read().unwrap());
-                net_server.send_packet(
-                    player.client_id,
-                    &SPacket::ChunkNew {
-                        chunkpos: chunkpos,
-                        voxel: data,
-                    },
-                );
+                net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos, voxel: data });
             }
         });
     }

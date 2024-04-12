@@ -278,6 +278,7 @@ impl Chunk {
 
     // assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[opposite_idx] == IVec3::ZERO, "idx = {}, opposite = {}", idx, opposite_idx);
     pub fn neighbor_idx_opposite(idx: usize) -> usize {
+        // idx MOD 2 + (idx+1) MOD 2
         idx / 2 * 2 + (idx + 1) % 2
     }
 }

@@ -4,8 +4,7 @@ use bevy::{
 };
 use bevy_egui::{
     egui::{
-        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2,
-        Response, Rounding, Stroke, Ui, WidgetText,
+        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
     },
     EguiContexts, EguiPlugin,
 };

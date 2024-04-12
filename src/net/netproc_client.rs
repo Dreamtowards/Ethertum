@@ -62,7 +62,7 @@ pub fn client_sys(
         match &packet {
             SPacket::Disconnect { reason } => {
                 info!("DisconnectedPacket: {}", reason);
-                cli.disconnected_reason = reason.clone();
+                cli.disconnected_reason.clone_from(reason);
                 net_client.disconnect_due_to_transport();
             }
             SPacket::ServerInfo {
@@ -115,7 +115,7 @@ pub fn client_sys(
                 spawn_player(
                     entity_id.client_entity(),
                     false,
-                    &name,
+                    name,
                     &mut cmds,
                     &asset_server,
                     &mut meshes,
@@ -134,7 +134,7 @@ pub fn client_sys(
                 cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
             }
             SPacket::PlayerList { playerlist } => {
-                cli.playerlist = playerlist.clone(); // should move?
+                cli.playerlist.clone_from(playerlist); // should move?
             }
 
             SPacket::ChunkNew { chunkpos, voxel } => {

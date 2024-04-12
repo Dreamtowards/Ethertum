@@ -2,9 +2,7 @@ use std::f32::consts::{PI, TAU};
 
 use bevy::{
     app::AppExit,
-    ecs::{
-        system::{SystemParam},
-    },
+    ecs::system::SystemParam,
     input::mouse::MouseWheel,
     math::vec3,
     pbr::DirectionalLightShadowMap,
@@ -129,11 +127,7 @@ fn on_app_exit(mut exit_events: EventReader<AppExit>, cli: Res<ClientInfo>) {
 pub mod condition {
     use super::{ClientInfo, WorldInfo};
     use crate::ui::CurrentUI;
-    use bevy::ecs::{
-        change_detection::DetectChanges,
-        schedule::{common_conditions::resource_removed},
-        system::Res,
-    };
+    use bevy::ecs::{change_detection::DetectChanges, schedule::common_conditions::resource_removed, system::Res};
 
     // a.k.a. loaded_world
     pub fn in_world(res: Option<Res<WorldInfo>>, res_vox: Option<Res<crate::voxel::ClientChunkSystem>>) -> bool {
@@ -747,7 +741,7 @@ impl<'w, 's> EthertiaClient<'w, 's> {
 
     pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
-        self.clientinfo.server_addr = server_addr.clone();
+        self.clientinfo.server_addr.clone_from(&server_addr);
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
 

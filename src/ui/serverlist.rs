@@ -1,4 +1,3 @@
-
 use crate::{
     game_client::{ClientInfo, EthertiaClient, ServerListItem},
     game_server::{self, rcon::Motd},
@@ -7,7 +6,7 @@ use crate::{
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{HashMap},
+    utils::HashMap,
 };
 use bevy_egui::{
     egui::{self, Color32, Layout},
@@ -99,10 +98,8 @@ pub fn ui_serverlist(
                 if sfx_play(ui.selectable_label(false, "Refresh All")).clicked() {
                     do_refresh_all.set(true);
                 }
-                if show_stop_refresh {
-                    if sfx_play(ui.selectable_label(false, "Stop Refresh")).clicked() {
-                        do_stop_refreshing = true;
-                    }
+                if show_stop_refresh && sfx_play(ui.selectable_label(false, "Stop Refresh")).clicked() {
+                    do_stop_refreshing = true;
                 }
                 ui.separator();
                 if sfx_play(ui.selectable_label(false, "Aquire List")).clicked() {
@@ -270,8 +267,8 @@ Inhabited: 10.3 hours",
                         ui.horizontal(|ui| {
                             ui.label("Survival · Cheats");
                             ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
-                                if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {}
-                                if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {}
+                                sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked();
+                                sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked();
                                 if sfx_play(ui.button("▶")).on_hover_text("Play").clicked() {}
                             });
                         });
@@ -348,7 +345,7 @@ pub fn ui_create_world(
 
         ui.add_space(22.);
 
-        if sfx_play(ui.add_sized([290., 26.], egui::Button::new("Create World").fill(Color32::DARK_GREEN))).clicked() {}
+        sfx_play(ui.add_sized([290., 26.], egui::Button::new("Create World").fill(Color32::DARK_GREEN))).clicked();
         ui.add_space(4.);
         if sfx_play(ui.add_sized([290., 20.], egui::Button::new("Cancel"))).clicked() {
             cli.curr_ui = CurrentUI::LocalWorldList;

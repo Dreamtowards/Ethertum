@@ -3,12 +3,8 @@ use std::{f32::consts::PI, hash::Hash, ops::Mul};
 use bevy::{
     math::{ivec3, vec2, vec3},
     prelude::*,
-    render::{
-        mesh::{Indices, Mesh},
-    },
-    utils::{
-        Entry, HashMap,
-    },
+    render::mesh::Indices,
+    utils::HashMap,
 };
 use bevy_egui::egui::emath::inverse_lerp;
 
@@ -229,10 +225,8 @@ impl MeshGen {
 
                     let c = chunk.get_cell(lp);
 
-                    if c.tex_id != 0 {
-                        if c.shape_id == 1 {
-                            put_cube(vbuf, lp, chunk, c.tex_id);
-                        }
+                    if c.tex_id != 0 && c.shape_id == 1 {
+                        put_cube(vbuf, lp, chunk, c.tex_id);
                     }
                 }
             }
