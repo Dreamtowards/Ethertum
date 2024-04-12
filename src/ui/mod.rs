@@ -15,8 +15,9 @@ use crate::game_client::{condition, ClientInfo};
 mod debug;
 pub mod hud;
 mod main_menu;
-mod serverlist;
+pub mod serverlist;
 mod settings;
+
 
 pub struct UiPlugin;
 
@@ -292,6 +293,6 @@ impl UiExtra for Ui {
         sfx_play(self.add_sized([220., 24.], egui::Button::new(text)))
     }
     fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response {
-        self.add_sized([190., 22.], egui::SelectableLabel::new(false, text))
+        sfx_play(self.add(egui::SelectableLabel::new(false, text)))
     }
 }

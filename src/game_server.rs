@@ -48,7 +48,7 @@ fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, serv: ResMut<Server
 pub mod rcon {
     use super::*;
 
-    #[derive(serde::Serialize, serde::Deserialize)]
+    #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
     pub struct Motd {
         pub motd: String,
         pub num_player_online: u32,

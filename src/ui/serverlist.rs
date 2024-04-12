@@ -18,6 +18,9 @@ use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 
 use super::new_egui_window;
 
+
+
+// 
 pub fn ui_connecting_server(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, mut net_client: ResMut<RenetClient>) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
@@ -25,9 +28,6 @@ pub fn ui_connecting_server(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, 
         ui.vertical_centered(|ui| {
             ui.add_space(h * 0.2);
 
-            // ui.horizontal(|ui| {
-
-            // });
             if net_client.is_connected() {
                 ui.label("Authenticating & logging in...");
             } else {
@@ -69,11 +69,24 @@ pub fn ui_disconnected_reason(
     });
 }
 
+
+
+
+#[derive(Default, Debug)]
+pub struct UiServerInfo {
+    pub motd: String,
+    pub num_players_online: u32,
+    pub num_players_limit: u32,
+    pub ping: u32,
+
+    pub is_editing: bool,
+    pub refreshing_task: Option<(Task<anyhow::Result<Motd>>, u64)>
+}
+
 pub fn ui_serverlist(
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
-    mut editing_idx: Local<Option<usize>>,
-    mut refreshing_indices: Local<HashMap<usize, (Task<anyhow::Result<Motd>>, u64)>>,
+    // mut refreshing_indices: Local<HashMap<usize, (Task<anyhow::Result<Motd>>, u64)>>,
 ) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
         let serverlist = &mut cli.data().cfg.serverlist;
@@ -83,35 +96,36 @@ pub fn ui_serverlist(
         let do_refresh_all = std::cell::Cell::new(false);
         let mut do_stop_refreshing = false;
         let mut do_acquire_list = false;
-
         let mut do_join_addr = None;
         let mut do_del_idx = None;
 
-        let show_stop_refresh = !refreshing_indices.is_empty();
+        // let show_stop_refresh = !refreshing_indices.is_empty();
         ui_lr_panel(
             ui,
             true,
             |ui| {
-                if sfx_play(ui.selectable_label(false, "Add Server")).clicked() {
+                if ui.btn_borderless("Add Server").clicked() {
                     do_new_server.set(true);
                 }
-                if sfx_play(ui.selectable_label(false, "Refresh All")).clicked() {
+                if ui.btn_borderless("Refresh All").clicked() {
                     do_refresh_all.set(true);
                 }
-                if show_stop_refresh && sfx_play(ui.selectable_label(false, "Stop Refresh")).clicked() {
-                    do_stop_refreshing = true;
-                }
+                // if show_stop_refresh && ui.btn_borderless("Stop Refresh").clicked() {
+                //     do_stop_refreshing = true;
+                // }
                 ui.separator();
-                if sfx_play(ui.selectable_label(false, "Aquire List")).clicked() {
+                if ui.btn_borderless("Aquire List").clicked() {
                     do_acquire_list = true;
                 }
-                if sfx_play(ui.selectable_label(false, "Direct Connect")).clicked() {}
+                if ui.btn_borderless("Direct Connect").clicked() {}
             },
             |ui| {
                 for (idx, server_item) in serverlist.iter_mut().enumerate() {
-                    let is_editing = editing_idx.is_some_and(|i| i == idx);
-                    let is_accessable = server_item.ping != 0;
-                    let mut is_refreshing = refreshing_indices.contains_key(&idx);
+                    let ui_server_info = &mut server_item.ui;
+
+                    let is_editing = ui_server_info.is_editing;
+                    let is_accessable = ui_server_info.ping != 0;
+                    let mut is_refreshing = ui_server_info.refreshing_task.is_some();
 
                     ui.group(|ui| {
                         // First Line
@@ -119,17 +133,17 @@ pub fn ui_serverlist(
                             if is_editing {
                                 ui.text_edit_singleline(&mut server_item.name);
                             } else {
-                                // Name
+                                // Left: Name
                                 ui.colored_label(Color32::WHITE, server_item.name.clone())
                                     .on_hover_text(server_item.addr.clone());
                                 ui.small(&server_item.addr);
 
-                                // Status
+                                // Right: Status
                                 if is_accessable {
                                     ui.with_layout(Layout::right_to_left(egui::Align::Min), |ui| {
                                         ui.label(format!(
                                             "{}ms · {}/{}",
-                                            server_item.ping, server_item.num_players_online, server_item.num_players_limit
+                                            ui_server_info.ping, ui_server_info.num_players_online, ui_server_info.num_players_limit
                                         ));
                                     });
                                 }
@@ -137,12 +151,13 @@ pub fn ui_serverlist(
                         });
                         // Second Line
                         ui.horizontal(|ui| {
+                            // Description/Motd
                             if is_editing {
                                 ui.text_edit_singleline(&mut server_item.addr);
                             } else if is_refreshing {
                                 ui.spinner();
                             } else if is_accessable {
-                                ui.label(&server_item.motd);
+                                ui.label(&ui_server_info.motd);
                             } else {
                                 ui.colored_label(Color32::DARK_RED, "Inaccessible 🚫");
                             }
@@ -151,19 +166,20 @@ pub fn ui_serverlist(
                             ui.with_layout(Layout::right_to_left(egui::Align::Max), |ui| {
                                 if is_editing {
                                     if sfx_play(ui.button("✅")).clicked() {
-                                        *editing_idx = None;
+                                        ui_server_info.is_editing = false;
                                     }
                                 } else {
                                     if sfx_play(ui.button("🗑")).on_hover_text("Delete").clicked() {
                                         do_del_idx = Some(idx);
                                     }
                                     if sfx_play(ui.button("⛭")).on_hover_text("Edit").clicked() {
-                                        *editing_idx = Some(idx);
+                                        ui_server_info.is_editing = true;
                                     }
                                     if is_refreshing {
                                         if sfx_play(ui.button("❌")).on_hover_text("Stop Refreshing").clicked() {
-                                            refreshing_indices.remove(&idx);
+                                            // refreshing_indices.remove(&idx);
                                             is_refreshing = false;
+                                            ui_server_info.refreshing_task = None;
                                         }
                                     } else if sfx_play(ui.button("⟲")).on_hover_text("Refresh Server Status").clicked() {
                                         is_refreshing = true;
@@ -178,7 +194,7 @@ pub fn ui_serverlist(
 
                     if is_refreshing || do_refresh_all.get() {
                         let addr = server_item.addr.clone(); // opt
-                        let (task, _) = refreshing_indices.entry(idx).or_insert_with(|| {
+                        let (task, time) = ui_server_info.refreshing_task.get_or_insert_with(|| {
                             (
                                 AsyncComputeTaskPool::get()
                                     .spawn(async move { util::http_get_json::<game_server::rcon::Motd>(&format!("http://{}", addr)) }),
@@ -187,19 +203,21 @@ pub fn ui_serverlist(
                         });
 
                         if task.is_finished() {
-                            let (task, time) = refreshing_indices.remove(&idx).unwrap();
+                            // let (task, time) = refreshing_indices.remove(&idx).unwrap();
 
                             match futures_lite::future::block_on(futures_lite::future::poll_once(task)).unwrap() {
                                 Ok(r) => {
-                                    server_item.motd = r.motd;
-                                    server_item.num_players_limit = r.num_player_limit;
-                                    server_item.num_players_online = r.num_player_online;
-                                    server_item.ping = (util::current_timestamp_millis() - time) as u32;
+                                    ui_server_info.motd = r.motd;
+                                    ui_server_info.num_players_limit = r.num_player_limit;
+                                    ui_server_info.num_players_online = r.num_player_online;
+                                    ui_server_info.ping = (util::current_timestamp_millis() - *time) as u32;
                                 }
                                 Err(err) => {
                                     info!("Failed to access server status: {}", err);
                                 }
                             }
+
+                            ui_server_info.refreshing_task = None;
                         }
                     }
                 }
@@ -215,9 +233,9 @@ pub fn ui_serverlist(
             },
         );
 
-        if do_stop_refreshing {
-            refreshing_indices.clear();
-        }
+        // if do_stop_refreshing {
+        //     refreshing_indices.clear();
+        // }
 
         if do_acquire_list {
             match crate::util::http_get_json("https://ethertia.com/server-info.json") {

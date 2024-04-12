@@ -59,17 +59,12 @@ impl Plugin for GameClientPlugin {
         // UI
         app.add_plugins(crate::ui::UiPlugin);
 
-        // CharacterController
-        app.add_plugins(CharacterControllerPlugin);
-
-        // Voxel
-        app.add_plugins(ClientVoxelPlugin);
-
-        // Items
-        app.add_plugins(ItemPlugin);
-
-        // Network Client
-        app.add_plugins(ClientNetworkPlugin);
+        // Gameplay
+        
+        app.add_plugins(CharacterControllerPlugin);  // CharacterController
+        app.add_plugins(ClientVoxelPlugin);  // Voxel
+        app.add_plugins(ItemPlugin);  // Items
+        app.add_plugins(ClientNetworkPlugin);  // Network Client
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
@@ -577,24 +572,19 @@ impl Default for WorldInfo {
 
 // ClientSettings Configs
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
+
+#[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct ServerListItem {
     pub name: String,
     pub addr: String,
 
     #[serde(skip)]
-    pub motd: String,
-    #[serde(skip)]
-    pub num_players_online: u32,
-    #[serde(skip)]
-    pub num_players_limit: u32,
-    #[serde(skip)]
-    pub ping: u32,
+    pub ui: crate::ui::serverlist::UiServerInfo,
 }
 
 const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
 
-#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath)]
 pub struct ClientSettings {
     // Name, Addr
     pub serverlist: Vec<ServerListItem>,
