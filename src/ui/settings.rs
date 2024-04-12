@@ -1,16 +1,15 @@
 use bevy::prelude::*;
 use bevy_egui::{
-    egui::{self, Color32, Layout, Rangef, Rect, Rounding, Stroke, Ui, Widget},
-    EguiContexts, EguiPlugin, EguiSettings,
+    egui::{self, Color32, Layout, Ui, Widget},
+    EguiContexts, EguiSettings,
 };
 
 use crate::{
     character_controller::CharacterController,
-    game_client::{condition, ClientInfo, DespawnOnWorldUnload, EthertiaClient, WorldInfo},
-    voxel::{ClientChunkSystem, HitResult},
+    game_client::{ClientInfo, WorldInfo},
 };
 
-use super::{new_egui_window, sfx_play, ui_lr_panel, CurrentUI};
+use super::{new_egui_window, sfx_play, ui_lr_panel};
 
 #[derive(Default, PartialEq, Debug, Clone, Copy)]
 pub enum SettingsPanel {

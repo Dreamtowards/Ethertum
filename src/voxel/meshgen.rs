@@ -1,14 +1,12 @@
-use std::{f32::consts::PI, hash::Hash, num, ops::Mul};
+use std::{f32::consts::PI, hash::Hash, ops::Mul};
 
 use bevy::{
     math::{ivec3, vec2, vec3},
     prelude::*,
     render::{
         mesh::{Indices, Mesh},
-        render_resource::PrimitiveTopology,
     },
     utils::{
-        hashbrown::hash_map::{OccupiedEntry, VacantEntry},
         Entry, HashMap,
     },
 };
@@ -16,7 +14,7 @@ use bevy_egui::egui::emath::inverse_lerp;
 
 use crate::util::iter;
 
-use super::{chunk::*, material::mtl_tex, ChunkPtr};
+use super::{chunk::*, material::mtl_tex};
 
 // Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
 

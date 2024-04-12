@@ -1,12 +1,11 @@
-use std::{str::FromStr, time::Duration};
+use std::{time::Duration};
 
 use bevy::{
     prelude::*,
-    utils::{HashMap, HashSet},
+    utils::{HashSet},
 };
 use bevy_renet::{
-    client_just_connected,
-    renet::{transport::NetcodeServerTransport, ClientId, DefaultChannel, RenetServer, ServerEvent},
+    renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent},
 };
 
 use crate::{
@@ -22,7 +21,7 @@ pub fn server_sys(
     transport: Res<NetcodeServerTransport>,
     mut serverinfo: ResMut<ServerInfo>,
 
-    mut chunk_sys: ResMut<ServerChunkSystem>,
+    chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
 ) {
     for event in server_events.read() {

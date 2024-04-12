@@ -4,10 +4,10 @@ use bevy::{
     prelude::*,
 };
 use bevy_egui::{
-    egui::{self, pos2, Align2, Color32, Frame, Layout, OpenUrl, RichText, Rounding},
+    egui::{self, Color32, Frame, Layout, OpenUrl, RichText, Rounding},
     EguiContexts,
 };
-use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
+use bevy_renet::renet::{RenetClient};
 
 use super::{sfx_play, CurrentUI, UiExtra};
 use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
@@ -18,7 +18,7 @@ pub fn ui_main_menu(
     mut app_exit_events: EventWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
-    mut cmds: Commands,
+    cmds: Commands,
     // mut dbg_server_addr: Local<String>,
 ) {
     // if *rendered_texture_id == egui::TextureId::default() {

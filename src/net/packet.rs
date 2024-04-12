@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::entity::Entity,
     math::{IVec3, Vec3},
 };
 use serde::{Deserialize, Serialize};

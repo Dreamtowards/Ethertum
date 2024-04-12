@@ -3,8 +3,7 @@ use std::f32::consts::{PI, TAU};
 use bevy::{
     app::AppExit,
     ecs::{
-        reflect,
-        system::{CommandQueue, SystemParam},
+        system::{SystemParam},
     },
     input::mouse::MouseWheel,
     math::vec3,
@@ -132,7 +131,7 @@ pub mod condition {
     use crate::ui::CurrentUI;
     use bevy::ecs::{
         change_detection::DetectChanges,
-        schedule::{common_conditions::resource_removed, State},
+        schedule::{common_conditions::resource_removed},
         system::Res,
     };
 
@@ -167,7 +166,7 @@ fn on_world_init(
     asset_server: Res<AssetServer>,
     // mut materials: ResMut<Assets<StandardMaterial>>,
     // mut meshes: ResMut<Assets<Mesh>>,
-    mut cli: ResMut<ClientInfo>,
+    cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
@@ -341,7 +340,7 @@ fn handle_inputs(
     mut query_window: Query<&mut Window, With<PrimaryWindow>>,
     mut query_controller: Query<&mut CharacterController>,
 
-    mut worldinfo: Option<ResMut<WorldInfo>>,
+    worldinfo: Option<ResMut<WorldInfo>>,
     mut cli: ResMut<ClientInfo>,
 ) {
     let mut window = query_window.single_mut();

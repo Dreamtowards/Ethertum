@@ -4,17 +4,16 @@ use bevy::{prelude::*, reflect::List};
 use bevy_egui::{
     egui::{
         self,
-        text::{CCursorRange, LayoutJob},
-        Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, ScrollArea, Stroke, TextEdit, TextFormat, Vec2,
+        text::{CCursorRange},
+        Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, ScrollArea, Stroke, TextEdit, Vec2,
     },
     EguiContexts,
 };
 use bevy_renet::renet::RenetClient;
-use egui_extras::{Size, StripBuilder};
 
 use crate::{
-    game_client::{ClientInfo, WorldInfo},
-    net::{CPacket, RenetClientHelper, SPacket},
+    game_client::{ClientInfo},
+    net::{CPacket, RenetClientHelper},
 };
 
 use super::CurrentUI;

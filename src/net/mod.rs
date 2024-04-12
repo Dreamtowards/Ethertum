@@ -6,16 +6,16 @@ use std::{
 use crate::{
     game_client::condition,
     game_server::ServerInfo,
-    util::{current_timestamp, current_timestamp_millis},
+    util::{current_timestamp},
 };
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
         transport::{
-            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, NetcodeTransportError, ServerAuthentication, ServerConfig,
+            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig,
             NETCODE_USER_DATA_BYTES,
         },
-        ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType, ServerEvent,
+        ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType,
     },
     transport::{NetcodeClientPlugin, NetcodeServerPlugin},
     RenetClientPlugin, RenetServerPlugin,

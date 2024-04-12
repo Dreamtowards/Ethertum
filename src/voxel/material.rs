@@ -1,4 +1,3 @@
-use bevy::math::IVec2;
 
 enum VoxelShapeId {
     Isosurface = 0,

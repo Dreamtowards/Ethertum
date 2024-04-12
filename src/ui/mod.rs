@@ -1,16 +1,13 @@
 use bevy::{
-    audio::Source,
     diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
-    math::vec2,
     prelude::*,
-    transform::commands,
 };
 use bevy_egui::{
     egui::{
-        self, pos2, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, FontId, Frame, LayerId, Layout, Pos2, Rangef, Rect,
-        Response, Rounding, Stroke, Ui, Widget, WidgetText,
+        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2,
+        Response, Rounding, Stroke, Ui, WidgetText,
     },
-    EguiContexts, EguiPlugin, EguiSettings,
+    EguiContexts, EguiPlugin,
 };
 use egui_extras::{Size, StripBuilder};
 
@@ -129,7 +126,7 @@ pub fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {
 
 fn setup_egui_style(mut ctx: EguiContexts) {
     ctx.ctx_mut().style_mut(|style| {
-        let mut visuals = &mut style.visuals;
+        let visuals = &mut style.visuals;
         let round = Rounding::from(2.);
 
         visuals.window_rounding = round;

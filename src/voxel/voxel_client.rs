@@ -14,11 +14,11 @@ use bevy_xpbd_3d::plugins::{
     spatial_query::{SpatialQuery, SpatialQueryFilter},
 };
 
-use super::{material::mtl, meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
+use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
 use crate::{
     character_controller::{CharacterController, CharacterControllerCamera},
     game_client::{condition, ClientInfo, DespawnOnWorldUnload},
-    net::{CPacket, CellData, RenetClientHelper, SPacket},
+    net::{CPacket, CellData, RenetClientHelper},
     ui::CurrentUI,
     util::iter,
 };
@@ -229,7 +229,7 @@ fn raycast(
 
     mut hit_result: ResMut<HitResult>,
     mouse_btn: Res<ButtonInput<MouseButton>>,
-    mut chunk_sys: ResMut<ClientChunkSystem>,
+    chunk_sys: ResMut<ClientChunkSystem>,
     mut net_client: ResMut<RenetClient>,
     cli: Res<ClientInfo>,
 ) {

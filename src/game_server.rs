@@ -3,7 +3,6 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 use bevy_renet::renet::ClientId;
-use bevy_xpbd_3d::plugins::PhysicsPlugins;
 
 use crate::{
     net::{EntityId, ServerNetworkPlugin},

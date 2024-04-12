@@ -1,8 +1,3 @@
-use std::{
-    borrow::Borrow,
-    fs,
-    sync::{Arc, Mutex},
-};
 
 use crate::{
     game_client::{ClientInfo, EthertiaClient, ServerListItem},
@@ -12,14 +7,13 @@ use crate::{
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{HashMap, HashSet},
+    utils::{HashMap},
 };
 use bevy_egui::{
-    egui::{self, Align2, Color32, Layout, Ui, Widget},
+    egui::{self, Color32, Layout},
     EguiContexts,
 };
 use bevy_renet::renet::RenetClient;
-use futures_lite::FutureExt;
 
 use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 

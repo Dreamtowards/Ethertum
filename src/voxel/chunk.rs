@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, RwLock, Weak},
+    sync::{RwLock, Weak},
     usize,
 };
 

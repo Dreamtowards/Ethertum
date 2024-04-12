@@ -7,7 +7,6 @@ use bevy::{
     render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     utils::HashMap,
 };
-use bevy_mod_billboard::BillboardTextBundle;
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
@@ -36,7 +35,7 @@ pub fn client_sys(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
-    mut entity_s2c: Local<HashMap<Entity, Entity>>,
+    entity_s2c: Local<HashMap<Entity, Entity>>,
 ) {
     if *last_connected != 1 && net_client.is_connecting() {
         *last_connected = 1;

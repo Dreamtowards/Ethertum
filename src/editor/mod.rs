@@ -1,13 +1,5 @@
 use bevy::{
-    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
-    render::{renderer::RenderAdapterInfo, view::VisibleEntities},
-    window::{CursorGrabMode, PrimaryWindow, WindowMode},
-};
-use bevy_editor_pls::editor::EditorEvent;
-use bevy_egui::{
-    egui::{style::HandleShape, FontData, FontDefinitions, FontFamily, Rounding},
-    EguiContexts, EguiPlugin, EguiSettings,
 };
 
 pub struct EditorPlugin;

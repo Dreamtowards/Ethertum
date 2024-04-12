@@ -1,8 +1,7 @@
 use bevy::{
     app::AppExit,
-    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, SystemInformationDiagnosticsPlugin},
+    diagnostic::{DiagnosticsStore, EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
-    transform::commands,
 };
 use bevy_egui::{
     egui::{self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget},
@@ -12,7 +11,7 @@ use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
     character_controller::CharacterControllerCamera,
-    game_client::{condition, ClientInfo, EthertiaClient, WorldInfo},
+    game_client::{ClientInfo, WorldInfo},
     ui::color32_of,
     voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
 };
@@ -20,7 +19,7 @@ use crate::{
 pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
+    chunk_sys: Option<ResMut<ClientChunkSystem>>,
     mut cli: ResMut<ClientInfo>,
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 
