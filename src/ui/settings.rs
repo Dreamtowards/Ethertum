@@ -91,27 +91,24 @@ pub fn ui_settings(
 
                         ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cli.cfg.username));
 
-                        // ui.horizontal(|ui| {
-                        //     ui.add_space(8.);
-                        ui.group(|ui| {
-                            ui.horizontal(|ui| {
-                                ui.vertical(|ui| {
-                                    ui.colored_label(Color32::WHITE, cli.cfg.username.clone());
-                                    ui.small("ref.dreamtowards@gmail.com");
-                                });
+                        // ui.group(|ui| {
+                        //     ui.horizontal(|ui| {
+                        //         ui.vertical(|ui| {
+                        //             ui.colored_label(Color32::WHITE, cli.cfg.username.clone());
+                        //             ui.small("ref.dreamtowards@gmail.com");
+                        //         });
 
-                                ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
-                                    ui.button("Log out").clicked();
-                                    if ui.button("Account Info").clicked() {
-                                        ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
-                                    }
-                                });
-                            });
+                        //         ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
+                        //             ui.button("Log out").clicked();
+                        //             if ui.button("Account Info").clicked() {
+                        //                 ui.ctx().open_url(egui::OpenUrl::new_tab("https://ethertia.com/profile/uuid"));
+                        //             }
+                        //         });
+                        //     });
 
-                            // if ui.button("Switch Account").clicked() {
-                            //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
-                            // }
-                        });
+                        //     // if ui.button("Switch Account").clicked() {
+                        //     //     ui.ctx().open_url(egui::OpenUrl::new_tab("https://auth.ethertia.com/login?client"));
+                        //     // }
                         // });
 
                         // ui.label("General:");

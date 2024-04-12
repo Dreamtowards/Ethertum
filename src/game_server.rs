@@ -45,17 +45,21 @@ fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, serv: ResMut<Server
     for _ in exit_events.read() {}
 }
 
+
+
+
+
 pub mod rcon {
     use super::*;
 
     #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
     pub struct Motd {
         pub motd: String,
+        pub game_addr: String,
         pub num_player_online: u32,
         pub num_player_limit: u32,
         pub protocol_version: u64,
         pub favicon_url: String,
-        pub game_url: String,
     }
 
     #[derive(Resource)]
@@ -63,7 +67,7 @@ pub mod rcon {
         pub server: tiny_http::Server,
     }
 
-    pub fn on_http_recv(http: Res<HttpServer>) {
+    pub fn on_http_recv(http: Res<HttpServer>, serv: Res<ServerInfo>) {
         if let Ok(Some(req)) = http.server.try_recv() {
             info!("Req URL: {}", req.url());
             let motd = Motd {
@@ -72,7 +76,7 @@ pub mod rcon {
                 num_player_online: 0,
                 protocol_version: 0,
                 favicon_url: "".into(),
-                game_url: "".into(),
+                game_addr: "0.0.0.0:4000".into(),
             };
             req.respond(tiny_http::Response::from_string(serde_json::to_string(&motd).unwrap()))
                 .unwrap();

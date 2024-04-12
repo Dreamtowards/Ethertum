@@ -1,4 +1,4 @@
-use std::f32::consts::{PI, TAU};
+use std::{f32::consts::{PI, TAU}, net::{SocketAddr, ToSocketAddrs}};
 
 use bevy::{
     app::AppExit,
@@ -306,6 +306,7 @@ fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOn
         cmds.entity(entity).despawn_recursive();
     }
 
+    // todo: net_client.disconnect();  即时断开 否则服务器会觉得你假死 对其他用户体验不太好
     cmds.remove_resource::<RenetClient>();
     cmds.remove_resource::<NetcodeClientTransport>();
 }
@@ -731,6 +732,25 @@ impl<'w, 's> EthertiaClient<'w, 's> {
 
     pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
+
+        let mut addrs = match server_addr.trim().to_socket_addrs() {
+            Ok(addrs) => addrs.collect::<Vec<_>>(),
+            Err(err) => {
+                error!("Failed to resolve DNS of server_addr: {}", err);
+                self.data().curr_ui = CurrentUI::DisconnectedReason;
+                return;
+            }
+        };
+        let addr = match addrs.pop() {
+            Some(addr) => addr,
+            None => {
+                self.data().curr_ui = CurrentUI::DisconnectedReason;
+                return;
+            }
+        }; 
+
+        
+        self.data().curr_ui = CurrentUI::ConnectingServer;
         self.clientinfo.server_addr.clone_from(&server_addr);
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
@@ -743,8 +763,7 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         });
 
         self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(
-            server_addr.trim().parse().unwrap(),
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(addr,
             Some("userData123".to_string().into_bytes()),
         ));
 
@@ -763,6 +782,11 @@ impl<'w, 's> EthertiaClient<'w, 's> {
 
         //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
         // });
+    }
+
+    pub fn exit_world(&mut self) {
+        self.cmds.remove_resource::<WorldInfo>();
+        self.data().curr_ui = CurrentUI::MainMenu;
     }
 
     pub fn enter_world() {}

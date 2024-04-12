@@ -268,6 +268,8 @@ pub fn ui_lr_panel(ui: &mut Ui, separator: bool, mut add_nav: impl FnMut(&mut Ui
 }
 
 trait UiExtra {
+    fn btn(&mut self, text: impl Into<WidgetText>) -> Response;
+
     fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response;
 
     fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response;
@@ -288,6 +290,9 @@ pub fn sfx_play(resp: Response) -> Response {
 }
 
 impl UiExtra for Ui {
+    fn btn(&mut self, text: impl Into<WidgetText>) -> Response {
+        sfx_play(self.add(egui::Button::new(text)))
+    }
     fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response {
         self.add_space(4.);
         sfx_play(self.add_sized([220., 24.], egui::Button::new(text)))

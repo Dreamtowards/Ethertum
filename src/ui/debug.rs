@@ -11,8 +11,8 @@ use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
     character_controller::CharacterControllerCamera,
-    game_client::{ClientInfo, WorldInfo},
-    ui::color32_of,
+    game_client::{ClientInfo, EthertiaClient, WorldInfo},
+    ui::{color32_of, CurrentUI, UiExtra},
     voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
 };
 
@@ -20,7 +20,7 @@ pub fn ui_menu_panel(
     mut ctx: EguiContexts,
     mut worldinfo: Option<ResMut<WorldInfo>>,
     chunk_sys: Option<ResMut<ClientChunkSystem>>,
-    mut cli: ResMut<ClientInfo>,
+    mut cl: EthertiaClient,
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
 
     net_client: Option<Res<RenetClient>>,
@@ -39,6 +39,7 @@ pub fn ui_menu_panel(
         color32_of(DARK)
     };
     // color32_of(worldinfo.map_or(DARK, |v| v.is_paused));
+
 
     egui::TopBottomPanel::top("menu_panel")
         .frame(Frame::default().fill(bg))
@@ -60,7 +61,10 @@ pub fn ui_menu_panel(
                     // ui.small("9ms\n12ms");
                     // ui.label("127.0.0.1:4000 · 21ms");
 
+                    // Network Info
                     if let Some(net_transport) = net_transport {
+                        let cli = cl.data();
+
                         let net_client = net_client.unwrap();
                         if net_client.is_connected() {
                             use human_bytes::human_bytes;
@@ -92,6 +96,7 @@ pub fn ui_menu_panel(
                         }
                     }
 
+                    // World Pause
                     if let Some(worldinfo) = &mut worldinfo {
                         ui.separator();
 
@@ -117,14 +122,22 @@ pub fn ui_menu_panel(
                                 ui.separator();
                             });
                             ui.menu_button("Open World", |ui| {
-                                ui.button("New World").clicked();
-                                ui.button("Open World..").clicked();
+                                if ui.btn("New World").clicked() {
+                                    let cli = cl.data();
+                                    cli.curr_ui = CurrentUI::LocalWorldNew;
+                                }
+                                ui.btn("Open World..").clicked();
                                 ui.separator();
                             });
-                            ui.button("Edit World..").clicked();
-                            ui.button("Close World").clicked();
+                            ui.btn("Edit World..").clicked();
+                            if ui.btn("Close World").clicked() {
+                                cl.exit_world();
+                            }
                             ui.separator();
-                            ui.button("Settings").clicked();
+                            if ui.btn("Settings").clicked() {
+                                let cli = cl.data();
+                                cli.curr_ui = CurrentUI::Settings;
+                            }
                             ui.button("Mods").clicked();
                             ui.button("Assets").clicked();
                             ui.button("Controls").clicked();
@@ -135,6 +148,7 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("World", |ui| {
+    let cli = cl.data();
                             ui.label("Gizmos:");
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
                             ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Curr Chunk");
@@ -166,6 +180,7 @@ pub fn ui_menu_panel(
                             }
 
                             ui.separator();
+                            let cli = cl.data();
                             ui.toggle_value(&mut cli.dbg_text, "Debug Text");
                             ui.toggle_value(&mut cli.dbg_inspector, "Inspector");
                         });

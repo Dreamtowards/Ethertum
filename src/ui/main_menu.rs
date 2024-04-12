@@ -100,15 +100,30 @@ pub fn ui_main_menu(
     });
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
-    mut commands: Commands,
 
     mut net_client: ResMut<RenetClient>,
-    mut cli: ResMut<ClientInfo>, // only curr_ui
-                                 // mut worldinfo: ResMut<WorldInfo>,
+    mut cli: EthertiaClient,
 ) {
-    // egui::Window::new("Pause Menu").show(ctx.ctx_mut(), |ui| {
+    super::new_egui_window("Pause").show(ctx.ctx_mut(), |ui| {
+
+    });
+
     egui::CentralPanel::default()
         .frame(Frame::default().fill(Color32::from_black_alpha(190)))
         .show(ctx.ctx_mut(), |ui| {
@@ -139,14 +154,13 @@ pub fn ui_pause_menu(
                 ui.toggle_value(&mut false, "Abilities");
                 ui.toggle_value(&mut false, "Quests");
                 ui.separator();
+
                 if ui.toggle_value(&mut false, "Settings").clicked() {
-                    cli.curr_ui = CurrentUI::Settings;
+                    cli.data().curr_ui = CurrentUI::Settings;
                 }
+
                 if ui.toggle_value(&mut false, "Quit").clicked() {
-                    cli.curr_ui = CurrentUI::MainMenu;
-                    commands.remove_resource::<WorldInfo>();
-                    net_client.disconnect();
-                    // cli.close_world();
+                    cli.exit_world();
                 }
             });
 
