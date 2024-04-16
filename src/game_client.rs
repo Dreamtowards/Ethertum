@@ -60,7 +60,6 @@ impl Plugin for GameClientPlugin {
         app.add_plugins(crate::ui::UiPlugin);
 
         // Gameplay
-        
         app.add_plugins(CharacterControllerPlugin);  // CharacterController
         app.add_plugins(ClientVoxelPlugin);  // Voxel
         app.add_plugins(ItemPlugin);  // Items
