@@ -96,7 +96,7 @@ pub struct Chunk {
 
     // cached neighbor chunks (if they are not empty even if they are loaded)
     // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
-    pub neighbor_chunks: [Option<Weak<RwLock<Chunk>>>; Self::NEIGHBOR_DIR.len()],
+    pub neighbor_chunks: [Option<Weak<Chunk>>; Self::NEIGHBOR_DIR.len()],
 }
 
 impl Chunk {
@@ -135,7 +135,7 @@ impl Chunk {
             let neib_idx = Chunk::neighbor_idx(relpos)?;
             if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
                 let neib_chunkptr = neib_weak.upgrade()?;
-                let neib_chunk = neib_chunkptr.read().unwrap();
+                let neib_chunk = neib_chunkptr.as_ref();
                 // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
                 return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));

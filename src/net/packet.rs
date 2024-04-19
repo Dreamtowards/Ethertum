@@ -1,4 +1,4 @@
-use bevy::math::{IVec3, Vec3};
+use bevy::math::{IVec2, IVec3, Vec3};
 use serde::{Deserialize, Serialize};
 
 use crate::voxel::{Cell, Chunk};
@@ -62,6 +62,8 @@ pub enum CPacket {
     PlayerList, // RequestPlayerList
 
     ChunkModify { chunkpos: IVec3, voxel: Vec<CellData> },
+
+    LoadDistance { load_distance: IVec2 },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -121,4 +123,8 @@ pub enum SPacket {
         chunkpos: IVec3,
         voxel: Vec<CellData>,
     },
+
+    WorldTime {
+        daytime: f32,
+    }
 }

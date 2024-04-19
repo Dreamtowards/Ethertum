@@ -20,7 +20,7 @@ use crate::{
     game_client::{condition, ClientInfo, DespawnOnWorldUnload},
     net::{CPacket, CellData, RenetClientHelper},
     ui::CurrentUI,
-    util::iter,
+    util::{self, iter, AsRefMut},
 };
 
 pub struct ClientVoxelPlugin;
@@ -127,7 +127,7 @@ fn chunks_remesh_enqueue(
                 let mesh_handle;
                 let mesh_handle_foliage;
                 {
-                    let chunk = chunkptr.read().unwrap();
+                    let chunk = chunkptr.as_ref();
 
                     // Generate Mesh
                     MeshGen::generate_chunk_mesh(&mut _vbuf.0, &chunk);
@@ -286,7 +286,7 @@ fn raycast(
 
             let pack = map.entry(chunkpos).or_insert_with(Vec::new);
 
-            let chunk = chunk_sys.get_chunk(chunkpos).unwrap().read().unwrap();
+            let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
 
             let mut c = *chunk.get_cell(Chunk::as_localpos(p));
 
@@ -381,6 +381,7 @@ pub struct ClientChunkSystem {
 
     pub shader_terrain: Handle<TerrainMaterial>,
     pub entity: Entity,
+
 }
 
 impl ChunkSystem for ClientChunkSystem {
@@ -413,7 +414,7 @@ impl ClientChunkSystem {
     pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let chunkpos;
         {
-            let mut chunk = chunkptr.write().unwrap();
+            let mut chunk = chunkptr.as_ref_mut();
             chunkpos = chunk.chunkpos;
 
             let mut neighbors_nearby_completed = Vec::new();
@@ -427,7 +428,7 @@ impl ClientChunkSystem {
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        let mut neib_chunk = neib_chunkptr.write().unwrap();
+                        let mut neib_chunk = neib_chunkptr.as_ref_mut();
 
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));

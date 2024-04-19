@@ -31,6 +31,7 @@ impl WorldGen {
                     let f_3d = fbm.get(p.as_dvec3().div(90.).to_array()) as f32;
 
                     let mut val = f_terr - (p.y as f32) / 18. + f_3d * 4.5;
+                    // val = (-p.y as f32 - 1.) / 18.;  // super flat
 
                     let mut tex = mtl::NIL; //(p.x / 2 % 24).abs() as u16;
                     if val > 0.0 {

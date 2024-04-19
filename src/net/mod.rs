@@ -92,7 +92,7 @@ impl Plugin for ServerNetworkPlugin {
         app.add_plugins(NetcodeServerPlugin);
 
         app.insert_resource(RenetServer::new(ConnectionConfig {
-            server_channels_config: net_channel_config(10 * 1024 * 1024),
+            server_channels_config: net_channel_config(20 * 1024 * 1024),
             ..default()
         }));
 
@@ -210,6 +210,8 @@ pub trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
 
     fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String);
+    
+    fn send_packet_chat(&mut self, client_id: ClientId, message: String);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);
 
@@ -223,6 +225,9 @@ impl RenetServerHelper for RenetServer {
     }
     fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String) {
         self.send_packet(client_id, &SPacket::Disconnect { reason });
+    }
+    fn send_packet_chat(&mut self, client_id: ClientId, message: String) {
+        self.send_packet(client_id, &SPacket::Chat { message });
     }
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P) {
         self.broadcast_message(DefaultChannel::ReliableOrdered, bincode::serialize(packet).unwrap());

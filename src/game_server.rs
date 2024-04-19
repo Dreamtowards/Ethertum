@@ -29,7 +29,7 @@ impl Plugin for GameServerPlugin {
 
         let rcon_port = 8001;
         let http_server = tiny_http::Server::http(format!("0.0.0.0:{}", rcon_port)).unwrap();
-        info!("Start RCON endpoint on 0.0.0.0:{}", http_server.server_addr().to_ip().unwrap());
+        info!("Start RCON endpoint on {}", http_server.server_addr().to_ip().unwrap());
         app.insert_resource(rcon::HttpServer { server: http_server });
         app.add_systems(Update, rcon::on_http_recv);
     }
@@ -76,7 +76,7 @@ pub mod rcon {
                 num_player_online: 0,
                 protocol_version: 0,
                 favicon_url: "".into(),
-                game_addr: "0.0.0.0:4000".into(),
+                game_addr: "127.0.0.1:4000".into(),
             };
             req.respond(tiny_http::Response::from_string(serde_json::to_string(&motd).unwrap()))
                 .unwrap();

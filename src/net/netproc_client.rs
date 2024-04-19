@@ -3,9 +3,7 @@
 use std::sync::{Arc, RwLock};
 
 use bevy::{
-    prelude::*,
-    render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    utils::HashMap,
+    ecs::system::EntityCommands, prelude::*, render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}, utils::HashMap
 };
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
@@ -15,7 +13,7 @@ use crate::{
     character_controller::{CharacterController, CharacterControllerBundle},
     game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo},
     ui::CurrentUI,
-    util::current_timestamp_millis,
+    util::{current_timestamp_millis, AsRefMut},
     voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem},
 };
 
@@ -30,6 +28,7 @@ pub fn client_sys(
     mut chats: ResMut<crate::ui::hud::ChatHistory>,
     mut cmds: Commands,
     mut chunk_sys: ResMut<ClientChunkSystem>,
+    mut worldinfo: ResMut<WorldInfo>,
 
     // 临时测试 待移除:
     mut meshes: ResMut<Assets<Mesh>>,
@@ -91,10 +90,9 @@ pub fn client_sys(
                 cli.curr_ui = CurrentUI::None;
 
                 spawn_player(
-                    player_entity.client_entity(),
+                    &mut cmds.get_or_spawn(player_entity.client_entity()),  // 为什么在这生成 因为要指定id，以及其他player也是在这生成
                     true,
                     &cli.cfg.username,
-                    &mut cmds,
                     &asset_server,
                     &mut meshes,
                     &mut materials,
@@ -113,10 +111,9 @@ pub fn client_sys(
                 // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
 
                 spawn_player(
-                    entity_id.client_entity(),
+                    &mut cmds.get_or_spawn(entity_id.client_entity()),
                     false,
                     name,
-                    &mut cmds,
                     &asset_server,
                     &mut meshes,
                     &mut materials,
@@ -134,9 +131,13 @@ pub fn client_sys(
                 cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
             }
             SPacket::PlayerList { playerlist } => {
+                
                 cli.playerlist.clone_from(playerlist); // should move?
             }
+            SPacket::WorldTime { daytime } => {
 
+                worldinfo.daytime = *daytime;
+            }
             SPacket::ChunkNew { chunkpos, voxel } => {
                 let mut chunk = Chunk::new(*chunkpos);
 
@@ -184,7 +185,7 @@ pub fn client_sys(
                         .id();
                 }
 
-                let chunkptr = Arc::new(RwLock::new(chunk));
+                let chunkptr = Arc::new(chunk);
 
                 chunk_sys.spawn_chunk(chunkptr);
 
@@ -194,7 +195,7 @@ pub fn client_sys(
                 // info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
 
                 if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
-                    let entity = chunkptr.read().unwrap().entity;
+                    let entity = chunkptr.entity;
 
                     // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
                     // why the entity may not exists even if it in the chunk_sys?
@@ -218,19 +219,19 @@ pub fn client_sys(
                 }
 
                 // todo: NonLock
-                let mut chunk = chunk_sys.get_chunk(*chunkpos).unwrap().write().unwrap();
+                let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
 
-                CellData::to_chunk(voxel, &mut chunk);
+                CellData::to_chunk(voxel, chunk.as_ref_mut());
             }
         }
     }
 }
 
-fn spawn_player(
-    entity: Entity,
+pub fn spawn_player(
+    ec: &mut EntityCommands,
     is_theplayer: bool,
     name: &String,
-    cmds: &mut Commands,
+    // cmds: &mut Commands,
     asset_server: &Res<AssetServer>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
@@ -239,8 +240,7 @@ fn spawn_player(
     //     let meshes = world.get_resource_mut::<Assets<Mesh>>().unwrap();
     //     let materials = world.get_resource_mut::<Assets<StandardMaterial>>().unwrap();
     // });
-
-    let mut ec = cmds.get_or_spawn(entity);
+    // let mut ec = cmds.get_or_spawn(entity);
 
     ec.insert((
         PbrBundle {

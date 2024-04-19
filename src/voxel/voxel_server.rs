@@ -11,7 +11,7 @@ use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, 
 use crate::{
     game_server::ServerInfo,
     net::{CellData, RenetServerHelper, SPacket},
-    util::iter,
+    util::{iter, AsRefMut},
 };
 
 type ChunkLoadingData = (IVec3, ChunkPtr);
@@ -72,7 +72,7 @@ fn chunks_load(
 
                 WorldGen::generate_chunk(&mut chunk);
 
-                let chunkptr = Arc::new(RwLock::new(chunk));
+                let chunkptr = Arc::new(chunk);
                 tx.send((chunkpos, chunkptr)).unwrap();
             });
 
@@ -88,7 +88,7 @@ fn chunks_load(
         chunks_loading.remove(&chunkpos);
 
         {
-            let mut chunk = chunkptr.write().unwrap();
+            let chunk = chunkptr.as_ref_mut();
 
             chunk.entity = cmds
                 .spawn((
@@ -119,7 +119,7 @@ fn chunks_load(
 
         if !any_desire {
             let chunkptr = chunk_sys.despawn_chunk(chunkpos);
-            let entity = chunkptr.unwrap().read().unwrap().entity;
+            let entity = chunkptr.unwrap().as_ref().entity;
             cmds.entity(entity).despawn_recursive();
 
             net_server.broadcast_packet(&SPacket::ChunkDel { chunkpos });
@@ -160,7 +160,7 @@ fn chunks_load(
                     num_sent,
                     player.username
                 );
-                let data = CellData::from_chunk(&chunkptr.read().unwrap());
+                let data = CellData::from_chunk(chunkptr.as_ref());
                 net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos, voxel: data });
             }
         });
@@ -184,7 +184,7 @@ impl ServerChunkSystem {
     }
 
     fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
-        let cp = chunkptr.read().unwrap().chunkpos;
+        let cp = chunkptr.as_ref().chunkpos;
         self.chunks.insert(cp, chunkptr);
     }
 

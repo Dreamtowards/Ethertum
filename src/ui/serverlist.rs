@@ -195,7 +195,7 @@ pub fn ui_serverlist(
                             } else if is_accessable {
                                 ui.label(&ui_server_info.motd);
                             } else {
-                                ui.colored_label(Color32::DARK_RED, "Inaccessible 🚫");
+                                ui.colored_label(Color32::DARK_RED, "Inaccessible 🚫").on_hover_text(&ui_server_info.motd);
                             }
 
                             // Right: Ops
@@ -247,6 +247,8 @@ pub fn ui_serverlist(
                                 }
                                 Err(err) => {
                                     info!("Failed to access server status: {}", err);
+                                    ui_server_info.ping = 0;
+                                    ui_server_info.motd = err.to_string();
                                 }
                             }
                             is_refreshing = false;
@@ -326,7 +328,7 @@ pub fn ui_serverlist(
 
 pub fn ui_localsaves(
     mut ctx: EguiContexts,
-    mut cli: ResMut<ClientInfo>,
+    mut cli: EthertiaClient,
     mut idx_editing: Local<Option<usize>>,
 ) {
     new_egui_window("Local Worlds").show(ctx.ctx_mut(), |ui| {
@@ -335,7 +337,7 @@ pub fn ui_localsaves(
             false,
             |ui| {
                 if ui.btn_borderless("New World").clicked() {
-                    cli.curr_ui = CurrentUI::LocalWorldNew;
+                    // cli.data().curr_ui = CurrentUI::LocalWorldNew;
                 }
                 if ui.btn_borderless("Refresh").clicked() {}
             },
@@ -377,7 +379,7 @@ Inhabited: 10.3 hours",
                                         *idx_editing = Some(idx);
                                     }
                                     if ui.btn("▶").on_hover_text("Play").clicked() {
-
+                                        cli.enter_world();
                                     }
                                 }
                             });

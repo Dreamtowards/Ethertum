@@ -274,7 +274,7 @@ pub fn ui_lr_panel(ui: &mut Ui, separator: bool, mut add_nav: impl FnMut(&mut Ui
         });
 }
 
-trait UiExtra {
+pub trait UiExtra {
     fn btn(&mut self, text: impl Into<WidgetText>) -> Response;
 
     fn btn_normal(&mut self, text: impl Into<WidgetText>) -> Response;

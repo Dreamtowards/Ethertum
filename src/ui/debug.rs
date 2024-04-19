@@ -10,10 +10,7 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    character_controller::CharacterControllerCamera,
-    game_client::{ClientInfo, EthertiaClient, WorldInfo},
-    ui::{color32_of, CurrentUI, UiExtra},
-    voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
+    character_controller::CharacterControllerCamera, game_client::{ClientInfo, EthertiaClient, WorldInfo}, ui::{color32_of, CurrentUI, UiExtra}, util::AsRefMut, voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
 };
 
 pub fn ui_menu_panel(
@@ -164,9 +161,22 @@ pub fn ui_menu_panel(
                                 }
                                 if ui.button("Gen Tree").clicked() {
                                     let p = query_cam.single().translation.as_ivec3();
-                                    let mut chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().write().unwrap();
+                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().as_ref_mut();
 
-                                    worldgen::gen_tree(&mut chunk, Chunk::as_localpos(p), 0.8);
+                                    worldgen::gen_tree(chunk, Chunk::as_localpos(p), 0.8);
+                                }
+                                if ui.button("Gen Floor").clicked() {
+                                    let campos = query_cam.single().translation.as_ivec3();
+
+                                    // crate::util::iter::iter_center_spread(10, 1, |p| {
+                                    // });
+                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_ref_mut();
+                                    for x in 0..16 {
+                                        for z in 0..16 {
+
+                                            chunk.set_cell(IVec3::new(x, 0, z), &Cell::new(0, 1, 0.));
+                                        }
+                                    }
                                 }
                             }
                         });

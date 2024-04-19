@@ -6,7 +6,7 @@ use bevy_egui::{
 
 use crate::{
     character_controller::CharacterController,
-    game_client::{ClientInfo, WorldInfo},
+    game_client::{ClientInfo, WorldInfo}, voxel::ClientChunkSystem,
 };
 
 use super::{new_egui_window, sfx_play, ui_lr_panel};
@@ -33,7 +33,7 @@ pub fn ui_settings(
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
-    // mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
+    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
     // mut global_volume: ResMut<GlobalVolume>,
 
     // mut cmds: Commands,
@@ -120,6 +120,9 @@ pub fn ui_settings(
                             "Chunks Meshing Max Concurrency",
                             egui::Slider::new(&mut cli.max_concurrent_meshing, 0..=50),
                         );
+                        
+                        ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cli.chunks_load_distance.x, -1..=25));
+                        ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cli.chunks_load_distance.y, -1..=25));
 
                         ui_setting_line(ui, "Brush Size", egui::Slider::new(&mut cli.brush_size, 0.0..=20.0));
 
@@ -135,9 +138,6 @@ pub fn ui_settings(
 
                             ui_setting_line(ui, "Day Time Length", egui::Slider::new(&mut worldinfo.daytime_length, 0.0..=60.0 * 24.0));
 
-                            // let chunk_sys = chunk_sys.unwrap();
-                            // ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut chunk_sys.view_distance.x, 0..=25));
-                            // ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut chunk_sys.view_distance.x, 0..=25));
                         }
                     }
                     SettingsPanel::Graphics => {
@@ -147,7 +147,9 @@ pub fn ui_settings(
 
                         ui_setting_line(ui, "VSync", egui::Checkbox::new(&mut cli.vsync, ""));
 
-                        ui_setting_line(ui, "Shadow", egui::Checkbox::new(&mut cli.skylight_shadow, ""));
+                        ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut cli.skylight_shadow, ""));
+
+                        ui_setting_line(ui, "Skylight Illuminance", egui::Slider::new(&mut cli.skylight_illuminance, 0.1..=200.0));
 
                         ui.label("UI");
 

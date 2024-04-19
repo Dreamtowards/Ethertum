@@ -14,10 +14,15 @@ mod meshgen;
 pub mod worldgen;
 pub use worldgen::WorldGen;
 
-use std::sync::{Arc, RwLock};
-pub type ChunkPtr = Arc<RwLock<Chunk>>; // Box<Chunk>;         not supported for SharedPtr
+use std::{cell::UnsafeCell, sync::{Arc, RwLock}};
+pub type ChunkPtr = Arc<Chunk>; // Box<Chunk>;         not supported for SharedPtr
+
+
+
 
 use bevy::{prelude::*, utils::HashMap};
+
+use crate::util::AsRefMut;
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelTx<T>(crate::channel_impl::Sender<T>);
@@ -56,7 +61,7 @@ pub trait ChunkSystem {
     fn get_cell(&self, p: IVec3) -> Option<Cell> {
         let chunkptr = self.get_chunk(Chunk::as_chunkpos(p))?;
 
-        Some(*chunkptr.read().unwrap().get_cell(Chunk::as_localpos(p)))
+        Some(*chunkptr.get_cell(Chunk::as_localpos(p)))
     }
 }
 

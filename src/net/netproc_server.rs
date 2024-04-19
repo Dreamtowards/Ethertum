@@ -4,10 +4,7 @@ use bevy::{prelude::*, utils::HashSet};
 use bevy_renet::renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent};
 
 use crate::{
-    game_server::{PlayerInfo, ServerInfo},
-    net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
-    util::current_timestamp_millis,
-    voxel::{ChunkSystem, ServerChunkSystem},
+    game_client::WorldInfo, game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::{current_timestamp_millis, AsRefMut}, voxel::{ChunkSystem, ServerChunkSystem}
 };
 
 pub fn server_sys(
@@ -15,6 +12,7 @@ pub fn server_sys(
     mut server: ResMut<RenetServer>,
     transport: Res<NetcodeServerTransport>,
     mut serverinfo: ResMut<ServerInfo>,
+    // mut worldinfo: ResMut<WorldInfo>,
 
     chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
@@ -124,7 +122,7 @@ pub fn server_sys(
                             entity_id,
                             position: Vec3::ZERO,
                             chunks_loaded: HashSet::default(),
-                            chunks_load_distance: IVec2::new(4, 2),
+                            chunks_load_distance: IVec2::new(-1, -1),  // 4 2
                             ping_rtt: 0,
                         },
                     );
@@ -142,7 +140,25 @@ pub fn server_sys(
 
                     match packet {
                         CPacket::ChatMessage { message } => {
-                            server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
+                            if message.starts_with("/") {
+                                let args = shlex::split(&message[1..]).unwrap();
+
+                                if args[0] == "time" {
+                                    if args[1] == "set" {
+                                        let daytime = args[2].parse::<f32>().unwrap();
+                                        server.broadcast_packet(&SPacket::WorldTime { daytime });
+                                    } else {
+                                        server.send_packet_chat(client_id, "Current time is ".into());
+                                    }
+                                }
+                                info!("[CMD]: {:?}", args);
+                            } else {
+                                server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
+                            }
+                        }
+                        CPacket::LoadDistance { load_distance } => {
+
+                            player.chunks_load_distance = load_distance;
                         }
                         CPacket::PlayerPos { position } => {
                             // todo: check diff, skip the same
@@ -174,9 +190,9 @@ pub fn server_sys(
                         }
                         CPacket::ChunkModify { chunkpos, voxel } => {
                             // todo: NonLock
-                            let mut chunk = chunk_sys.get_chunk(chunkpos).unwrap().write().unwrap();
+                            let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
 
-                            CellData::to_chunk(&voxel, &mut chunk);
+                            CellData::to_chunk(&voxel, chunk.as_ref_mut());
 
                             server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
                         }

@@ -1,4 +1,4 @@
-use std::{f32::consts::{PI, TAU}, net::{SocketAddr, ToSocketAddrs}};
+use std::{f32::consts::{E, PI, TAU}, net::{SocketAddr, ToSocketAddrs}};
 
 use bevy::{
     app::AppExit,
@@ -17,7 +17,7 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::item::{Inventory, ItemPlugin};
+use crate::{item::{Inventory, ItemPlugin}, ui::UiExtra};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
 use crate::{
     character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin},
@@ -83,6 +83,8 @@ impl Plugin for GameClientPlugin {
 
         // Debug
         {
+            app.add_systems(Update, wfc_test);
+
             // Draw Basis
             app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world));
 
@@ -149,14 +151,91 @@ pub struct DespawnOnWorldUnload;
 #[derive(Component)]
 struct Sun;
 
+
+#[derive(Component)]
+struct WfcTest;
+
+fn wfc_test(
+    mut cmds: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+
+    mut ctx: bevy_egui::EguiContexts,
+    query_wfc: Query<Entity, With<WfcTest>>,
+
+    mut tx_templ_name: Local<String>,
+) {
+
+    bevy_egui::egui::Window::new("WFC").show(ctx.ctx_mut(), |ui| {
+
+        ui.text_edit_singleline(&mut *tx_templ_name);
+
+        if ui.btn("ReGen").clicked() {
+            
+            for e_wfc in query_wfc.iter() {
+                cmds.entity(e_wfc).despawn_recursive();
+            }
+
+
+            use crate::wfc::*;
+            let mut wfc = WFC::new();
+            wfc.push_pattern("0".into(), [0; 6], false, false);
+            wfc.push_pattern("1".into(), [1; 6], false, false);
+            wfc.push_pattern("2".into(),  [0, 2, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("3".into(),  [3, 3, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("4".into(),  [1, 2, 0, 0, 4, 4], true, false);
+            wfc.push_pattern("5".into(),  [4, 0, 0, 0, 4, 0], true, false);
+            wfc.push_pattern("6".into(),  [2, 2, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("7".into(),  [2, 2, 0, 0, 3, 3], true, false);
+            wfc.push_pattern("8".into(),  [0, 0, 0, 0, 3, 2], true, false);
+            wfc.push_pattern("9".into(),  [2, 2, 0, 0, 2, 0], true, false);
+            wfc.push_pattern("10".into(), [2, 2, 0, 0, 2, 2], true, false);
+            wfc.push_pattern("11".into(), [0, 2, 0, 0, 2, 0], true, false);
+            wfc.push_pattern("12".into(), [2, 2, 0, 0, 0, 0], true, false);
+            wfc.init_tiles(IVec3::new(15, 1, 15));
+
+            wfc.run();
+
+            for tile in wfc.tiles.iter() {
+                if tile.entropy() == 0 {
+                    continue; // ERROR
+                }
+                let pat = &wfc.all_patterns[tile.possib[0] as usize];
+            
+                cmds.spawn((PbrBundle {
+                    mesh: meshes.add(Plane3d::new(Vec3::Y)),
+                    material: materials.add(StandardMaterial {
+                        base_color_texture: Some(asset_server.load(format!("test/comp/circuit{}/{}.png", &*tx_templ_name, pat.name))),
+                        unlit: true,
+                        ..default()
+                    }),
+                    transform: Transform::from_translation(tile.pos.as_vec3() + (Vec3::ONE - Vec3::Y) * 0.5)
+                        .with_scale(Vec3::ONE * 0.49 * if pat.is_flipped { -1.0 } else { 1.0 })
+                        .with_rotation(Quat::from_axis_angle(Vec3::Y, f32::to_radians(pat.rotation as f32 * 90.0))),
+                    ..default()
+                }, WfcTest));
+            }
+        }
+
+    });
+
+}
+
+
 fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
-    // mut materials: ResMut<Assets<StandardMaterial>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
+
+    // crate::net::netproc_client::spawn_player(
+    //     &mut cmds.spawn_empty(), 
+    //     true, 
+    //     &cli.cfg.username, &asset_server, &mut meshes, &mut materials);
 
     // Camera
     cmds.spawn((
@@ -183,7 +262,6 @@ fn on_world_init(
     cmds.spawn((
         DirectionalLightBundle {
             directional_light: DirectionalLight {
-                shadows_enabled: cli.skylight_shadow,
                 ..default()
             },
             ..default()
@@ -193,109 +271,111 @@ fn on_world_init(
         DespawnOnWorldUnload,
     ));
 
-    // TouchStick  Move-Left
-    cmds.spawn((
-        Name::new("InputStickMove"),
-        DespawnOnWorldUnload,
-        // map this stick as a left gamepad stick (through bevy_input)
-        // leafwing will register this as a normal gamepad
-        TouchStickGamepadMapping::LEFT_STICK,
-        TouchStickUiBundle {
-            stick: TouchStick {
-                id: InputStickId::LeftMove,
-                stick_type: TouchStickType::Fixed,
-                ..default()
-            },
-            // configure the interactable area through bevy_ui
-            style: Style {
-                width: Val::Px(150.),
-                height: Val::Px(150.),
-                position_type: PositionType::Absolute,
-                left: Val::Percent(15.),
-                bottom: Val::Percent(5.),
-                ..default()
-            },
-            ..default()
-        },
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            TouchStickUiKnob,
-            ImageBundle {
-                image: asset_server.load("knob.png").into(),
-                style: Style {
-                    width: Val::Px(75.),
-                    height: Val::Px(75.),
-                    ..default()
-                },
-                ..default()
-            },
-        ));
-        parent.spawn((
-            TouchStickUiOutline,
-            ImageBundle {
-                image: asset_server.load("outline.png").into(),
-                style: Style {
-                    width: Val::Px(150.),
-                    height: Val::Px(150.),
-                    ..default()
-                },
-                ..default()
-            },
-        ));
-    });
 
-    // spawn a look stick
-    cmds.spawn((
-        Name::new("InputStickLook"),
-        DespawnOnWorldUnload,
-        // map this stick as a right gamepad stick (through bevy_input)
-        // leafwing will register this as a normal gamepad
-        TouchStickGamepadMapping::RIGHT_STICK,
-        TouchStickUiBundle {
-            stick: TouchStick {
-                id: InputStickId::RightLook,
-                stick_type: TouchStickType::Floating,
-                ..default()
-            },
-            // configure the interactable area through bevy_ui
-            style: Style {
-                width: Val::Px(150.),
-                height: Val::Px(150.),
-                position_type: PositionType::Absolute,
-                right: Val::Percent(15.),
-                bottom: Val::Percent(5.),
-                ..default()
-            },
-            ..default()
-        },
-    ))
-    .with_children(|parent| {
-        parent.spawn((
-            TouchStickUiKnob,
-            ImageBundle {
-                image: asset_server.load("knob.png").into(),
-                style: Style {
-                    width: Val::Px(75.),
-                    height: Val::Px(75.),
-                    ..default()
-                },
-                ..default()
-            },
-        ));
-        parent.spawn((
-            TouchStickUiOutline,
-            ImageBundle {
-                image: asset_server.load("outline.png").into(),
-                style: Style {
-                    width: Val::Px(150.),
-                    height: Val::Px(150.),
-                    ..default()
-                },
-                ..default()
-            },
-        ));
-    });
+
+    // // TouchStick  Move-Left
+    // cmds.spawn((
+    //     Name::new("InputStickMove"),
+    //     DespawnOnWorldUnload,
+    //     // map this stick as a left gamepad stick (through bevy_input)
+    //     // leafwing will register this as a normal gamepad
+    //     TouchStickGamepadMapping::LEFT_STICK,
+    //     TouchStickUiBundle {
+    //         stick: TouchStick {
+    //             id: InputStickId::LeftMove,
+    //             stick_type: TouchStickType::Fixed,
+    //             ..default()
+    //         },
+    //         // configure the interactable area through bevy_ui
+    //         style: Style {
+    //             width: Val::Px(150.),
+    //             height: Val::Px(150.),
+    //             position_type: PositionType::Absolute,
+    //             left: Val::Percent(15.),
+    //             bottom: Val::Percent(5.),
+    //             ..default()
+    //         },
+    //         ..default()
+    //     },
+    // ))
+    // .with_children(|parent| {
+    //     parent.spawn((
+    //         TouchStickUiKnob,
+    //         ImageBundle {
+    //             image: asset_server.load("knob.png").into(),
+    //             style: Style {
+    //                 width: Val::Px(75.),
+    //                 height: Val::Px(75.),
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         },
+    //     ));
+    //     parent.spawn((
+    //         TouchStickUiOutline,
+    //         ImageBundle {
+    //             image: asset_server.load("outline.png").into(),
+    //             style: Style {
+    //                 width: Val::Px(150.),
+    //                 height: Val::Px(150.),
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         },
+    //     ));
+    // });
+
+    // // spawn a look stick
+    // cmds.spawn((
+    //     Name::new("InputStickLook"),
+    //     DespawnOnWorldUnload,
+    //     // map this stick as a right gamepad stick (through bevy_input)
+    //     // leafwing will register this as a normal gamepad
+    //     TouchStickGamepadMapping::RIGHT_STICK,
+    //     TouchStickUiBundle {
+    //         stick: TouchStick {
+    //             id: InputStickId::RightLook,
+    //             stick_type: TouchStickType::Floating,
+    //             ..default()
+    //         },
+    //         // configure the interactable area through bevy_ui
+    //         style: Style {
+    //             width: Val::Px(150.),
+    //             height: Val::Px(150.),
+    //             position_type: PositionType::Absolute,
+    //             right: Val::Percent(15.),
+    //             bottom: Val::Percent(5.),
+    //             ..default()
+    //         },
+    //         ..default()
+    //     },
+    // ))
+    // .with_children(|parent| {
+    //     parent.spawn((
+    //         TouchStickUiKnob,
+    //         ImageBundle {
+    //             image: asset_server.load("knob.png").into(),
+    //             style: Style {
+    //                 width: Val::Px(75.),
+    //                 height: Val::Px(75.),
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         },
+    //     ));
+    //     parent.spawn((
+    //         TouchStickUiOutline,
+    //         ImageBundle {
+    //             image: asset_server.load("outline.png").into(),
+    //             style: Style {
+    //                 width: Val::Px(150.),
+    //                 height: Val::Px(150.),
+    //                 ..default()
+    //             },
+    //             ..default()
+    //         },
+    //     ));
+    // });
 }
 
 fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOnWorldUnload>>) {
@@ -364,7 +444,7 @@ fn handle_inputs(
         cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
-    if curr_manipulating {
+    if curr_manipulating && !key.pressed(KeyCode::AltLeft) {
         let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
 
         cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(HOTBAR_SLOTS as i32) as u32;
@@ -453,6 +533,7 @@ fn tick_world(
             net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
         }
     }
+    net_client.send_packet(&CPacket::LoadDistance { load_distance: cli.chunks_load_distance });  // todo: Only Send after Edit Dist Config
 
     // Ping Network
     if time.at_interval(1.0) {
@@ -481,7 +562,8 @@ fn tick_world(
     }
 
     if let Some((mut light_trans, mut directional)) = query_sun.single_mut().into() {
-        directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * 100000.0;
+        directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * cli.skylight_illuminance * 1000.0;
+        directional.shadows_enabled = cli.skylight_shadow;
 
         // or from000.looking_at()
         light_trans.rotation = Quat::from_rotation_z(sun_angle) * Quat::from_rotation_y(PI / 2.3);
@@ -631,6 +713,7 @@ pub struct ClientInfo {
 
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
+    pub chunks_load_distance: IVec2,  // not real, but send to server,
 
     // Render Sky
     pub sky_fog_color: Color,
@@ -639,6 +722,7 @@ pub struct ClientInfo {
     pub sky_extinction_color: Color,
     pub sky_fog_is_atomspheric: bool,
     pub skylight_shadow: bool,
+    pub skylight_illuminance: f32,
 
     pub vsync: bool,
 
@@ -660,8 +744,6 @@ pub struct ClientInfo {
     // UI
     #[reflect(ignore)]
     pub curr_ui: CurrentUI,
-
-    pub ui_scale: f32,
 }
 
 impl Default for ClientInfo {
@@ -686,6 +768,7 @@ impl Default for ClientInfo {
 
             max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
+            chunks_load_distance: IVec2::new(-1, -1),
 
             vsync: true,
 
@@ -696,6 +779,7 @@ impl Default for ClientInfo {
             sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
 
             skylight_shadow: false,
+            skylight_illuminance: 20.,
 
             cfg: ClientSettings::default(),
 
@@ -707,7 +791,6 @@ impl Default for ClientInfo {
             health_max: 20,
 
             curr_ui: CurrentUI::MainMenu,
-            ui_scale: 1.0,
         }
     }
 }
@@ -748,7 +831,6 @@ impl<'w, 's> EthertiaClient<'w, 's> {
             }
         }; 
 
-        
         self.data().curr_ui = CurrentUI::ConnectingServer;
         self.clientinfo.server_addr.clone_from(&server_addr);
 
@@ -771,16 +853,12 @@ impl<'w, 's> EthertiaClient<'w, 's> {
 
         // 提前初始化世界 以防用资源时 发现没有被初始化
         self.cmds.insert_resource(WorldInfo::default());
+    }
 
-        // let mut cmd = CommandQueue::default();
-        // cmd.push(move |world: &mut World| {
-        //     world.insert_resource(crate::net::new_netcode_client_transport(server_addr.parse().unwrap()));
-        //     world.insert_resource(RenetClient::new(bevy_renet::renet::ConnectionConfig::default()));
+    pub fn enter_world(&mut self) {
 
-        //     let mut net_client = world.resource_mut::<RenetClient>();
-
-        //     net_client.send_packet(&CPacket::Login { uuid: 1, access_token: 123 });
-        // });
+        self.cmds.insert_resource(WorldInfo::default());
+        self.data().curr_ui = CurrentUI::None;
     }
 
     pub fn exit_world(&mut self) {
@@ -788,5 +866,4 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         self.data().curr_ui = CurrentUI::MainMenu;
     }
 
-    pub fn enter_world() {}
 }

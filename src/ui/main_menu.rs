@@ -1,6 +1,6 @@
 use bevy::{app::AppExit, prelude::*};
 use bevy_egui::{
-    egui::{self, Color32, Frame, Layout, OpenUrl, RichText, Rounding},
+    egui::{self, pos2, vec2, Align2, Color32, Frame, Layout, OpenUrl, Rect, RichText, Rounding},
     EguiContexts,
 };
 use bevy_renet::renet::RenetClient;
@@ -8,9 +8,14 @@ use bevy_renet::renet::RenetClient;
 use super::{sfx_play, CurrentUI, UiExtra};
 use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 
+pub fn ui_wfc2d() {
+
+
+}
+
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
-    // asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
     mut app_exit_events: EventWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
@@ -20,9 +25,17 @@ pub fn ui_main_menu(
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
     // }
+    let img = ctx.add_image(asset_server.load("proto.png"));
 
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
+
+        ui.painter().image(
+            img, 
+            Rect::from_min_size(pos2(100., 100.), vec2(200., 200.)), 
+            Rect::from_min_size(pos2(0., 0.), vec2(1., 1.)), 
+            Color32::WHITE
+        );
 
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
 
@@ -116,64 +129,79 @@ pub fn ui_main_menu(
 
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
-
-    mut net_client: ResMut<RenetClient>,
     mut cli: EthertiaClient,
+    // mut net_client: ResMut<RenetClient>,
 ) {
-    super::new_egui_window("Pause").show(ctx.ctx_mut(), |ui| {
+    super::new_egui_window("Pause").anchor(Align2::CENTER_TOP, [0., 32.]).show(ctx.ctx_mut(), |ui| {
+        ui.horizontal(|ui| {
+            ui.toggle_value(&mut false, "Map");
+            ui.toggle_value(&mut false, "Inventory");
+            ui.toggle_value(&mut false, "Team");
+            ui.toggle_value(&mut false, "Abilities");
+            ui.toggle_value(&mut false, "Quests");
+            ui.separator();
 
+            if ui.toggle_value(&mut false, "Settings").clicked() {
+                cli.data().curr_ui = CurrentUI::Settings;
+            }
+
+            if ui.toggle_value(&mut false, "Quit").clicked() {
+                cli.exit_world();
+            }
+        });
     });
 
-    egui::CentralPanel::default()
-        .frame(Frame::default().fill(Color32::from_black_alpha(190)))
-        .show(ctx.ctx_mut(), |ui| {
-            let w = ui.available_width();
+    // return;
+    // egui::CentralPanel::default()
+    //     .frame(Frame::default().fill(Color32::from_black_alpha(190)))
+    //     .show(ctx.ctx_mut(), |ui| {
+    //         let w = ui.available_width();
 
-            let head_y = 75.;
-            ui.painter().rect_filled(
-                ui.max_rect().with_max_y(head_y),
-                Rounding::ZERO,
-                Color32::from_rgba_premultiplied(35, 35, 35, 210),
-            );
-            ui.painter().rect_filled(
-                ui.max_rect().with_max_y(head_y).with_min_y(head_y - 2.),
-                Rounding::ZERO,
-                Color32::from_white_alpha(80),
-            );
+    //         let head_y = 75.;
+    //         ui.painter().rect_filled(
+    //             ui.max_rect().with_max_y(head_y),
+    //             Rounding::ZERO,
+    //             Color32::from_rgba_premultiplied(35, 35, 35, 210),
+    //         );
+    //         ui.painter().rect_filled(
+    //             ui.max_rect().with_max_y(head_y).with_min_y(head_y - 2.),
+    //             Rounding::ZERO,
+    //             Color32::from_white_alpha(80),
+    //         );
 
-            ui.add_space(head_y - 27.);
+    //         ui.add_space(head_y - 27.);
 
-            ui.horizontal(|ui| {
-                ui.add_space((w - 420.) / 2.);
+    //         ui.horizontal(|ui| {
+    //             ui.add_space((w - 420.) / 2.);
 
-                ui.style_mut().spacing.button_padding.x = 10.;
+    //             ui.style_mut().spacing.button_padding.x = 10.;
 
-                ui.toggle_value(&mut false, "Map");
-                ui.toggle_value(&mut false, "Inventory");
-                ui.toggle_value(&mut false, "Team");
-                ui.toggle_value(&mut false, "Abilities");
-                ui.toggle_value(&mut false, "Quests");
-                ui.separator();
+    //             ui.toggle_value(&mut false, "Map");
+    //             ui.toggle_value(&mut false, "Inventory");
+    //             ui.toggle_value(&mut false, "Team");
+    //             ui.toggle_value(&mut false, "Abilities");
+    //             ui.toggle_value(&mut false, "Quests");
+    //             ui.separator();
 
-                if ui.toggle_value(&mut false, "Settings").clicked() {
-                    cli.data().curr_ui = CurrentUI::Settings;
-                }
+    //             if ui.toggle_value(&mut false, "Settings").clicked() {
+    //                 cli.data().curr_ui = CurrentUI::Settings;
+    //             }
 
-                if ui.toggle_value(&mut false, "Quit").clicked() {
-                    cli.exit_world();
-                }
-            });
+    //             if ui.toggle_value(&mut false, "Quit").clicked() {
+    //                 cli.exit_world();
+    //             }
+    //         });
 
-            // let h = ui.available_height();
-            // ui.add_space(h * 0.2);
+    //         // let h = ui.available_height();
+    //         // ui.add_space(h * 0.2);
 
-            // ui.vertical_centered(|ui| {
+    //         // ui.vertical_centered(|ui| {
 
-            //     if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
-            //         next_state_ingame.set(GameInput::Controlling);
-            //     }
-            //     if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
-            //     }
-            // });
-        });
+    //         //     if ui.add_sized([200., 20.], egui::Button::new("Continue")).clicked() {
+    //         //         next_state_ingame.set(GameInput::Controlling);
+    //         //     }
+    //         //     if ui.add_sized([200., 20.], egui::Button::new("Back to Title")).clicked() {
+    //         //     }
+    //         // });
+    //     });
 }
