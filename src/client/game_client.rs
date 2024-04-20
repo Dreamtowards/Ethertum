@@ -3,14 +3,7 @@ use std::{
     net::ToSocketAddrs,
 };
 
-use bevy::{
-    app::AppExit,
-    ecs::system::SystemParam,
-    math::vec3,
-    pbr::DirectionalLightShadowMap,
-    prelude::*,
-    utils::HashSet,
-};
+use bevy::{app::AppExit, ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet};
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use bevy_xpbd_3d::prelude::*;
@@ -18,8 +11,8 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::ui::prelude::*;
 use crate::client::prelude::*;
+use crate::ui::prelude::*;
 
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
@@ -77,11 +70,10 @@ impl Plugin for ClientGamePlugin {
         app.add_systems(Update, tick_world.run_if(condition::in_world)); // Sun, World Timing.
 
         // Input
-        app.add_systems(Startup, super::input::input_setup); 
-        app.add_systems(Update, super::input::input_handle); 
+        app.add_systems(Startup, super::input::input_setup);
+        app.add_systems(Update, super::input::input_handle);
         app.add_plugins(leafwing_input_manager::plugin::InputManagerPlugin::<InputAction>::default());
         // app.add_plugins((bevy_touch_stick::TouchStickPlugin::<InputStickId>::default());
-        
 
         // App Init/Exit
         app.add_systems(PreStartup, on_app_init); // load settings
@@ -97,7 +89,6 @@ impl Plugin for ClientGamePlugin {
             // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
-
     }
 }
 
@@ -262,7 +253,6 @@ fn on_world_init(
         Name::new("Sun"),
         DespawnOnWorldUnload,
     ));
-
 }
 
 fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOnWorldUnload>>) {
@@ -276,7 +266,6 @@ fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOn
     cmds.remove_resource::<RenetClient>();
     cmds.remove_resource::<NetcodeClientTransport>();
 }
-
 
 fn tick_world(
     #[cfg(feature = "target_native_os")] mut atmosphere: AtmosphereMut<Nishita>,

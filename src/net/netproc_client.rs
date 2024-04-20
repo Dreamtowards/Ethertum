@@ -8,7 +8,11 @@ use bevy::{
     render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     utils::HashMap,
 };
-use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
+use bevy_renet::{
+    renet::{DefaultChannel, DisconnectReason, RenetClient},
+    transport::NetcodeClientPlugin,
+    RenetClientPlugin,
+};
 use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
 
 use crate::{
@@ -19,6 +23,20 @@ use crate::{
 };
 
 use super::{packet::CellData, SPacket};
+
+pub struct ClientNetworkPlugin;
+
+impl Plugin for ClientNetworkPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(RenetClientPlugin);
+        app.add_plugins(NetcodeClientPlugin);
+
+        // 待考证: resource_exists::<RenetClient> 之前会造成 获取未加载的ChunkSystemClient
+        app.add_systems(Update, client_sys.run_if(condition::in_world));
+
+        // app.add_systems(Update, ui_client_net);
+    }
+}
 
 pub fn client_sys(
     // mut client_events: EventReader<ClientEvent>,
@@ -282,31 +300,29 @@ pub fn spawn_player(
     });
 
     if is_theplayer {
-        ec.insert((
-            CharacterControllerBundle::new(
-                Collider::capsule(0.9, 0.3),
-                CharacterController {
-                    is_flying: true,
-                    enable_input: false,
-                    ..default()
-                },
-            ),
-        ))
-        .with_children(|parent| {
-            // pointy "nose" for player
-            parent.spawn(SpriteBundle {
-                transform: Transform {
-                    translation: Vec3::new(15., 0., 0.),
-                    rotation: Quat::from_rotation_z(std::f32::consts::PI / 4.),
-                    ..default()
-                },
-                sprite: Sprite {
-                    color: Color::ORANGE,
-                    custom_size: Some(Vec2::splat(50. / f32::sqrt(2.))),
-                    ..default()
-                },
+        ec.insert((CharacterControllerBundle::new(
+            Collider::capsule(0.9, 0.3),
+            CharacterController {
+                is_flying: true,
+                enable_input: false,
                 ..default()
+            },
+        ),))
+            .with_children(|parent| {
+                // pointy "nose" for player
+                parent.spawn(SpriteBundle {
+                    transform: Transform {
+                        translation: Vec3::new(15., 0., 0.),
+                        rotation: Quat::from_rotation_z(std::f32::consts::PI / 4.),
+                        ..default()
+                    },
+                    sprite: Sprite {
+                        color: Color::ORANGE,
+                        custom_size: Some(Vec2::splat(50. / f32::sqrt(2.))),
+                        ..default()
+                    },
+                    ..default()
+                });
             });
-        });
     }
 }

@@ -258,13 +258,10 @@ fn input_move(
             //     movement.z += 1.;
             // }
 
-
             ctl.is_sneaking = action_state.pressed(&InputAction::Sneak);
 
             let is_jump_just_pressed = action_state.just_pressed(&InputAction::Jump);
             let is_jump_hold = action_state.pressed(&InputAction::Jump);
-
-
 
             // Is Grouned
             // The character is grounded if the shape caster has a hit with a normal that isn't too steep.
@@ -275,7 +272,6 @@ fn input_move(
                 rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
                 // }
             });
-
 
             // Fly Move
             if ctl.is_flying {
@@ -302,7 +298,6 @@ fn input_move(
                 ctl.is_flying = false;
             }
 
-
             // Input Sprint
             if is_move_forward {
                 if action_state.pressed(&InputAction::Sprint) {
@@ -312,7 +307,8 @@ fn input_move(
                 ctl.is_sprinting = false;
             }
             // Sprint: Double W
-            if input_key.just_pressed(KeyCode::KeyW) {  // todo: LastForward.
+            if input_key.just_pressed(KeyCode::KeyW) {
+                // todo: LastForward.
                 unsafe {
                     static mut LAST_W: f32 = 0.;
                     if time_now - LAST_W < 0.3 {
@@ -325,15 +321,14 @@ fn input_move(
             // Jump
             if is_jump_hold && ctl.is_grounded && !ctl.is_flying {
                 unsafe {
-                    static mut LAST_JUMP: f32 = 0.;  // countdown 
+                    static mut LAST_JUMP: f32 = 0.; // countdown
                     if time_now - LAST_JUMP > 0.3 {
-                        linvel.0.y = ctl.jump_impulse;  // apply jump vel
+                        linvel.0.y = ctl.jump_impulse; // apply jump vel
                     }
                     LAST_JUMP = time_now;
                 }
                 // info!("JMP {:?}", linvel.0);
             }
-
 
             // Apply Yaw to Movement & Rotation
             {

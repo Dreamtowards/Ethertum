@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, WorldGen};
 use crate::{
-    server::prelude::ServerInfo,
     net::{CellData, RenetServerHelper, SPacket},
+    server::prelude::ServerInfo,
     util::{iter, AsRefMut},
 };
 

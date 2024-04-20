@@ -1,7 +1,4 @@
-use bevy::{
-    math::{vec3},
-    prelude::*,
-};
+use bevy::{math::vec3, prelude::*};
 use rand::Rng;
 
 use crate::util::as_mut;

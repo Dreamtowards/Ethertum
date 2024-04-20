@@ -1,9 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::{
-    net::{SocketAddr, UdpSocket},
+    net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     time::Duration,
 };
 
-use crate::{client::prelude::condition, server::prelude::ServerInfo, util::current_timestamp};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{
@@ -15,18 +15,20 @@ use bevy_renet::{
     transport::{NetcodeClientPlugin, NetcodeServerPlugin},
     RenetClientPlugin, RenetServerPlugin,
 };
-use serde::{Deserialize, Serialize};
 
+use crate::util::current_timestamp;
 mod packet;
 pub use packet::{CPacket, CellData, SPacket};
-
 pub mod netproc_client;
 mod netproc_server;
 
 const PROTOCOL_ID: u64 = 1;
 
-pub fn new_netcode_server_transport(public_addr: SocketAddr, max_clients: usize) -> NetcodeServerTransport {
-    // let public_addr = "127.0.0.1:4000".parse().unwrap();  // SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080)
+pub use netproc_client::ClientNetworkPlugin;
+pub use netproc_server::ServerNetworkPlugin;
+
+pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -> NetcodeServerTransport {
+    let public_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), public_addr_port);
     let socket = UdpSocket::bind(public_addr).unwrap();
     let server_config = ServerConfig {
         current_time: current_timestamp(),
@@ -82,46 +84,6 @@ fn net_channel_config(max_memory_usage_bytes: usize) -> Vec<ChannelConfig> {
             },
         },
     ]
-}
-
-pub struct ServerNetworkPlugin;
-
-impl Plugin for ServerNetworkPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(RenetServerPlugin);
-        app.add_plugins(NetcodeServerPlugin);
-
-        app.insert_resource(RenetServer::new(ConnectionConfig {
-            server_channels_config: net_channel_config(20 * 1024 * 1024),
-            ..default()
-        }));
-
-        app.add_systems(Startup, bind_server_endpoint);
-        app.add_systems(Update, netproc_server::server_sys);
-
-        // app.add_systems(Update, ui_server_net);
-    }
-}
-
-fn bind_server_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
-    let addr = serv.cfg().addr().parse().unwrap();
-
-    cmds.insert_resource(new_netcode_server_transport(addr, 64));
-    info!("Server bind endpoint at {}", addr);
-}
-
-pub struct ClientNetworkPlugin;
-
-impl Plugin for ClientNetworkPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(RenetClientPlugin);
-        app.add_plugins(NetcodeClientPlugin);
-
-        // 待考证: resource_exists::<RenetClient> 之前会造成 获取未加载的ChunkSystemClient
-        app.add_systems(Update, netproc_client::client_sys.run_if(condition::in_world));
-
-        // app.add_systems(Update, ui_client_net);
-    }
 }
 
 // An unique id shared in Server and Client. in client with a big offset to avoid id collision.

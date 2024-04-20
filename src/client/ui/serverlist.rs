@@ -1,8 +1,4 @@
-use crate::{
-    client::prelude::*,
-    server::{game_server::rcon::Motd},
-    util,
-};
+use crate::{client::prelude::*, server::game_server::rcon::Motd, util};
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
@@ -187,8 +183,7 @@ pub fn ui_serverlist(
                         let addr = server_item.addr.clone(); // opt
                         let (task, time) = ui_server_info.refreshing_task.get_or_insert_with(|| {
                             (
-                                AsyncComputeTaskPool::get()
-                                    .spawn(async move { util::http_get_json::<Motd>(&format!("http://{}", addr)) }),
+                                AsyncComputeTaskPool::get().spawn(async move { util::http_get_json::<Motd>(&format!("http://{}", addr)) }),
                                 util::current_timestamp_millis(),
                             )
                         });

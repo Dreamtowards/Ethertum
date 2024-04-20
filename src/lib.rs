@@ -19,9 +19,6 @@ pub static VERSION_NAME: &str = concat!(std::env!("CARGO_PKG_VERSION"), " 2024.0
 
 pub mod wfc;
 
-
 pub mod prelude {
     pub use bevy::prelude::*;
-
-    
 }

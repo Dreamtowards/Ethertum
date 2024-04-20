@@ -1,7 +1,4 @@
-use std::{
-    sync::{Weak},
-    usize,
-};
+use std::{sync::Weak, usize};
 
 use bevy::{math::ivec3, prelude::*};
 

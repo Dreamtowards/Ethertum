@@ -1,14 +1,44 @@
 use std::time::Duration;
 
 use bevy::{prelude::*, utils::HashSet};
-use bevy_renet::renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent};
+use bevy_renet::{
+    renet::{transport::NetcodeServerTransport, ConnectionConfig, DefaultChannel, RenetServer, ServerEvent},
+    transport::NetcodeServerPlugin,
+    RenetServerPlugin,
+};
 
 use crate::{
-    server::prelude::*,
     net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
+    server::prelude::*,
     util::{current_timestamp_millis, AsRefMut},
     voxel::{ChunkSystem, ServerChunkSystem},
 };
+
+pub struct ServerNetworkPlugin;
+
+impl Plugin for ServerNetworkPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(RenetServerPlugin);
+        app.add_plugins(NetcodeServerPlugin);
+
+        app.insert_resource(RenetServer::new(ConnectionConfig {
+            server_channels_config: super::net_channel_config(20 * 1024 * 1024),
+            ..default()
+        }));
+
+        app.add_systems(Startup, bind_server_endpoint);
+        app.add_systems(Update, server_sys);
+
+        // app.add_systems(Update, ui_server_net);
+    }
+}
+
+fn bind_server_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
+    let addr = serv.cfg().addr().parse().unwrap();
+
+    cmds.insert_resource(super::new_netcode_server_transport(addr, 64));
+    info!("Server bind endpoint at {}", addr);
+}
 
 pub fn server_sys(
     mut server_events: EventReader<ServerEvent>,

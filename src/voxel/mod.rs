@@ -14,14 +14,10 @@ mod meshgen;
 pub mod worldgen;
 pub use worldgen::WorldGen;
 
-use std::{
-    sync::{Arc},
-};
+use std::sync::Arc;
 pub type ChunkPtr = Arc<Chunk>; // Box<Chunk>;         not supported for SharedPtr
 
 use bevy::{prelude::*, utils::HashMap};
-
-
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelTx<T>(crate::channel_impl::Sender<T>);

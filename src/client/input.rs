@@ -1,4 +1,3 @@
-
 use bevy::window::*;
 use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::axislike::DualAxis;
@@ -6,12 +5,9 @@ use leafwing_input_manager::axislike::VirtualDPad;
 use leafwing_input_manager::input_map::InputMap;
 use leafwing_input_manager::InputManagerBundle;
 
-use crate::prelude::*;
 use crate::client::prelude::*;
 use crate::client::ui::*;
-
-
-
+use crate::prelude::*;
 
 #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
 pub enum InputStickId {
@@ -29,21 +25,23 @@ pub enum InputAction {
     Sprint,
     Sneak,
 
-    Attack,   // or Break Block
-    UseItem,  // or Place Block
+    Attack,  // or Break Block
+    UseItem, // or Place Block
 
     // HUD
-    ESC,  // PauseMenu or MainMenu (not in game)
+    ESC, // PauseMenu or MainMenu (not in game)
     Fullscreen,
 
     TabPlayerList,
-    Hotbar1,Hotbar2,Hotbar3,Hotbar4,
-    Hotbar5,Hotbar6,Hotbar7,Hotbar8,
-    ToggleLook,  // toggle Grab-Crosshair or UnGrab-Pointer
-
-
-
-
+    Hotbar1,
+    Hotbar2,
+    Hotbar3,
+    Hotbar4,
+    Hotbar5,
+    Hotbar6,
+    Hotbar7,
+    Hotbar8,
+    ToggleLook, // toggle Grab-Crosshair or UnGrab-Pointer
 }
 
 impl InputAction {
@@ -69,15 +67,11 @@ impl InputAction {
         input_map.insert(Self::Fullscreen, KeyCode::F11);
         input_map.insert(Self::ToggleLook, KeyCode::Comma);
 
-
-        input_map  // .build()?
+        input_map // .build()?
     }
 }
 
-
-pub fn input_setup(
-    mut cmds: Commands,
-) {
+pub fn input_setup(mut cmds: Commands) {
     cmds.spawn(InputManagerBundle::<InputAction>::with_map(InputAction::default_input_map()));
 }
 
@@ -169,110 +163,106 @@ pub fn input_handle(
     }
 }
 
+// // TouchStick  Move-Left
+// cmds.spawn((
+//     Name::new("InputStickMove"),
+//     DespawnOnWorldUnload,
+//     // map this stick as a left gamepad stick (through bevy_input)
+//     // leafwing will register this as a normal gamepad
+//     TouchStickGamepadMapping::LEFT_STICK,
+//     TouchStickUiBundle {
+//         stick: TouchStick {
+//             id: InputStickId::LeftMove,
+//             stick_type: TouchStickType::Fixed,
+//             ..default()
+//         },
+//         // configure the interactable area through bevy_ui
+//         style: Style {
+//             width: Val::Px(150.),
+//             height: Val::Px(150.),
+//             position_type: PositionType::Absolute,
+//             left: Val::Percent(15.),
+//             bottom: Val::Percent(5.),
+//             ..default()
+//         },
+//         ..default()
+//     },
+// ))
+// .with_children(|parent| {
+//     parent.spawn((
+//         TouchStickUiKnob,
+//         ImageBundle {
+//             image: asset_server.load("knob.png").into(),
+//             style: Style {
+//                 width: Val::Px(75.),
+//                 height: Val::Px(75.),
+//                 ..default()
+//             },
+//             ..default()
+//         },
+//     ));
+//     parent.spawn((
+//         TouchStickUiOutline,
+//         ImageBundle {
+//             image: asset_server.load("outline.png").into(),
+//             style: Style {
+//                 width: Val::Px(150.),
+//                 height: Val::Px(150.),
+//                 ..default()
+//             },
+//             ..default()
+//         },
+//     ));
+// });
 
-
-
-
-    // // TouchStick  Move-Left
-    // cmds.spawn((
-    //     Name::new("InputStickMove"),
-    //     DespawnOnWorldUnload,
-    //     // map this stick as a left gamepad stick (through bevy_input)
-    //     // leafwing will register this as a normal gamepad
-    //     TouchStickGamepadMapping::LEFT_STICK,
-    //     TouchStickUiBundle {
-    //         stick: TouchStick {
-    //             id: InputStickId::LeftMove,
-    //             stick_type: TouchStickType::Fixed,
-    //             ..default()
-    //         },
-    //         // configure the interactable area through bevy_ui
-    //         style: Style {
-    //             width: Val::Px(150.),
-    //             height: Val::Px(150.),
-    //             position_type: PositionType::Absolute,
-    //             left: Val::Percent(15.),
-    //             bottom: Val::Percent(5.),
-    //             ..default()
-    //         },
-    //         ..default()
-    //     },
-    // ))
-    // .with_children(|parent| {
-    //     parent.spawn((
-    //         TouchStickUiKnob,
-    //         ImageBundle {
-    //             image: asset_server.load("knob.png").into(),
-    //             style: Style {
-    //                 width: Val::Px(75.),
-    //                 height: Val::Px(75.),
-    //                 ..default()
-    //             },
-    //             ..default()
-    //         },
-    //     ));
-    //     parent.spawn((
-    //         TouchStickUiOutline,
-    //         ImageBundle {
-    //             image: asset_server.load("outline.png").into(),
-    //             style: Style {
-    //                 width: Val::Px(150.),
-    //                 height: Val::Px(150.),
-    //                 ..default()
-    //             },
-    //             ..default()
-    //         },
-    //     ));
-    // });
-
-    // // spawn a look stick
-    // cmds.spawn((
-    //     Name::new("InputStickLook"),
-    //     DespawnOnWorldUnload,
-    //     // map this stick as a right gamepad stick (through bevy_input)
-    //     // leafwing will register this as a normal gamepad
-    //     TouchStickGamepadMapping::RIGHT_STICK,
-    //     TouchStickUiBundle {
-    //         stick: TouchStick {
-    //             id: InputStickId::RightLook,
-    //             stick_type: TouchStickType::Floating,
-    //             ..default()
-    //         },
-    //         // configure the interactable area through bevy_ui
-    //         style: Style {
-    //             width: Val::Px(150.),
-    //             height: Val::Px(150.),
-    //             position_type: PositionType::Absolute,
-    //             right: Val::Percent(15.),
-    //             bottom: Val::Percent(5.),
-    //             ..default()
-    //         },
-    //         ..default()
-    //     },
-    // ))
-    // .with_children(|parent| {
-    //     parent.spawn((
-    //         TouchStickUiKnob,
-    //         ImageBundle {
-    //             image: asset_server.load("knob.png").into(),
-    //             style: Style {
-    //                 width: Val::Px(75.),
-    //                 height: Val::Px(75.),
-    //                 ..default()
-    //             },
-    //             ..default()
-    //         },
-    //     ));
-    //     parent.spawn((
-    //         TouchStickUiOutline,
-    //         ImageBundle {
-    //             image: asset_server.load("outline.png").into(),
-    //             style: Style {
-    //                 width: Val::Px(150.),
-    //                 height: Val::Px(150.),
-    //                 ..default()
-    //             },
-    //             ..default()
-    //         },
-    //     ));
-    // });
+// // spawn a look stick
+// cmds.spawn((
+//     Name::new("InputStickLook"),
+//     DespawnOnWorldUnload,
+//     // map this stick as a right gamepad stick (through bevy_input)
+//     // leafwing will register this as a normal gamepad
+//     TouchStickGamepadMapping::RIGHT_STICK,
+//     TouchStickUiBundle {
+//         stick: TouchStick {
+//             id: InputStickId::RightLook,
+//             stick_type: TouchStickType::Floating,
+//             ..default()
+//         },
+//         // configure the interactable area through bevy_ui
+//         style: Style {
+//             width: Val::Px(150.),
+//             height: Val::Px(150.),
+//             position_type: PositionType::Absolute,
+//             right: Val::Percent(15.),
+//             bottom: Val::Percent(5.),
+//             ..default()
+//         },
+//         ..default()
+//     },
+// ))
+// .with_children(|parent| {
+//     parent.spawn((
+//         TouchStickUiKnob,
+//         ImageBundle {
+//             image: asset_server.load("knob.png").into(),
+//             style: Style {
+//                 width: Val::Px(75.),
+//                 height: Val::Px(75.),
+//                 ..default()
+//             },
+//             ..default()
+//         },
+//     ));
+//     parent.spawn((
+//         TouchStickUiOutline,
+//         ImageBundle {
+//             image: asset_server.load("outline.png").into(),
+//             style: Style {
+//                 width: Val::Px(150.),
+//                 height: Val::Px(150.),
+//                 ..default()
+//             },
+//             ..default()
+//         },
+//     ));
+// });

@@ -4,9 +4,8 @@ use bevy_egui::{
     EguiContexts,
 };
 
-
 use super::{sfx_play, CurrentUI, UiExtra};
-use crate::client::game_client::{EthertiaClient};
+use crate::client::game_client::EthertiaClient;
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
