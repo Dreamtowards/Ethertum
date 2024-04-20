@@ -6,12 +6,8 @@ use bevy_egui::{
 use bevy_renet::renet::RenetClient;
 
 use super::{sfx_play, CurrentUI, UiExtra};
-use crate::game_client::{ClientInfo, EthertiaClient, WorldInfo};
+use crate::client::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 
-pub fn ui_wfc2d() {
-
-
-}
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
@@ -25,17 +21,17 @@ pub fn ui_main_menu(
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
     // }
-    let img = ctx.add_image(asset_server.load("proto.png"));
+    // let img = ctx.add_image(asset_server.load("proto.png"));
 
     egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
 
-        ui.painter().image(
-            img, 
-            Rect::from_min_size(pos2(100., 100.), vec2(200., 200.)), 
-            Rect::from_min_size(pos2(0., 0.), vec2(1., 1.)), 
-            Color32::WHITE
-        );
+        // ui.painter().image(
+        //     img, 
+        //     Rect::from_min_size(pos2(100., 100.), vec2(200., 200.)), 
+        //     Rect::from_min_size(pos2(0., 0.), vec2(1., 1.)), 
+        //     Color32::WHITE
+        // );
 
         // ui.painter().image(*rendered_texture_id, ui.max_rect(), Rect::from_min_max([0.0, 0.0].into(), [1.0, 1.0].into()), Color32::WHITE);
 

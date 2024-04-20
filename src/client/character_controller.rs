@@ -1,9 +1,8 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use crate::{
-    game_client::{condition, ClientInfo, InputAction},
-    util::SmoothValue,
-};
+use crate::client::game_client::{condition, ClientInfo, InputAction};
+use crate::util::SmoothValue;
+
 use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*,

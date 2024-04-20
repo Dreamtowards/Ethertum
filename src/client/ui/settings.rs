@@ -5,8 +5,8 @@ use bevy_egui::{
 };
 
 use crate::{
-    character_controller::CharacterController,
-    game_client::{ClientInfo, WorldInfo}, voxel::ClientChunkSystem,
+    client::character_controller::CharacterController,
+    client::game_client::{ClientInfo, WorldInfo}, voxel::ClientChunkSystem,
 };
 
 use super::{new_egui_window, sfx_play, ui_lr_panel};

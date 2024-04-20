@@ -1,5 +1,5 @@
 use crate::{
-    game_client::{ClientInfo, EthertiaClient, ServerListItem},
+    client::prelude::*,
     game_server::{self, rcon::Motd},
     util,
 };

@@ -10,7 +10,7 @@ use bevy_egui::{
 };
 use egui_extras::{Size, StripBuilder};
 
-use crate::game_client::{condition, ClientInfo};
+use crate::client::prelude::*;
 
 mod debug;
 pub mod hud;
@@ -165,7 +165,7 @@ fn setup_egui_style(mut ctx: EguiContexts) {
     let mut fonts = FontDefinitions::default();
     fonts.font_data.insert(
         "my_font".to_owned(),
-        FontData::from_static(include_bytes!("../../assets/fonts/menlo.ttf")),
+        FontData::from_static(include_bytes!("../../../assets/fonts/menlo.ttf")),
     );
 
     // Put my font first (highest priority):

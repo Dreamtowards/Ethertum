@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{game_client::condition, game_server::ServerInfo, util::current_timestamp};
+use crate::{client::game_client::condition, game_server::ServerInfo, util::current_timestamp};
 use bevy::prelude::*;
 use bevy_renet::{
     renet::{

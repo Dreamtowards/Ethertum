@@ -1,10 +1,11 @@
 // Client
-pub mod character_controller;
-pub mod game_client;
-pub mod ui;
+pub mod client;
+pub use client::ui;
 
-#[cfg(feature = "target_native_os")]
-pub mod editor;
+
+// Server
+pub mod game_server;
+
 
 // Common
 pub mod item;
@@ -12,8 +13,6 @@ pub mod net;
 pub mod util;
 pub mod voxel;
 
-// Server
-pub mod game_server;
 
 // Util
 use crossbeam_channel as channel_impl;

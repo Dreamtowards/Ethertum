@@ -10,7 +10,7 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    character_controller::CharacterControllerCamera, game_client::{ClientInfo, EthertiaClient, WorldInfo}, ui::{color32_of, CurrentUI, UiExtra}, util::AsRefMut, voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
+    client::character_controller::CharacterControllerCamera, client::game_client::{ClientInfo, EthertiaClient, WorldInfo}, ui::{color32_of, CurrentUI, UiExtra}, util::AsRefMut, voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
 };
 
 pub fn ui_menu_panel(
@@ -212,7 +212,7 @@ pub fn hud_debug_text(
     worldinfo: Option<Res<WorldInfo>>,
     chunk_sys: Option<Res<ClientChunkSystem>>,
     hit_result: Res<HitResult>,
-    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<crate::character_controller::CharacterControllerCamera>>,
+    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
 ) {
     let mut str_sys = String::default();

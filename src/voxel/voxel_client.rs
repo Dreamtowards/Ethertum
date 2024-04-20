@@ -16,10 +16,10 @@ use bevy_xpbd_3d::plugins::{
 
 use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
 use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera},
-    game_client::{condition, ClientInfo, DespawnOnWorldUnload},
+    client::character_controller::{CharacterController, CharacterControllerCamera},
+    client::game_client::{condition, ClientInfo, DespawnOnWorldUnload},
     net::{CPacket, CellData, RenetClientHelper},
-    ui::CurrentUI,
+    client::ui::CurrentUI,
     util::{self, iter, AsRefMut},
 };
 
@@ -226,8 +226,8 @@ fn raycast(
     spatial_query: SpatialQuery,
     query_cam: Query<&GlobalTransform, With<CharacterControllerCamera>>, // ray
     query_player: Query<Entity, With<CharacterController>>,              // exclude collider
-
     mut hit_result: ResMut<HitResult>,
+
     mouse_btn: Res<ButtonInput<MouseButton>>,
     chunk_sys: ResMut<ClientChunkSystem>,
     mut net_client: ResMut<RenetClient>,

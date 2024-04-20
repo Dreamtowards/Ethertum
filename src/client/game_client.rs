@@ -17,13 +17,14 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::{item::{Inventory, ItemPlugin}, ui::UiExtra};
+use crate::client::ui::UiExtra;
+use crate::client::ui::CurrentUI;
+
+use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
-use crate::{
-    character_controller::{CharacterController, CharacterControllerCamera, CharacterControllerPlugin},
-    util::TimeIntervals,
-};
-use crate::{ui::CurrentUI, voxel::ClientVoxelPlugin};
+use crate::client::prelude::*;
+use crate::util::TimeIntervals;
+use crate::{voxel::ClientVoxelPlugin};
 
 pub struct GameClientPlugin;
 
@@ -651,6 +652,8 @@ impl Default for WorldInfo {
         }
     }
 }
+
+
 
 // ClientSettings Configs
 

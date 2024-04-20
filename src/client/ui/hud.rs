@@ -8,7 +8,7 @@ use bevy_egui::{
 use bevy_renet::renet::RenetClient;
 
 use crate::{
-    game_client::ClientInfo,
+    client::game_client::ClientInfo,
     net::{CPacket, RenetClientHelper},
 };
 
@@ -220,7 +220,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>) {
             );
 
             ui.horizontal(|ui| {
-                for i in 0..crate::game_client::HOTBAR_SLOTS {
+                for i in 0..crate::client::game_client::HOTBAR_SLOTS {
                     let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
 
                     if cli.hotbar_index == i {

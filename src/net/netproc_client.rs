@@ -10,9 +10,9 @@ use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
-    character_controller::{CharacterController, CharacterControllerBundle},
-    game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo},
-    ui::CurrentUI,
+    client::character_controller::{CharacterController, CharacterControllerBundle},
+    client::game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo},
+    client::ui::CurrentUI,
     util::{current_timestamp_millis, AsRefMut},
     voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem},
 };
@@ -25,7 +25,7 @@ pub fn client_sys(
     mut last_connected: Local<u32>, // 0=NonConnection, 1=Connecting, 2=Connected
     mut cli: ResMut<ClientInfo>,
 
-    mut chats: ResMut<crate::ui::hud::ChatHistory>,
+    mut chats: ResMut<crate::client::ui::hud::ChatHistory>,
     mut cmds: Commands,
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut worldinfo: ResMut<WorldInfo>,
