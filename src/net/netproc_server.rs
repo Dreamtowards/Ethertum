@@ -45,7 +45,7 @@ pub fn server_sys(
 
     mut serverinfo: ResMut<ServerInfo>,
     // mut worldinfo: ResMut<WorldInfo>,
-    chunk_sys: ResMut<ServerChunkSystem>,
+    // chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
 ) {
     for event in server_events.read() {

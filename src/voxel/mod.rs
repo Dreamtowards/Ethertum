@@ -1,25 +1,20 @@
 mod chunk;
-pub use chunk::{Cell, Chunk};
-
-// mod chunk_system;
-// pub use chunk_system::{ChunkPtr};
-
-mod voxel_client;
-mod voxel_server;
-pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult};
-pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
-
 mod material;
 mod meshgen;
+mod voxel_client;
+mod voxel_server;
 pub mod worldgen;
+
+pub use chunk::{Cell, Chunk};
+pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
+pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 pub use worldgen::WorldGen;
 
-use std::sync::Arc;
-pub type ChunkPtr = Arc<Chunk>; // Box<Chunk>;         not supported for SharedPtr
-
-use bevy::{prelude::*, utils::HashMap};
-
 use crate::util::AsRefMut;
+use bevy::{prelude::*, utils::HashMap};
+use std::sync::Arc;
+
+pub type ChunkPtr = Arc<Chunk>;
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelTx<T>(crate::channel_impl::Sender<T>);
@@ -27,16 +22,16 @@ struct ChannelTx<T>(crate::channel_impl::Sender<T>);
 #[derive(Resource, Deref, Clone)]
 struct ChannelRx<T>(crate::channel_impl::Receiver<T>);
 
-#[derive(Component)]
-pub struct ChunkComponent {
-    pub chunkpos: IVec3,
-}
+// #[derive(Component)]
+// pub struct ChunkComponent {
+//     pub chunkpos: IVec3,
+// }
 
-impl ChunkComponent {
-    pub fn new(chunkpos: IVec3) -> Self {
-        Self { chunkpos }
-    }
-}
+// impl ChunkComponent {
+//     pub fn new(chunkpos: IVec3) -> Self {
+//         Self { chunkpos }
+//     }
+// }
 
 pub trait ChunkSystem {
     fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr>;

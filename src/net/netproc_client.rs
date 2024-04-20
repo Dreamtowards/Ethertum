@@ -1,25 +1,18 @@
 //! Client Networking Handler
 
-use std::sync::Arc;
-
-use bevy::{
-    ecs::system::EntityCommands,
-    prelude::*,
-    render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    utils::HashMap,
-};
+use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
 use bevy_renet::{
     renet::{DefaultChannel, DisconnectReason, RenetClient},
     transport::NetcodeClientPlugin,
     RenetClientPlugin,
 };
-use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
+use bevy_xpbd_3d::plugins::collision::Collider;
 
 use crate::{
     client::prelude::*,
     client::ui::CurrentUI,
     util::{current_timestamp_millis, AsRefMut},
-    voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem},
+    voxel::{Chunk, ChunkSystem, ClientChunkSystem},
 };
 
 use super::{packet::CellData, SPacket};
@@ -43,6 +36,7 @@ pub fn client_sys(
     mut net_client: ResMut<RenetClient>,
     mut last_connected: Local<u32>, // 0=NonConnection, 1=Connecting, 2=Connected
     mut cli: ResMut<ClientInfo>,
+    cfg: Res<ClientSettings>,
 
     mut chats: ResMut<crate::client::ui::hud::ChatHistory>,
     mut cmds: Commands,
@@ -111,7 +105,7 @@ pub fn client_sys(
                 spawn_player(
                     &mut cmds.get_or_spawn(player_entity.client_entity()), // 为什么在这生成 因为要指定id，以及其他player也是在这生成
                     true,
-                    &cli.cfg.username,
+                    &cfg.username,
                     &asset_server,
                     &mut meshes,
                     &mut materials,
@@ -203,9 +197,9 @@ pub fn client_sys(
 pub fn spawn_player(
     ec: &mut EntityCommands,
     is_theplayer: bool,
-    name: &String,
+    _name: &String,
     // cmds: &mut Commands,
-    asset_server: &Res<AssetServer>,
+    _asset_server: &Res<AssetServer>,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<StandardMaterial>>,
 ) {

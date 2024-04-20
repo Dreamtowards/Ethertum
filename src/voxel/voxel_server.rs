@@ -7,7 +7,7 @@ use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
 use std::sync::Arc;
 
-use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, WorldGen};
+use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, WorldGen};
 use crate::{
     net::{CellData, RenetServerHelper, SPacket},
     server::prelude::ServerInfo,
@@ -92,7 +92,7 @@ fn chunks_load(
 
             chunk.entity = cmds
                 .spawn((
-                    ChunkComponent::new(chunkpos),
+                    // ChunkComponent::new(chunkpos),
                     Transform::from_translation(chunkpos.as_vec3()),
                     GlobalTransform::IDENTITY, // really?
                     RigidBody::Static,

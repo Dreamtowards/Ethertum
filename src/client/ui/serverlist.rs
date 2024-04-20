@@ -81,7 +81,7 @@ pub fn ui_serverlist(
     // mut refreshing_indices: Local<HashMap<usize, (Task<anyhow::Result<Motd>>, u64)>>,
 ) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
-        let serverlist = &mut cli.data().cfg.serverlist;
+        let serverlist = &mut cli.cfg.serverlist;
 
         // all access defer to one closure.
         let do_new_server = std::cell::Cell::new(false);

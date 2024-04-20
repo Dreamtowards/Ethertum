@@ -20,7 +20,7 @@ use crate::{
     client::{
         character_controller::{CharacterController, CharacterControllerCamera},
         game_client::{condition, ClientInfo, DespawnOnWorldUnload},
-        prelude::InputAction,
+        prelude::{ClientSettings, InputAction},
         ui::CurrentUI,
     },
     net::{CPacket, CellData, RenetClientHelper},
@@ -48,6 +48,7 @@ impl Plugin for ClientVoxelPlugin {
         app.add_systems(First, on_world_init.run_if(condition::load_world));
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
+        app.insert_resource(VoxelBrush::default());
         app.insert_resource(HitResult::default());
         app.add_systems(
             Update,
@@ -108,6 +109,7 @@ fn chunks_detect_load_and_unload(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
+    cfg: Res<ClientSettings>,
 
     mut cmds: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -116,7 +118,7 @@ fn chunks_detect_load_and_unload(
     rx_chunk_load: Res<ChannelRx<ChunkLoadingData>>,
 ) {
     let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()); // viewer pos
-    let vd = chunk_sys.chunks_load_distance;
+    let vd = cfg.chunks_load_distance;
 
     // Chunks Detect Load/Gen
 
@@ -285,6 +287,24 @@ fn chunks_remesh_enqueue(
     }
 }
 
+#[derive(Resource)]
+pub struct VoxelBrush {
+    pub size: f32,
+    pub strength: f32,
+    pub shape: u16,
+    pub tex: u16,
+}
+impl Default for VoxelBrush {
+    fn default() -> Self {
+        Self {
+            size: 4.,
+            strength: 0.8,
+            shape: 0,
+            tex: 21,
+        }
+    }
+}
+
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct HitResult {
@@ -303,10 +323,9 @@ fn raycast(
     mut hit_result: ResMut<HitResult>,
 
     query_input: Query<&ActionState<InputAction>>,
-    mouse_btn: Res<ButtonInput<MouseButton>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
-    mut net_client: ResMut<RenetClient>,
     cli: Res<ClientInfo>,
+    vox_brush: Res<VoxelBrush>,
 ) {
     let cam_trans = query_cam.single();
     let ray_pos = cam_trans.translation();
@@ -345,7 +364,8 @@ fn raycast(
     let do_place = action_state.just_pressed(&InputAction::UseItem);
 
     if hit_result.is_hit && (do_break || do_place) {
-        let n = cli.brush_size as i32;
+        let brush = &*vox_brush;
+        let n = brush.size as i32;
 
         // These code is Horrible
 
@@ -359,7 +379,7 @@ fn raycast(
 
             if let Some(v) = chunk_sys.get_voxel(p) {
                 let v = v.as_ref_mut();
-                let f = (n as f32 - lp.as_vec3().length()).max(0.) * cli.brush_strength;
+                let f = (n as f32 - lp.as_vec3().length()).max(0.) * brush.strength;
 
                 v.set_isovalue(v.isovalue() + if do_break { -f } else { f });
 
@@ -367,11 +387,11 @@ fn raycast(
                     // placing single
                     if do_place {
                         // && c.tex_id == 0 {
-                        v.tex_id = cli.brush_tex;
-                        v.shape_id = cli.brush_shape;
+                        v.tex_id = brush.tex;
+                        v.shape_id = brush.shape;
 
                         // placing Block
-                        if cli.brush_shape != 0 {
+                        if brush.shape != 0 {
                             v.set_isovalue(0.0);
                         }
                     } else if v.is_isoval_empty() {
@@ -457,7 +477,7 @@ pub struct ClientChunkSystem {
 
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
-    pub chunks_load_distance: IVec2, // not real, but send to server,
+    // pub chunks_load_distance: IVec2, // not real, but send to server,
 }
 
 impl ChunkSystem for ClientChunkSystem {
@@ -484,7 +504,6 @@ impl ClientChunkSystem {
 
             max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
-            chunks_load_distance: IVec2::new(-1, -1),
         }
     }
 

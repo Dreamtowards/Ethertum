@@ -64,6 +64,7 @@ impl Plugin for ClientGamePlugin {
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
+        app.insert_resource(ClientSettings::default());
         app.register_type::<ClientInfo>();
         app.register_type::<WorldInfo>();
 
@@ -95,21 +96,21 @@ impl Plugin for ClientGamePlugin {
     }
 }
 
-fn on_app_init(mut cli: ResMut<ClientInfo>) {
+fn on_app_init(mut cfg: ResMut<ClientSettings>) {
     info!("Loading {CLIENT_SETTINGS_FILE}");
     if let Ok(str) = std::fs::read_to_string(CLIENT_SETTINGS_FILE) {
         if let Ok(val) = serde_json::from_str(&str) {
-            cli.cfg = val;
+            *cfg = val;
         }
     }
 }
 
-fn on_app_exit(mut exit_events: EventReader<AppExit>, cli: Res<ClientInfo>) {
+fn on_app_exit(mut exit_events: EventReader<AppExit>, cfg: Res<ClientSettings>) {
     for _ in exit_events.read() {
         info!("Program Terminate");
 
         info!("Saving {CLIENT_SETTINGS_FILE}");
-        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string(&cli.cfg).unwrap()).unwrap();
+        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string_pretty(&*cfg).unwrap()).unwrap();
     }
 }
 
@@ -451,13 +452,16 @@ pub struct ServerListItem {
 
 const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
 
-#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath)]
+#[derive(Resource, serde::Deserialize, serde::Serialize, Asset, TypePath)]
 pub struct ClientSettings {
     // Name, Addr
     pub serverlist: Vec<ServerListItem>,
     pub fov: f32,
     pub username: String,
     pub hud_padding: f32,
+    pub vsync: bool,
+
+    pub chunks_load_distance: IVec2,
 }
 
 impl Default for ClientSettings {
@@ -467,9 +471,14 @@ impl Default for ClientSettings {
             fov: 85.,
             username: crate::util::generate_simple_user_name(),
             hud_padding: 24.,
+            vsync: true,
+
+            chunks_load_distance: IVec2::new(4, 3),
         }
     }
 }
+
+
 
 pub const HOTBAR_SLOTS: u32 = 9;
 
@@ -490,12 +499,6 @@ pub struct ClientInfo {
     pub dbg_gizmo_curr_chunk: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
 
-    // Voxel Brush
-    pub brush_size: f32,
-    pub brush_strength: f32,
-    pub brush_shape: u16,
-    pub brush_tex: u16,
-
     // Render Sky
     pub sky_fog_color: Color,
     pub sky_fog_visibility: f32,
@@ -505,10 +508,6 @@ pub struct ClientInfo {
     pub skylight_shadow: bool,
     pub skylight_illuminance: f32,
 
-    pub vsync: bool,
-
-    #[reflect(ignore)]
-    pub cfg: ClientSettings,
 
     // Control
     pub enable_cursor_look: bool,
@@ -542,13 +541,6 @@ impl Default for ClientInfo {
             dbg_gizmo_curr_chunk: false,
             dbg_gizmo_all_loaded_chunks: false,
 
-            brush_size: 4.,
-            brush_strength: 0.8,
-            brush_shape: 0,
-            brush_tex: 21,
-
-            vsync: true,
-
             sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0, // 280 for ExpSq, 1200 for Atmo
             sky_fog_is_atomspheric: true,
@@ -557,8 +549,6 @@ impl Default for ClientInfo {
 
             skylight_shadow: false,
             skylight_illuminance: 20.,
-
-            cfg: ClientSettings::default(),
 
             enable_cursor_look: true,
 
@@ -577,6 +567,7 @@ impl Default for ClientInfo {
 #[derive(SystemParam)]
 pub struct EthertiaClient<'w, 's> {
     clientinfo: ResMut<'w, ClientInfo>,
+    pub cfg: ResMut<'w, ClientSettings>,
 
     cmds: Commands<'w, 's>,
 }
@@ -613,7 +604,7 @@ impl<'w, 's> EthertiaClient<'w, 's> {
 
         let mut net_client = RenetClient::new(bevy_renet::renet::ConnectionConfig::default());
 
-        let username = &self.clientinfo.cfg.username;
+        let username = &self.cfg.username;
         net_client.send_packet(&CPacket::Login {
             uuid: crate::util::hashcode(username),
             access_token: 123,

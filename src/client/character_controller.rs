@@ -389,6 +389,7 @@ fn sync_camera(
 
     input_key: Res<ButtonInput<KeyCode>>,
     cli: Res<ClientInfo>,
+    cfg: Res<ClientSettings>,
 ) {
     if let Ok((char_pos, ctl)) = query_char.get_single() {
         if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
@@ -402,9 +403,9 @@ fn sync_camera(
             fov_val.target = if input_key.pressed(KeyCode::KeyC) {
                 24.
             } else if ctl.is_sprinting {
-                cli.cfg.fov + 20.
+                cfg.fov + 20.
             } else {
-                cli.cfg.fov
+                cfg.fov
             };
             fov_val.update(time.delta_seconds() * 16.);
 

@@ -50,8 +50,7 @@ fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, cfg: Res<ServerSett
     for _ in exit_events.read() {
         info!("Saving server settings to {SERVER_SETTINGS_FILE}");
 
-        let s = serde_json::to_string_pretty(&*cfg).unwrap();
-        std::fs::write(SERVER_SETTINGS_FILE, s).unwrap();
+        std::fs::write(SERVER_SETTINGS_FILE, serde_json::to_string_pretty(&*cfg).unwrap()).unwrap();
     }
 }
 

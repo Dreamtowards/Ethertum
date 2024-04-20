@@ -12,7 +12,7 @@ use crate::{
     net::{CPacket, RenetClientHelper},
 };
 
-use super::CurrentUI;
+use super::{ClientSettings, CurrentUI};
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 
@@ -186,11 +186,11 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>) {
+pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSettings>) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_BOTTOM, [0., -cli.cfg.hud_padding])
+        .anchor(Align2::CENTER_BOTTOM, [0., -cfg.hud_padding])
         .frame(Frame::default().fill(Color32::from_black_alpha(0)))
         .show(ctx.ctx_mut(), |ui| {
             let s = 50.;
@@ -234,7 +234,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>) {
         });
 }
 
-pub fn hud_playerlist(mut ctx: EguiContexts, input_key: Res<ButtonInput<KeyCode>>, cli: Res<ClientInfo>, mut net_client: ResMut<RenetClient>) {
+pub fn hud_playerlist(mut ctx: EguiContexts, input_key: Res<ButtonInput<KeyCode>>, cli: Res<ClientInfo>, cfg: Res<ClientSettings>, mut net_client: ResMut<RenetClient>) {
     if !input_key.pressed(KeyCode::Tab) {
         return;
     }
@@ -246,7 +246,7 @@ pub fn hud_playerlist(mut ctx: EguiContexts, input_key: Res<ButtonInput<KeyCode>
     egui::Window::new("PlayerList")
         .title_bar(false)
         .resizable(false)
-        .anchor(Align2::CENTER_TOP, [0., cli.cfg.hud_padding])
+        .anchor(Align2::CENTER_TOP, [0., cfg.hud_padding])
         .show(ctx.ctx_mut(), |ui| {
             for player in &cli.playerlist {
                 ui.horizontal(|ui| {

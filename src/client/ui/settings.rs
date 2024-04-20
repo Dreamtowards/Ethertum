@@ -10,7 +10,7 @@ use crate::{
     voxel::ClientChunkSystem,
 };
 
-use super::{new_egui_window, sfx_play, ui_lr_panel};
+use super::{new_egui_window, sfx_play, ui_lr_panel, ClientSettings};
 
 #[derive(Default, PartialEq, Debug, Clone, Copy)]
 pub enum SettingsPanel {
@@ -31,10 +31,13 @@ pub fn ui_settings(
     mut settings_panel: Local<SettingsPanel>,
 
     mut cli: ResMut<ClientInfo>,
+    mut cfg: ResMut<ClientSettings>,
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
     mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
+
+    mut vox_brush: ResMut<crate::voxel::VoxelBrush>,
     // mut global_volume: ResMut<GlobalVolume>,
 
     // mut cmds: Commands,
@@ -90,7 +93,7 @@ pub fn ui_settings(
                     SettingsPanel::General => {
                         ui.label("Profile: ");
 
-                        ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cli.cfg.username));
+                        ui_setting_line(ui, "Username", egui::TextEdit::singleline(&mut cfg.username));
 
                         // ui.group(|ui| {
                         //     ui.horizontal(|ui| {
@@ -122,26 +125,26 @@ pub fn ui_settings(
                         //     egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50),
                         // );
 
-                        if let Some(chunk_sys) = &mut chunk_sys {
-                            ui_setting_line(
-                                ui,
-                                "Chunk Load Distance X",
-                                egui::Slider::new(&mut chunk_sys.chunks_load_distance.x, -1..=25),
-                            );
-                            ui_setting_line(
-                                ui,
-                                "Chunk Load Distance Y",
-                                egui::Slider::new(&mut chunk_sys.chunks_load_distance.y, -1..=25),
-                            );
-                        }
+                        ui_setting_line(
+                            ui,
+                            "Chunk Load Distance X",
+                            egui::Slider::new(&mut cfg.chunks_load_distance.x, -1..=25),
+                        );
+                        ui_setting_line(
+                            ui,
+                            "Chunk Load Distance Y",
+                            egui::Slider::new(&mut cfg.chunks_load_distance.y, -1..=25),
+                        );
 
-                        ui_setting_line(ui, "Brush Size", egui::Slider::new(&mut cli.brush_size, 0.0..=20.0));
+                        ui.label("Voxel Brush:");
 
-                        ui_setting_line(ui, "Brush Indensity", egui::Slider::new(&mut cli.brush_strength, 0.0..=1.0));
+                        ui_setting_line(ui, "Size", egui::Slider::new(&mut vox_brush.size, 0.0..=20.0));
 
-                        ui_setting_line(ui, "Brush Shape", egui::Slider::new(&mut cli.brush_shape, 0..=5));
+                        ui_setting_line(ui, "Indensity", egui::Slider::new(&mut vox_brush.strength, 0.0..=1.0));
 
-                        ui_setting_line(ui, "Brush Tex", egui::Slider::new(&mut cli.brush_tex, 0..=25));
+                        ui_setting_line(ui, "Shape", egui::Slider::new(&mut vox_brush.shape, 0..=5));
+
+                        ui_setting_line(ui, "Tex", egui::Slider::new(&mut vox_brush.tex, 0..=25));
                     }
                     SettingsPanel::CurrentWorld => {
                         if let Some(worldinfo) = &mut worldinfo {
@@ -153,9 +156,9 @@ pub fn ui_settings(
                     SettingsPanel::Graphics => {
                         ui.label("Video:");
 
-                        ui_setting_line(ui, "FOV", egui::Slider::new(&mut cli.cfg.fov, 10.0..=170.0));
+                        ui_setting_line(ui, "FOV", egui::Slider::new(&mut cfg.fov, 10.0..=170.0));
 
-                        ui_setting_line(ui, "VSync", egui::Checkbox::new(&mut cli.vsync, ""));
+                        ui_setting_line(ui, "VSync", egui::Checkbox::new(&mut cfg.vsync, ""));
 
                         ui_setting_line(ui, "Skylight Shadow", egui::Checkbox::new(&mut cli.skylight_shadow, ""));
 
@@ -165,7 +168,7 @@ pub fn ui_settings(
 
                         ui_setting_line(ui, "UI Scale", egui::Slider::new(&mut egui_settings.scale_factor, 0.5..=2.5));
 
-                        ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cli.cfg.hud_padding, 0.0..=48.0));
+                        ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cfg.hud_padding, 0.0..=48.0));
                     }
                     SettingsPanel::Audio => {
 
