@@ -11,8 +11,8 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::{client::prelude::*, server::prelude::IntegratedServerPlugin};
 use crate::ui::prelude::*;
+use crate::{client::prelude::*, server::prelude::IntegratedServerPlugin};
 
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};

@@ -90,9 +90,6 @@ pub mod rcon {
     }
 }
 
-
-
-
 #[derive(Resource, serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ServerSettings {
     pub port: u16,
@@ -109,7 +106,6 @@ pub struct ServerInfo {
     // PlayerList
     pub online_players: HashMap<ClientId, PlayerInfo>,
 }
-
 
 pub struct PlayerInfo {
     pub username: String,

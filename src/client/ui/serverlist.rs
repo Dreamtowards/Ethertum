@@ -1,4 +1,8 @@
-use crate::{client::prelude::*, server::{dedicated_server::rcon::Motd, prelude::ServerSettings}, util};
+use crate::{
+    client::prelude::*,
+    server::{dedicated_server::rcon::Motd, prelude::ServerSettings},
+    util,
+};
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
@@ -171,7 +175,11 @@ pub fn ui_serverlist(
                                         is_refreshing = true;
                                     }
                                     if ui.btn("▶").on_hover_text("Join & Play").clicked() {
-                                        do_join_addr = Some(if ui_server_info.gameplay_addr.is_empty() { server_item.addr.clone() } else { ui_server_info.gameplay_addr.clone() });
+                                        do_join_addr = Some(if ui_server_info.gameplay_addr.is_empty() {
+                                            server_item.addr.clone()
+                                        } else {
+                                            ui_server_info.gameplay_addr.clone()
+                                        });
                                     }
                                 }
                             });

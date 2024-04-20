@@ -10,20 +10,23 @@ pub trait AsRefMut<T> {
     fn as_ref_mut(&self) -> &mut T;
 }
 
-// impl<T, U> AsRefMut<U> for T where T: AsRef<U> {
-//     fn as_ref_mut(&self) -> &mut U {
-//         as_mut(self.as_ref())
-//     }
-// }
-
 impl AsRefMut<crate::voxel::Chunk> for Arc<crate::voxel::Chunk> {
     fn as_ref_mut(&self) -> &mut crate::voxel::Chunk {
         as_mut(self.as_ref())
     }
 }
 
+impl AsRefMut<crate::voxel::Cell> for crate::voxel::Cell {
+    fn as_ref_mut(&self) -> &mut crate::voxel::Cell {
+        as_mut(self)
+    }
+}
 
-
+// impl<T, U> AsRefMut<U> for T where T: AsRef<U> {
+//     fn as_ref_mut(&self) -> &mut U {
+//         as_mut(self.as_ref())
+//     }
+// }
 
 pub mod registry;
 

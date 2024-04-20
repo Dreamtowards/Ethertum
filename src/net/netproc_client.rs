@@ -160,7 +160,6 @@ pub fn client_sys(
 
                 CellData::to_chunk(voxel, &mut chunk);
 
-
                 chunk_sys.spawn_chunk(chunk, &mut cmds, &mut *meshes);
 
                 // info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());

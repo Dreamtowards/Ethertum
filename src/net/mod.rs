@@ -6,20 +6,18 @@ use std::{
 
 use bevy::prelude::*;
 use bevy_renet::renet::{
-    transport::{
-        ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES,
-    },
+    transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES},
     ChannelConfig, ClientId, DefaultChannel, RenetClient, RenetServer, SendType,
 };
 
-mod packet;
 pub mod netproc_client;
 mod netproc_server;
+mod packet;
 
 use crate::util::current_timestamp;
-pub use packet::{CPacket, CellData, SPacket};
 pub use netproc_client::ClientNetworkPlugin;
 pub use netproc_server::ServerNetworkPlugin;
+pub use packet::{CPacket, CellData, SPacket};
 
 const PROTOCOL_ID: u64 = 1;
 

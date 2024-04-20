@@ -219,12 +219,12 @@ pub fn server_sys(
                             server.send_packet(client_id, &SPacket::PlayerList { playerlist });
                         }
                         // CPacket::ChunkModify { chunkpos, voxel } => {
-                            // todo: NonLock
-                            // let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
+                        // todo: NonLock
+                        // let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
 
-                            // CellData::to_chunk(&voxel, chunk.as_ref_mut());
+                        // CellData::to_chunk(&voxel, chunk.as_ref_mut());
 
-                            // server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
+                        // server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
                         // }
                         _ => {
                             warn!("Unknown Packet {:?}", packet);

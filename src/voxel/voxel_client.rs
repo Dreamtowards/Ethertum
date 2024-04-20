@@ -13,12 +13,16 @@ use bevy_xpbd_3d::plugins::{
     collision::Collider,
     spatial_query::{SpatialQuery, SpatialQueryFilter},
 };
+use leafwing_input_manager::action_state::ActionState;
 
 use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
 use crate::{
-    client::character_controller::{CharacterController, CharacterControllerCamera},
-    client::game_client::{condition, ClientInfo, DespawnOnWorldUnload},
-    client::ui::CurrentUI,
+    client::{
+        character_controller::{CharacterController, CharacterControllerCamera},
+        game_client::{condition, ClientInfo, DespawnOnWorldUnload},
+        prelude::InputAction,
+        ui::CurrentUI,
+    },
     net::{CPacket, CellData, RenetClientHelper},
     util::{iter, AsRefMut},
 };
@@ -45,14 +49,20 @@ impl Plugin for ClientVoxelPlugin {
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
         app.insert_resource(HitResult::default());
-        app.add_systems(Update, (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos).chain().run_if(condition::in_world));
+        app.add_systems(
+            Update,
+            (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos)
+                .chain()
+                .run_if(condition::in_world),
+        );
     }
 }
 
 fn on_world_init(
-    mut cmds: Commands, asset_server: Res<AssetServer>,
-    mut terrain_materials: ResMut<Assets<TerrainMaterial>>, 
-    mut std_mtls: ResMut<Assets<StandardMaterial>>
+    mut cmds: Commands,
+    asset_server: Res<AssetServer>,
+    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
+    mut std_mtls: ResMut<Assets<StandardMaterial>>,
 ) {
     info!("Init ClientChunkSystem");
     let mut chunk_sys = ClientChunkSystem::new();
@@ -96,25 +106,23 @@ type ChunkLoadingData = Chunk;
 
 fn chunks_detect_load_and_unload(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
-
     mut chunk_sys: ResMut<ClientChunkSystem>,
+    mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
 
     mut cmds: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
 
-    mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
     tx_chunk_load: Res<ChannelTx<ChunkLoadingData>>,
     rx_chunk_load: Res<ChannelRx<ChunkLoadingData>>,
 ) {
-    // let chunk_sys_entity = commands.entity(chunk_sys.entity);
-
     let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()); // viewer pos
     let vd = chunk_sys.chunks_load_distance;
 
     // Chunks Detect Load/Gen
 
     iter::iter_center_spread(vd.x, vd.y, |rp| {
-        if chunks_loading.len() > 8 { //chunk_sys.max_concurrent_loading {
+        if chunks_loading.len() > 8 {
+            //chunk_sys.max_concurrent_loading {
             return;
         }
         let chunkpos = rp * Chunk::SIZE + vp;
@@ -135,9 +143,7 @@ fn chunks_detect_load_and_unload(
         });
         task.detach();
         chunks_loading.insert(chunkpos);
-
     });
-
 
     while let Ok(chunk) = rx_chunk_load.try_recv() {
         chunks_loading.remove(&chunk.chunkpos);
@@ -161,9 +167,7 @@ fn chunks_remesh_enqueue(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
-    // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
 
-    mut cli: ResMut<ClientInfo>,
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
 ) {
@@ -281,11 +285,6 @@ fn chunks_remesh_enqueue(
     }
 }
 
-// separated from .. due to Parallel Excution
-// fn chunks_remesh_dequeue() {
-
-// }
-
 #[derive(Resource, Reflect, Default, Debug)]
 #[reflect(Resource)]
 pub struct HitResult {
@@ -303,8 +302,9 @@ fn raycast(
     query_player: Query<Entity, With<CharacterController>>,              // exclude collider
     mut hit_result: ResMut<HitResult>,
 
+    query_input: Query<&ActionState<InputAction>>,
     mouse_btn: Res<ButtonInput<MouseButton>>,
-    chunk_sys: ResMut<ClientChunkSystem>,
+    mut chunk_sys: ResMut<ClientChunkSystem>,
     mut net_client: ResMut<RenetClient>,
     cli: Res<ClientInfo>,
 ) {
@@ -340,14 +340,15 @@ fn raycast(
         return;
     }
 
-    let do_break = mouse_btn.just_pressed(MouseButton::Left);
-    let do_place = mouse_btn.just_pressed(MouseButton::Right);
+    let action_state = query_input.single();
+    let do_break = action_state.just_pressed(&InputAction::Attack);
+    let do_place = action_state.just_pressed(&InputAction::UseItem);
+
     if hit_result.is_hit && (do_break || do_place) {
         let n = cli.brush_size as i32;
 
         // These code is Horrible
 
-        let mut map = HashMap::new();
         iter::iter_aabb(n, n, |lp| {
             // +0.01*norm: for placing cube like MC.
 
@@ -355,43 +356,39 @@ fn raycast(
                 .floor()
                 .as_ivec3()
                 + lp;
-            let chunkpos = Chunk::as_chunkpos(p);
 
-            // chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p));
+            if let Some(v) = chunk_sys.get_voxel(p) {
+                let v = v.as_ref_mut();
+                let f = (n as f32 - lp.as_vec3().length()).max(0.) * cli.brush_strength;
 
-            let pack = map.entry(chunkpos).or_insert_with(Vec::new);
+                v.set_isovalue(v.isovalue() + if do_break { -f } else { f });
 
-            let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
+                if f > 0.0 || (n == 0 && f == 0.0) {
+                    // placing single
+                    if do_place {
+                        // && c.tex_id == 0 {
+                        v.tex_id = cli.brush_tex;
+                        v.shape_id = cli.brush_shape;
 
-            let mut c = *chunk.get_cell(Chunk::as_localpos(p));
-
-            let f = (n as f32 - lp.as_vec3().length()).max(0.) * cli.brush_strength;
-
-            c.set_isovalue(c.isovalue() + if do_break { -f } else { f });
-
-            if f > 0.0 || (n == 0 && f == 0.0) {
-                // placing single
-                if do_place {
-                    // && c.tex_id == 0 {
-                    c.tex_id = cli.brush_tex;
-                    c.shape_id = cli.brush_shape;
-
-                    // placing Block
-                    if cli.brush_shape != 0 {
-                        c.set_isovalue(0.0);
+                        // placing Block
+                        if cli.brush_shape != 0 {
+                            v.set_isovalue(0.0);
+                        }
+                    } else if v.is_isoval_empty() {
+                        v.tex_id = 0;
                     }
-                } else if c.is_isoval_empty() {
-                    c.tex_id = 0;
                 }
+
+                chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p)); // CLIS
             }
-
-            pack.push(CellData::from_cell(Chunk::local_idx(Chunk::as_localpos(p)) as u16, &c));
         });
-
-        info!("Modify terrain sent {}", map.len());
-        for e in map {
-            net_client.send_packet(&CPacket::ChunkModify { chunkpos: e.0, voxel: e.1 });
-        }
+        // let mut map = HashMap::new();
+        // let pack = map.entry(chunkpos).or_insert_with(Vec::new);
+        // pack.push(CellData::from_cell(Chunk::local_idx(Chunk::as_localpos(p)) as u16, &c));
+        // info!("Modify terrain sent {}", map.len());
+        // for e in map {
+        //     net_client.send_packet(&CPacket::ChunkModify { chunkpos: e.0, voxel: e.1 });
+        // }
     }
 }
 
@@ -458,7 +455,6 @@ pub struct ClientChunkSystem {
     pub mtl_foliage: Handle<StandardMaterial>,
     pub entity: Entity,
 
-
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
     pub chunks_load_distance: IVec2, // not real, but send to server,
@@ -485,7 +481,6 @@ impl ClientChunkSystem {
             mtl_terrain: Handle::default(),
             mtl_foliage: Handle::default(),
             entity: Entity::PLACEHOLDER,
-
 
             max_concurrent_meshing: 8,
             chunks_meshing: HashSet::default(),
@@ -531,10 +526,8 @@ impl ClientChunkSystem {
             })
             .set_parent(self.entity)
             .id();
-    
 
         let chunkptr = Arc::new(chunk);
-
 
         let chunkpos;
         {
