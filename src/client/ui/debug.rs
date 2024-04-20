@@ -10,7 +10,11 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    client::character_controller::CharacterControllerCamera, client::game_client::{ClientInfo, EthertiaClient, WorldInfo}, ui::{color32_of, CurrentUI, UiExtra}, util::AsRefMut, voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult}
+    client::character_controller::CharacterControllerCamera,
+    client::game_client::{ClientInfo, EthertiaClient, WorldInfo},
+    ui::{color32_of, CurrentUI, UiExtra},
+    util::AsRefMut,
+    voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
 };
 
 pub fn ui_menu_panel(
@@ -36,7 +40,6 @@ pub fn ui_menu_panel(
         color32_of(DARK)
     };
     // color32_of(worldinfo.map_or(DARK, |v| v.is_paused));
-
 
     egui::TopBottomPanel::top("menu_panel")
         .frame(Frame::default().fill(bg))
@@ -145,7 +148,7 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("World", |ui| {
-    let cli = cl.data();
+                            let cli = cl.data();
                             ui.label("Gizmos:");
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
                             ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Curr Chunk");
@@ -173,7 +176,6 @@ pub fn ui_menu_panel(
                                     let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_ref_mut();
                                     for x in 0..16 {
                                         for z in 0..16 {
-
                                             chunk.set_cell(IVec3::new(x, 0, z), &Cell::new(0, 1, 0.));
                                         }
                                     }

@@ -45,10 +45,6 @@ fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, serv: ResMut<Server
     for _ in exit_events.read() {}
 }
 
-
-
-
-
 pub mod rcon {
     use super::*;
 

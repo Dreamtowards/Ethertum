@@ -210,7 +210,7 @@ pub trait RenetServerHelper {
     fn send_packet<P: Serialize>(&mut self, client_id: ClientId, packet: &P);
 
     fn send_packet_disconnect(&mut self, client_id: ClientId, reason: String);
-    
+
     fn send_packet_chat(&mut self, client_id: ClientId, message: String);
 
     fn broadcast_packet<P: Serialize>(&mut self, packet: &P);

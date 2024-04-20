@@ -2,17 +2,14 @@
 pub mod client;
 pub use client::ui;
 
-
 // Server
 pub mod game_server;
-
 
 // Common
 pub mod item;
 pub mod net;
 pub mod util;
 pub mod voxel;
-
 
 // Util
 use crossbeam_channel as channel_impl;

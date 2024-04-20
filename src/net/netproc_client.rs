@@ -3,7 +3,10 @@
 use std::sync::{Arc, RwLock};
 
 use bevy::{
-    ecs::system::EntityCommands, prelude::*, render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}, utils::HashMap
+    ecs::system::EntityCommands,
+    prelude::*,
+    render::{primitives::Aabb, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
+    utils::HashMap,
 };
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
@@ -90,7 +93,7 @@ pub fn client_sys(
                 cli.curr_ui = CurrentUI::None;
 
                 spawn_player(
-                    &mut cmds.get_or_spawn(player_entity.client_entity()),  // 为什么在这生成 因为要指定id，以及其他player也是在这生成
+                    &mut cmds.get_or_spawn(player_entity.client_entity()), // 为什么在这生成 因为要指定id，以及其他player也是在这生成
                     true,
                     &cli.cfg.username,
                     &asset_server,
@@ -131,11 +134,9 @@ pub fn client_sys(
                 cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
             }
             SPacket::PlayerList { playerlist } => {
-                
                 cli.playerlist.clone_from(playerlist); // should move?
             }
             SPacket::WorldTime { daytime } => {
-
                 worldinfo.daytime = *daytime;
             }
             SPacket::ChunkNew { chunkpos, voxel } => {

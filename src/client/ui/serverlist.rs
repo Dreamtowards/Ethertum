@@ -18,20 +18,14 @@ use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 
 use super::new_egui_window;
 
-
-
-pub fn ui_connecting_server(
-    mut ctx: EguiContexts, 
-    mut cli: EthertiaClient,
-    net_client: Option<ResMut<RenetClient>>
-) {
+pub fn ui_connecting_server(mut ctx: EguiContexts, mut cli: EthertiaClient, net_client: Option<ResMut<RenetClient>>) {
     new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
         let h = ui.available_height();
 
         ui.vertical_centered(|ui| {
             ui.add_space(h * 0.2);
 
-            if net_client.is_some_and(|e|e.is_connected()) {
+            if net_client.is_some_and(|e| e.is_connected()) {
                 ui.label("Authenticating & logging in...");
             } else {
                 ui.label("Connecting server...");
@@ -70,43 +64,6 @@ pub fn ui_disconnected_reason(
     });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[derive(Default, Debug)]
 pub struct UiServerInfo {
     pub motd: String,
@@ -116,7 +73,7 @@ pub struct UiServerInfo {
     pub gameplay_addr: String,
 
     pub is_editing: bool,
-    pub refreshing_task: Option<(Task<anyhow::Result<Motd>>, u64)>
+    pub refreshing_task: Option<(Task<anyhow::Result<Motd>>, u64)>,
 }
 
 pub fn ui_serverlist(
@@ -231,8 +188,8 @@ pub fn ui_serverlist(
                         let addr = server_item.addr.clone(); // opt
                         let (task, time) = ui_server_info.refreshing_task.get_or_insert_with(|| {
                             (
-                                AsyncComputeTaskPool::get().spawn(
-                                    async move { util::http_get_json::<game_server::rcon::Motd>(&format!("http://{}", addr)) }),
+                                AsyncComputeTaskPool::get()
+                                    .spawn(async move { util::http_get_json::<game_server::rcon::Motd>(&format!("http://{}", addr)) }),
                                 util::current_timestamp_millis(),
                             )
                         });
@@ -287,50 +244,7 @@ pub fn ui_serverlist(
     });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pub fn ui_localsaves(
-    mut ctx: EguiContexts,
-    mut cli: EthertiaClient,
-    mut idx_editing: Local<Option<usize>>,
-) {
+pub fn ui_localsaves(mut ctx: EguiContexts, mut cli: EthertiaClient, mut idx_editing: Local<Option<usize>>) {
     new_egui_window("Local Worlds").show(ctx.ctx_mut(), |ui| {
         ui_lr_panel(
             ui,
@@ -343,7 +257,7 @@ pub fn ui_localsaves(
             },
             |ui| {
                 for idx in 0..28 {
-                    let is_editing = idx_editing.is_some_and(|i| i==idx);
+                    let is_editing = idx_editing.is_some_and(|i| i == idx);
 
                     // World Item
                     ui.group(|ui| {
@@ -351,7 +265,7 @@ pub fn ui_localsaves(
                         ui.horizontal(|ui| {
                             // Left: Title
                             ui.colored_label(Color32::WHITE, "World Name").on_hover_text(
-"Path: /Saves/Saa
+                                "Path: /Saves/Saa
 Size: 10.3 MiB
 Time Modified: 2024.02.01 11:20 AM
 Time Created: 2024.02.01 11:20 AM
@@ -390,20 +304,6 @@ Inhabited: 10.3 hours",
         );
     });
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[derive(Default, Debug, PartialEq)]
 pub enum Difficulty {

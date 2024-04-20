@@ -4,7 +4,11 @@ use bevy::{prelude::*, utils::HashSet};
 use bevy_renet::renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent};
 
 use crate::{
-    client::game_client::WorldInfo, game_server::{PlayerInfo, ServerInfo}, net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID}, util::{current_timestamp_millis, AsRefMut}, voxel::{ChunkSystem, ServerChunkSystem}
+    client::game_client::WorldInfo,
+    game_server::{PlayerInfo, ServerInfo},
+    net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
+    util::{current_timestamp_millis, AsRefMut},
+    voxel::{ChunkSystem, ServerChunkSystem},
 };
 
 pub fn server_sys(
@@ -13,7 +17,6 @@ pub fn server_sys(
     transport: Res<NetcodeServerTransport>,
     mut serverinfo: ResMut<ServerInfo>,
     // mut worldinfo: ResMut<WorldInfo>,
-
     chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
 ) {
@@ -122,7 +125,7 @@ pub fn server_sys(
                             entity_id,
                             position: Vec3::ZERO,
                             chunks_loaded: HashSet::default(),
-                            chunks_load_distance: IVec2::new(-1, -1),  // 4 2
+                            chunks_load_distance: IVec2::new(-1, -1), // 4 2
                             ping_rtt: 0,
                         },
                     );
@@ -157,7 +160,6 @@ pub fn server_sys(
                             }
                         }
                         CPacket::LoadDistance { load_distance } => {
-
                             player.chunks_load_distance = load_distance;
                         }
                         CPacket::PlayerPos { position } => {

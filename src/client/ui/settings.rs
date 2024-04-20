@@ -6,7 +6,8 @@ use bevy_egui::{
 
 use crate::{
     client::character_controller::CharacterController,
-    client::game_client::{ClientInfo, WorldInfo}, voxel::ClientChunkSystem,
+    client::game_client::{ClientInfo, WorldInfo},
+    voxel::ClientChunkSystem,
 };
 
 use super::{new_egui_window, sfx_play, ui_lr_panel};
@@ -120,7 +121,7 @@ pub fn ui_settings(
                             "Chunks Meshing Max Concurrency",
                             egui::Slider::new(&mut cli.max_concurrent_meshing, 0..=50),
                         );
-                        
+
                         ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cli.chunks_load_distance.x, -1..=25));
                         ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cli.chunks_load_distance.y, -1..=25));
 
@@ -137,7 +138,6 @@ pub fn ui_settings(
                             ui_setting_line(ui, "Day Time", egui::Slider::new(&mut worldinfo.daytime, 0.0..=1.0));
 
                             ui_setting_line(ui, "Day Time Length", egui::Slider::new(&mut worldinfo.daytime_length, 0.0..=60.0 * 24.0));
-
                         }
                     }
                     SettingsPanel::Graphics => {

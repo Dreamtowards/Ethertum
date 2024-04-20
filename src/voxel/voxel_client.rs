@@ -18,8 +18,8 @@ use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem
 use crate::{
     client::character_controller::{CharacterController, CharacterControllerCamera},
     client::game_client::{condition, ClientInfo, DespawnOnWorldUnload},
-    net::{CPacket, CellData, RenetClientHelper},
     client::ui::CurrentUI,
+    net::{CPacket, CellData, RenetClientHelper},
     util::{self, iter, AsRefMut},
 };
 
@@ -381,7 +381,6 @@ pub struct ClientChunkSystem {
 
     pub shader_terrain: Handle<TerrainMaterial>,
     pub entity: Entity,
-
 }
 
 impl ChunkSystem for ClientChunkSystem {

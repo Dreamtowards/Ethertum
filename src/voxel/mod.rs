@@ -14,11 +14,11 @@ mod meshgen;
 pub mod worldgen;
 pub use worldgen::WorldGen;
 
-use std::{cell::UnsafeCell, sync::{Arc, RwLock}};
+use std::{
+    cell::UnsafeCell,
+    sync::{Arc, RwLock},
+};
 pub type ChunkPtr = Arc<Chunk>; // Box<Chunk>;         not supported for SharedPtr
-
-
-
 
 use bevy::{prelude::*, utils::HashMap};
 

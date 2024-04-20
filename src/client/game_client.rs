@@ -1,4 +1,7 @@
-use std::{f32::consts::{E, PI, TAU}, net::{SocketAddr, ToSocketAddrs}};
+use std::{
+    f32::consts::{E, PI, TAU},
+    net::{SocketAddr, ToSocketAddrs},
+};
 
 use bevy::{
     app::AppExit,
@@ -17,14 +20,13 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::client::ui::UiExtra;
-use crate::client::ui::CurrentUI;
+use crate::ui::prelude::*;
+use crate::client::prelude::*;
 
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
-use crate::client::prelude::*;
 use crate::util::TimeIntervals;
-use crate::{voxel::ClientVoxelPlugin};
+use crate::voxel::ClientVoxelPlugin;
 
 pub struct GameClientPlugin;
 
@@ -61,10 +63,10 @@ impl Plugin for GameClientPlugin {
         app.add_plugins(crate::ui::UiPlugin);
 
         // Gameplay
-        app.add_plugins(CharacterControllerPlugin);  // CharacterController
-        app.add_plugins(ClientVoxelPlugin);  // Voxel
-        app.add_plugins(ItemPlugin);  // Items
-        app.add_plugins(ClientNetworkPlugin);  // Network Client
+        app.add_plugins(CharacterControllerPlugin); // CharacterController
+        app.add_plugins(ClientVoxelPlugin); // Voxel
+        app.add_plugins(ItemPlugin); // Items
+        app.add_plugins(ClientNetworkPlugin); // Network Client
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
@@ -152,7 +154,6 @@ pub struct DespawnOnWorldUnload;
 #[derive(Component)]
 struct Sun;
 
-
 #[derive(Component)]
 struct WfcTest;
 
@@ -167,30 +168,26 @@ fn wfc_test(
 
     mut tx_templ_name: Local<String>,
 ) {
-
     bevy_egui::egui::Window::new("WFC").show(ctx.ctx_mut(), |ui| {
-
         ui.text_edit_singleline(&mut *tx_templ_name);
 
         if ui.btn("ReGen").clicked() {
-            
             for e_wfc in query_wfc.iter() {
                 cmds.entity(e_wfc).despawn_recursive();
             }
-
 
             use crate::wfc::*;
             let mut wfc = WFC::new();
             wfc.push_pattern("0".into(), [0; 6], false, false);
             wfc.push_pattern("1".into(), [1; 6], false, false);
-            wfc.push_pattern("2".into(),  [0, 2, 0, 0, 0, 0], true, false);
-            wfc.push_pattern("3".into(),  [3, 3, 0, 0, 0, 0], true, false);
-            wfc.push_pattern("4".into(),  [1, 2, 0, 0, 4, 4], true, false);
-            wfc.push_pattern("5".into(),  [4, 0, 0, 0, 4, 0], true, false);
-            wfc.push_pattern("6".into(),  [2, 2, 0, 0, 0, 0], true, false);
-            wfc.push_pattern("7".into(),  [2, 2, 0, 0, 3, 3], true, false);
-            wfc.push_pattern("8".into(),  [0, 0, 0, 0, 3, 2], true, false);
-            wfc.push_pattern("9".into(),  [2, 2, 0, 0, 2, 0], true, false);
+            wfc.push_pattern("2".into(), [0, 2, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("3".into(), [3, 3, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("4".into(), [1, 2, 0, 0, 4, 4], true, false);
+            wfc.push_pattern("5".into(), [4, 0, 0, 0, 4, 0], true, false);
+            wfc.push_pattern("6".into(), [2, 2, 0, 0, 0, 0], true, false);
+            wfc.push_pattern("7".into(), [2, 2, 0, 0, 3, 3], true, false);
+            wfc.push_pattern("8".into(), [0, 0, 0, 0, 3, 2], true, false);
+            wfc.push_pattern("9".into(), [2, 2, 0, 0, 2, 0], true, false);
             wfc.push_pattern("10".into(), [2, 2, 0, 0, 2, 2], true, false);
             wfc.push_pattern("11".into(), [0, 2, 0, 0, 2, 0], true, false);
             wfc.push_pattern("12".into(), [2, 2, 0, 0, 0, 0], true, false);
@@ -203,26 +200,26 @@ fn wfc_test(
                     continue; // ERROR
                 }
                 let pat = &wfc.all_patterns[tile.possib[0] as usize];
-            
-                cmds.spawn((PbrBundle {
-                    mesh: meshes.add(Plane3d::new(Vec3::Y)),
-                    material: materials.add(StandardMaterial {
-                        base_color_texture: Some(asset_server.load(format!("test/comp/circuit{}/{}.png", &*tx_templ_name, pat.name))),
-                        unlit: true,
+
+                cmds.spawn((
+                    PbrBundle {
+                        mesh: meshes.add(Plane3d::new(Vec3::Y)),
+                        material: materials.add(StandardMaterial {
+                            base_color_texture: Some(asset_server.load(format!("test/comp/circuit{}/{}.png", &*tx_templ_name, pat.name))),
+                            unlit: true,
+                            ..default()
+                        }),
+                        transform: Transform::from_translation(tile.pos.as_vec3() + (Vec3::ONE - Vec3::Y) * 0.5)
+                            .with_scale(Vec3::ONE * 0.49 * if pat.is_flipped { -1.0 } else { 1.0 })
+                            .with_rotation(Quat::from_axis_angle(Vec3::Y, f32::to_radians(pat.rotation as f32 * 90.0))),
                         ..default()
-                    }),
-                    transform: Transform::from_translation(tile.pos.as_vec3() + (Vec3::ONE - Vec3::Y) * 0.5)
-                        .with_scale(Vec3::ONE * 0.49 * if pat.is_flipped { -1.0 } else { 1.0 })
-                        .with_rotation(Quat::from_axis_angle(Vec3::Y, f32::to_radians(pat.rotation as f32 * 90.0))),
-                    ..default()
-                }, WfcTest));
+                    },
+                    WfcTest,
+                ));
             }
         }
-
     });
-
 }
-
 
 fn on_world_init(
     mut cmds: Commands,
@@ -234,8 +231,8 @@ fn on_world_init(
     info!("Load World. setup Player, Camera, Sun.");
 
     // crate::net::netproc_client::spawn_player(
-    //     &mut cmds.spawn_empty(), 
-    //     true, 
+    //     &mut cmds.spawn_empty(),
+    //     true,
     //     &cli.cfg.username, &asset_server, &mut meshes, &mut materials);
 
     // Camera
@@ -262,17 +259,13 @@ fn on_world_init(
     // Sun
     cmds.spawn((
         DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                ..default()
-            },
+            directional_light: DirectionalLight { ..default() },
             ..default()
         },
         Sun, // Marks the light as Sun
         Name::new("Sun"),
         DespawnOnWorldUnload,
     ));
-
-
 
     // // TouchStick  Move-Left
     // cmds.spawn((
@@ -534,7 +527,9 @@ fn tick_world(
             net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
         }
     }
-    net_client.send_packet(&CPacket::LoadDistance { load_distance: cli.chunks_load_distance });  // todo: Only Send after Edit Dist Config
+    net_client.send_packet(&CPacket::LoadDistance {
+        load_distance: cli.chunks_load_distance,
+    }); // todo: Only Send after Edit Dist Config
 
     // Ping Network
     if time.at_interval(1.0) {
@@ -653,10 +648,7 @@ impl Default for WorldInfo {
     }
 }
 
-
-
 // ClientSettings Configs
-
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct ServerListItem {
@@ -716,7 +708,7 @@ pub struct ClientInfo {
 
     pub max_concurrent_meshing: usize,
     pub chunks_meshing: HashSet<IVec3>,
-    pub chunks_load_distance: IVec2,  // not real, but send to server,
+    pub chunks_load_distance: IVec2, // not real, but send to server,
 
     // Render Sky
     pub sky_fog_color: Color,
@@ -832,7 +824,7 @@ impl<'w, 's> EthertiaClient<'w, 's> {
                 self.data().curr_ui = CurrentUI::DisconnectedReason;
                 return;
             }
-        }; 
+        };
 
         self.data().curr_ui = CurrentUI::ConnectingServer;
         self.clientinfo.server_addr.clone_from(&server_addr);
@@ -847,7 +839,8 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         });
 
         self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(addr,
+        self.cmds.insert_resource(crate::net::new_netcode_client_transport(
+            addr,
             Some("userData123".to_string().into_bytes()),
         ));
 
@@ -859,7 +852,6 @@ impl<'w, 's> EthertiaClient<'w, 's> {
     }
 
     pub fn enter_world(&mut self) {
-
         self.cmds.insert_resource(WorldInfo::default());
         self.data().curr_ui = CurrentUI::None;
     }
@@ -868,5 +860,4 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         self.cmds.remove_resource::<WorldInfo>();
         self.data().curr_ui = CurrentUI::MainMenu;
     }
-
 }

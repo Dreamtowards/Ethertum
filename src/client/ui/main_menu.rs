@@ -8,7 +8,6 @@ use bevy_renet::renet::RenetClient;
 use super::{sfx_play, CurrentUI, UiExtra};
 use crate::client::game_client::{ClientInfo, EthertiaClient, WorldInfo};
 
-
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
     asset_server: Res<AssetServer>,
@@ -27,9 +26,9 @@ pub fn ui_main_menu(
         let h = ui.available_height();
 
         // ui.painter().image(
-        //     img, 
-        //     Rect::from_min_size(pos2(100., 100.), vec2(200., 200.)), 
-        //     Rect::from_min_size(pos2(0., 0.), vec2(1., 1.)), 
+        //     img,
+        //     Rect::from_min_size(pos2(100., 100.), vec2(200., 200.)),
+        //     Rect::from_min_size(pos2(0., 0.), vec2(1., 1.)),
         //     Color32::WHITE
         // );
 
@@ -109,43 +108,31 @@ pub fn ui_main_menu(
     });
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
     // mut net_client: ResMut<RenetClient>,
 ) {
-    super::new_egui_window("Pause").anchor(Align2::CENTER_TOP, [0., 32.]).show(ctx.ctx_mut(), |ui| {
-        ui.horizontal(|ui| {
-            ui.toggle_value(&mut false, "Map");
-            ui.toggle_value(&mut false, "Inventory");
-            ui.toggle_value(&mut false, "Team");
-            ui.toggle_value(&mut false, "Abilities");
-            ui.toggle_value(&mut false, "Quests");
-            ui.separator();
+    super::new_egui_window("Pause")
+        .anchor(Align2::CENTER_TOP, [0., 32.])
+        .show(ctx.ctx_mut(), |ui| {
+            ui.horizontal(|ui| {
+                ui.toggle_value(&mut false, "Map");
+                ui.toggle_value(&mut false, "Inventory");
+                ui.toggle_value(&mut false, "Team");
+                ui.toggle_value(&mut false, "Abilities");
+                ui.toggle_value(&mut false, "Quests");
+                ui.separator();
 
-            if ui.toggle_value(&mut false, "Settings").clicked() {
-                cli.data().curr_ui = CurrentUI::Settings;
-            }
+                if ui.toggle_value(&mut false, "Settings").clicked() {
+                    cli.data().curr_ui = CurrentUI::Settings;
+                }
 
-            if ui.toggle_value(&mut false, "Quit").clicked() {
-                cli.exit_world();
-            }
+                if ui.toggle_value(&mut false, "Quit").clicked() {
+                    cli.exit_world();
+                }
+            });
         });
-    });
 
     // return;
     // egui::CentralPanel::default()

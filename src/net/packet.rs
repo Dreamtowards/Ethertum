@@ -126,5 +126,5 @@ pub enum SPacket {
 
     WorldTime {
         daytime: f32,
-    }
+    },
 }

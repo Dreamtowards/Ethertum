@@ -18,6 +18,10 @@ mod main_menu;
 pub mod serverlist;
 mod settings;
 
+pub mod prelude {
+    pub use super::CurrentUI;
+    pub use super::UiExtra;
+}
 
 pub struct UiPlugin;
 

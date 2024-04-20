@@ -1,10 +1,9 @@
 #[macro_use]
 mod macros;
 
-
 #[allow(invalid_reference_casting)]
-pub fn as_mut<T>(v: &T) -> &mut T { 
-    unsafe {&mut *((v as *const T) as *mut T)}
+pub fn as_mut<T>(v: &T) -> &mut T {
+    unsafe { &mut *((v as *const T) as *mut T) }
 }
 
 pub trait AsRefMut<T> {
@@ -13,17 +12,15 @@ pub trait AsRefMut<T> {
 
 // impl<T, U> AsRefMut<U> for T where T: AsRef<U> {
 //     fn as_ref_mut(&self) -> &mut U {
-//         as_mut(self.as_ref())        
+//         as_mut(self.as_ref())
 //     }
 // }
 
 impl AsRefMut<crate::voxel::Chunk> for Arc<crate::voxel::Chunk> {
     fn as_ref_mut(&self) -> &mut crate::voxel::Chunk {
-        as_mut(self.as_ref())        
+        as_mut(self.as_ref())
     }
 }
-
-
 
 pub mod registry;
 
