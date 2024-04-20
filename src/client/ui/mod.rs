@@ -18,6 +18,8 @@ mod main_menu;
 pub mod serverlist;
 mod settings;
 
+pub use main_menu::ui_item_stack;
+
 pub mod prelude {
     pub use super::CurrentUI;
     pub use super::UiExtra;

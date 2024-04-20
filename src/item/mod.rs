@@ -1,17 +1,25 @@
 use crate::util::registry::{RegId, Registry};
 
-struct Item {
-    // tab_category
-    max_stacksize: u32,
+// pub struct Item {
+//     // tab_category
+//     max_stacksize: u32,
 
-    max_damage: u32,
-    // name
-}
+//     max_damage: u32,
+//     // name
+// }
 
 pub struct ItemStack {
     pub count: u8,
     pub item_id: u8,
     // pub durability
+}
+impl ItemStack {
+    pub fn new(count: u8, item: u8) -> Self {
+        Self {
+            count,
+            item_id: item,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -34,7 +42,7 @@ pub struct ItemPlugin;
 impl Plugin for ItemPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Items::default());
-        app.insert_resource(Registry::default());
+        // app.insert_resource(Registry::default());
 
         app.add_systems(Startup, setup_items);
 
@@ -43,7 +51,8 @@ impl Plugin for ItemPlugin {
 }
 
 #[derive(Resource, Default)]
-struct Items {
+pub struct Items {
+    pub reg: Registry,
     pub atlas: Handle<Image>,
 
     pub apple: RegId,
@@ -60,21 +69,20 @@ struct Items {
     pub iron_ingot: RegId,
 }
 
-// fn error_handler(In(result): In<anyhow::Result<()>>) {
-//     let hm = crate::hashmap![
-//         "foo" => 100,
-//         "bar" => 200,
-//     ];
+pub static mut _UI_ITEMS_ATLAS: bevy_egui::egui::TextureId = bevy_egui::egui::TextureId::Managed(0);
+pub static mut _NUM_ITEMS: usize = 8;
 
-//     if let Err(err) = result {
-//         panic!("{}", err)
-//     }
-// }
-
-fn setup_items(mut items: ResMut<Items>, mut reg: ResMut<Registry>, asset_server: Res<AssetServer>) {
+fn setup_items(
+    mut items: ResMut<Items>, 
+    // mut reg: ResMut<Registry>, 
+    asset_server: Res<AssetServer>,
+    mut egui_ctx: bevy_egui::EguiContexts,
+) {
+    let reg = crate::util::as_mut(&items.reg);
+    let items = crate::util::as_mut(&*items);
     // Food
     items.apple = reg.insert("apple");
-    //  reg.insert("avocado");
+     reg.insert("avocado");  // tmp
 
     // Material
     items.coal = reg.insert("coal");
@@ -99,6 +107,11 @@ fn setup_items(mut items: ResMut<Items>, mut reg: ResMut<Registry>, asset_server
     info!("Registered {} items: {:?}", reg.len(), reg.vec);
 
     items.atlas = asset_server.load("baked/items.png");
+
+    unsafe {
+        _UI_ITEMS_ATLAS = egui_ctx.add_image(items.atlas.clone());
+        _NUM_ITEMS =  reg.len();
+    }
 }
 
 // use image::{self, GenericImageView, RgbaImage};

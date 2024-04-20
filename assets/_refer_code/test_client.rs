@@ -187,3 +187,19 @@ fn main() {
     // load_obj(&mut cmds, &asset_server, &mut materials, "bucket", true, vec3(0., 0., -5.*1.));
     // load_obj(&mut cmds, &asset_server, &mut materials, "bench", false, vec3(0., 0., -5.*2.));
     // load_obj(&mut cmds, &asset_server, &mut materials, "bookcase", false, vec3(0., 0., -5.*3.));
+
+
+
+
+
+
+// fn error_handler(In(result): In<anyhow::Result<()>>) {
+//     let hm = crate::hashmap![
+//         "foo" => 100,
+//         "bar" => 200,
+//     ];
+
+//     if let Err(err) = result {
+//         panic!("{}", err)
+//     }
+// }

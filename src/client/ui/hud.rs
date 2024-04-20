@@ -8,8 +8,7 @@ use bevy_egui::{
 use bevy_renet::renet::RenetClient;
 
 use crate::{
-    client::game_client::ClientInfo,
-    net::{CPacket, RenetClientHelper},
+    client::game_client::ClientInfo, item::ItemStack, net::{CPacket, RenetClientHelper}
 };
 
 use super::{ClientSettings, CurrentUI};
@@ -186,49 +185,48 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSettings>) {
+pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSettings>, items: Res<crate::item::Items>,) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
         .anchor(Align2::CENTER_BOTTOM, [0., -cfg.hud_padding])
         .frame(Frame::default().fill(Color32::from_black_alpha(0)))
         .show(ctx.ctx_mut(), |ui| {
-            let s = 50.;
 
-            let healthbar_size = Vec2::new(250., 10.);
-            let mut min = ui.min_rect();
-            min.set_height(0.);
-            min.set_width(0.);
-            min = min.translate(Vec2::new(0., -healthbar_size.y - 10.));
+            {
+                let health_bar_size = Vec2::new(250., 4.);
+                let mut rect = ui.min_rect();
+                rect.set_height(health_bar_size.y);
+                rect.set_width(health_bar_size.x);
+                let rounding = ui.style().visuals.widgets.inactive.rounding;
+    
+                // bar bg
+                ui.painter().rect_filled(rect, rounding, Color32::from_black_alpha(200));
+    
+                // bar fg
+                let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (cli.health as f32 / cli.health_max as f32));
+                ui.painter().rect_filled(rect_fg, rounding, Color32::WHITE);
+                ui.painter().text(
+                    rect.left_center(),
+                    Align2::LEFT_CENTER,
+                    format!(" {} / {}", cli.health, cli.health_max),
+                    FontId::proportional(10.),
+                    Color32::GRAY,
+                );
 
-            ui.painter()
-                .rect_filled(min.expand2(healthbar_size), Rounding::ZERO, Color32::from_black_alpha(200));
-
-            ui.painter().rect_filled(
-                min.expand2(Vec2::new(
-                    healthbar_size.x * (cli.health as f32 / cli.health_max as f32),
-                    healthbar_size.y,
-                )),
-                Rounding::ZERO,
-                Color32::RED,
-            );
-            ui.painter().text(
-                min.left_center(),
-                Align2::LEFT_CENTER,
-                format!("{}/{}", cli.health, cli.health_max),
-                FontId::proportional(12.),
-                Color32::WHITE,
-            );
+                ui.add_space(health_bar_size.y + 8.);
+            }
 
             ui.horizontal(|ui| {
                 for i in 0..crate::client::game_client::HOTBAR_SLOTS {
-                    let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
+                    // let s = 50.;
+                    // let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
+                    // if cli.hotbar_index == i {
+                    //     slot = slot.stroke(Stroke::new(3., Color32::WHITE));
+                    // }
+                    // ui.add_sized([s, s], slot);
 
-                    if cli.hotbar_index == i {
-                        slot = slot.stroke(Stroke::new(3., Color32::WHITE));
-                    }
-
-                    ui.add_sized([s, s], slot);
+                    super::ui_item_stack(ui, &ItemStack::new(i as u8, i as u8), &*items);
                 }
             });
         });
