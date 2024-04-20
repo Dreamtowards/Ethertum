@@ -1,6 +1,6 @@
 //! Client Networking Handler
 
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use bevy::{
     ecs::system::EntityCommands,
@@ -13,8 +13,7 @@ use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
 use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
-    client::character_controller::{CharacterController, CharacterControllerBundle},
-    client::game_client::{ClientInfo, DespawnOnWorldUnload, InputAction, WorldInfo},
+    client::prelude::*,
     client::ui::CurrentUI,
     util::{current_timestamp_millis, AsRefMut},
     voxel::{Chunk, ChunkComponent, ChunkSystem, ClientChunkSystem},
@@ -247,7 +246,7 @@ pub fn spawn_player(
         PbrBundle {
             mesh: meshes.add(Capsule3d {
                 radius: 0.3,
-                half_length: 1.3,
+                half_length: 0.9,
             }),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
@@ -286,22 +285,13 @@ pub fn spawn_player(
     if is_theplayer {
         ec.insert((
             CharacterControllerBundle::new(
-                Collider::capsule(1.3, 0.3),
+                Collider::capsule(0.9, 0.3),
                 CharacterController {
                     is_flying: true,
                     enable_input: false,
                     ..default()
                 },
             ),
-            leafwing_input_manager::InputManagerBundle::<InputAction> {
-                // Stores "which actions are currently activated"
-                action_state: ActionState::default(),
-                // Describes how to convert from player inputs into those actions
-                input_map: leafwing_input_manager::input_map::InputMap::default()
-                    .insert(InputAction::Move, DualAxis::left_stick())
-                    .insert(InputAction::Look, DualAxis::right_stick())
-                    .build(),
-            },
         ))
         .with_children(|parent| {
             // pointy "nose" for player

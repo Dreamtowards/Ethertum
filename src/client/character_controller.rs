@@ -1,6 +1,6 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
-use crate::client::game_client::{condition, ClientInfo, InputAction};
+use crate::client::prelude::*;
 use crate::util::SmoothValue;
 
 use bevy::{
@@ -16,6 +16,7 @@ use bevy_xpbd_3d::{
     },
     PhysicsSet,
 };
+use leafwing_input_manager::action_state::ActionState;
 
 pub struct CharacterControllerPlugin;
 
@@ -137,6 +138,12 @@ impl Default for CharacterController {
     }
 }
 
+// fn handle_input(
+
+// ) {
+
+// }
+
 fn input_move(
     input_key: Res<ButtonInput<KeyCode>>,
     input_mouse_button: Res<ButtonInput<MouseButton>>,
@@ -145,6 +152,7 @@ fn input_move(
     touches: Res<Touches>,
 
     time: Res<Time>,
+    query_input: Query<&ActionState<InputAction>>,
     mut query: Query<(
         &mut Transform,
         &mut CharacterController,
@@ -152,7 +160,6 @@ fn input_move(
         &mut GravityScale,
         &ShapeHits,
         &Rotation,
-        &leafwing_input_manager::action_state::ActionState<InputAction>,
     )>,
     mut cam_dist_smoothed: Local<SmoothValue>,
 ) {
@@ -160,7 +167,9 @@ fn input_move(
     let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
     let dt_sec = time.delta_seconds();
 
-    for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation, action_state) in query.iter_mut() {
+    let action_state = query_input.single();
+
+    for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
         // A Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
         let mut movement = Vec3::ZERO;
 
@@ -194,12 +203,15 @@ fn input_move(
                 ctl.yaw -= look_sensitivity * axis_value.x;
             }
 
+            let mut is_move_forward = false;
             // TouchStickUi / Gamepad: Move
             if action_state.pressed(&InputAction::Move) {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
+                if axis_value.y > 0. {
+                    is_move_forward = true;
+                }
 
-                info!("moving: {axis_value}");
-
+                // info!("moving: {axis_value}");
                 movement.x += axis_value.x;
                 movement.z -= axis_value.y;
             }
@@ -228,49 +240,31 @@ fn input_move(
                 ctl.cam_distance = cam_dist_smoothed.current;
             }
 
-            // Move: WSAD
-            if input_key.pressed(KeyCode::KeyA) {
-                movement.x -= 1.;
-            }
-            if input_key.pressed(KeyCode::KeyD) {
-                movement.x += 1.;
-            }
-            if input_key.pressed(KeyCode::KeyW) {
-                movement.z -= 1.;
-            }
-            if input_key.pressed(KeyCode::KeyS) {
-                movement.z += 1.;
-            }
+            // if action_state.pressed(&InputAction::Move) {
+            //     let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
 
-            // Input Sprint
-            if input_key.pressed(KeyCode::KeyW) {
-                if input_key.pressed(KeyCode::ControlLeft) {
-                    ctl.is_sprinting = true;
-                }
-            } else {
-                ctl.is_sprinting = false;
-            }
+            // }
+            // // Move: WSAD
+            // if input_key.pressed(KeyCode::KeyA) {
+            //     movement.x -= 1.;
+            // }
+            // if input_key.pressed(KeyCode::KeyD) {
+            //     movement.x += 1.;
+            // }
+            // if input_key.pressed(KeyCode::KeyW) {
+            //     movement.z -= 1.;
+            // }
+            // if input_key.pressed(KeyCode::KeyS) {
+            //     movement.z += 1.;
+            // }
 
-            ctl.is_sneaking = input_key.pressed(KeyCode::ShiftLeft);
 
-            if input_key.just_pressed(KeyCode::KeyL) {
-                ctl.is_flying = !ctl.is_flying;
-            }
+            ctl.is_sneaking = action_state.pressed(&InputAction::Sneak);
 
-            if ctl.is_flying {
-                if input_key.pressed(KeyCode::ShiftLeft) {
-                    movement.y -= 1.;
-                }
-                if input_key.pressed(KeyCode::Space) {
-                    movement.y += 1.;
-                }
-            }
+            let is_jump_just_pressed = action_state.just_pressed(&InputAction::Jump);
+            let is_jump_hold = action_state.pressed(&InputAction::Jump);
 
-            // Apply Yaw to Movement & Rotation
-            {
-                movement = Mat3::from_rotation_y(ctl.yaw) * movement;
-                trans.rotation = Quat::from_rotation_y(ctl.yaw);
-            }
+
 
             // Is Grouned
             // The character is grounded if the shape caster has a hit with a normal that isn't too steep.
@@ -282,43 +276,69 @@ fn input_move(
                 // }
             });
 
-            // Jump
-            let jump = input_key.pressed(KeyCode::Space);
 
-            // Fly: Double Space
-            let time_now = time.elapsed_seconds();
-            if input_key.just_pressed(KeyCode::Space) {
-                static mut LAST_FLY_JUMP: f32 = 0.;
-                if time_now - unsafe { LAST_FLY_JUMP } < 0.3 {
-                    ctl.is_flying = !ctl.is_flying;
+            // Fly Move
+            if ctl.is_flying {
+                if ctl.is_sneaking {
+                    movement.y -= 1.;
                 }
+                if is_jump_hold {
+                    movement.y += 1.;
+                }
+            }
+            // Fly Toggle: Double Space
+            let time_now = time.elapsed_seconds();
+            if is_jump_just_pressed {
                 unsafe {
+                    static mut LAST_FLY_JUMP: f32 = 0.;
+                    if time_now - LAST_FLY_JUMP < 0.3 {
+                        ctl.is_flying = !ctl.is_flying;
+                    }
                     LAST_FLY_JUMP = time_now;
                 }
             }
+            // UnFly on Touch Ground.
             if ctl.unfly_on_ground && ctl.is_grounded && ctl.is_flying {
                 ctl.is_flying = false;
             }
 
-            // Sprint: Double W
-            if input_key.just_pressed(KeyCode::KeyW) {
-                static mut LAST_W: f32 = 0.;
-                if time_now - unsafe { LAST_W } < 0.3 {
+
+            // Input Sprint
+            if is_move_forward {
+                if action_state.pressed(&InputAction::Sprint) {
                     ctl.is_sprinting = true;
                 }
+            } else {
+                ctl.is_sprinting = false;
+            }
+            // Sprint: Double W
+            if input_key.just_pressed(KeyCode::KeyW) {  // todo: LastForward.
                 unsafe {
+                    static mut LAST_W: f32 = 0.;
+                    if time_now - LAST_W < 0.3 {
+                        ctl.is_sprinting = true;
+                    }
                     LAST_W = time_now;
                 }
             }
 
-            static mut LAST_JUMP: f32 = 0.;
-            if jump && ctl.is_grounded && !ctl.is_flying && time_now - unsafe { LAST_JUMP } > 0.3 {
-                linvel.0.y = ctl.jump_impulse;
-
-                // info!("JMP {:?}", linvel.0);
+            // Jump
+            if is_jump_hold && ctl.is_grounded && !ctl.is_flying {
                 unsafe {
+                    static mut LAST_JUMP: f32 = 0.;  // countdown 
+                    if time_now - LAST_JUMP > 0.3 {
+                        linvel.0.y = ctl.jump_impulse;  // apply jump vel
+                    }
                     LAST_JUMP = time_now;
                 }
+                // info!("JMP {:?}", linvel.0);
+            }
+
+
+            // Apply Yaw to Movement & Rotation
+            {
+                movement = Mat3::from_rotation_y(ctl.yaw) * movement;
+                trans.rotation = Quat::from_rotation_y(ctl.yaw);
             }
         }
 

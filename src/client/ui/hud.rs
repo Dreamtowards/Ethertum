@@ -30,7 +30,8 @@ pub struct ChatHistory {
 
 fn set_cursor_pos(ctx: &egui::Context, id: egui::Id, pos: usize) {
     if let Some(mut state) = TextEdit::load_state(ctx, id) {
-        state.set_ccursor_range(Some(CCursorRange::one(egui::text::CCursor::new(pos))));
+        state.cursor.set_char_range(Some(CCursorRange::one(egui::text::CCursor::new(pos))));
+        // state.set_ccursor_range(Some(CCursorRange::one(egui::text::CCursor::new(pos))));
         state.store(ctx, id);
     }
 }

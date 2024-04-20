@@ -23,7 +23,7 @@ pub enum SettingsPanel {
     Language,
     Mods,
     Assets,
-    Credits,
+    // Credits,
 }
 
 pub fn ui_settings(
