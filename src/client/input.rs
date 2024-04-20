@@ -1,5 +1,6 @@
 
 use bevy::window::*;
+use leafwing_input_manager::action_state::ActionState;
 use leafwing_input_manager::axislike::DualAxis;
 use leafwing_input_manager::axislike::VirtualDPad;
 use leafwing_input_manager::input_map::InputMap;
@@ -23,16 +24,25 @@ pub enum InputStickId {
 pub enum InputAction {
     Move,
     Look,
-    MoveForward,
 
+    Jump,
     Sprint,
     Sneak,
-    Jump,
-    UseItem,
+
+    Attack,   // or Break Block
+    UseItem,  // or Place Block
+
+    // HUD
+    ESC,  // PauseMenu or MainMenu (not in game)
+    Fullscreen,
 
     TabPlayerList,
     Hotbar1,Hotbar2,Hotbar3,Hotbar4,
     Hotbar5,Hotbar6,Hotbar7,Hotbar8,
+    ToggleLook,  // toggle Grab-Crosshair or UnGrab-Pointer
+
+
+
 
 }
 
@@ -47,11 +57,18 @@ impl InputAction {
         // Default kbm input bindings
         input_map.insert(Self::Move, VirtualDPad::wasd());
         input_map.insert(Self::Move, VirtualDPad::arrow_keys());
-
         // input_map.insert(Self::Look, VirtualDPad::mouse_motion());  // Don't use MouseMotion for Look, the experimence is quite bad.
         input_map.insert(Self::Jump, KeyCode::Space);
+        input_map.insert(Self::Sprint, KeyCode::ControlLeft);
+        input_map.insert(Self::Sneak, KeyCode::ShiftLeft);
 
+        input_map.insert(Self::Attack, MouseButton::Left);
         input_map.insert(Self::UseItem, MouseButton::Right);
+
+        input_map.insert(Self::ESC, KeyCode::Escape);
+        input_map.insert(Self::Fullscreen, KeyCode::F11);
+        input_map.insert(Self::ToggleLook, KeyCode::Comma);
+
 
         input_map  // .build()?
     }
@@ -61,13 +78,13 @@ impl InputAction {
 pub fn input_setup(
     mut cmds: Commands,
 ) {
-
     cmds.spawn(InputManagerBundle::<InputAction>::with_map(InputAction::default_input_map()));
-    
 }
 
 pub fn input_handle(
     key: Res<ButtonInput<KeyCode>>,
+    query_input: Query<&ActionState<InputAction>>,
+
     mut mouse_wheel_events: EventReader<bevy::input::mouse::MouseWheel>,
     mut query_window: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
     mut query_controller: Query<&mut CharacterController>,
@@ -75,9 +92,12 @@ pub fn input_handle(
     worldinfo: Option<ResMut<WorldInfo>>,
     mut cli: ResMut<ClientInfo>,
 ) {
+    let action_state = query_input.single();
+
     let mut window = query_window.single_mut();
 
-    if key.just_pressed(KeyCode::Escape) {
+    // ESC
+    if action_state.just_pressed(&InputAction::ESC) {
         if worldinfo.is_some() {
             cli.curr_ui = if cli.curr_ui == CurrentUI::None {
                 CurrentUI::PauseMenu
@@ -103,7 +123,7 @@ pub fn input_handle(
     }
 
     // Toggle Cursor-Look
-    if curr_manipulating && key.just_pressed(KeyCode::Comma) {
+    if curr_manipulating && action_state.just_pressed(&InputAction::ToggleLook) {
         cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
@@ -134,7 +154,7 @@ pub fn input_handle(
     }
 
     // Toggle Fullscreen
-    if key.just_pressed(KeyCode::F11) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Enter)) {
+    if action_state.just_pressed(&InputAction::Fullscreen) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Enter)) {
         window.mode = if window.mode != WindowMode::Fullscreen {
             WindowMode::Fullscreen
         } else {
