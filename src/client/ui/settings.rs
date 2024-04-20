@@ -34,7 +34,7 @@ pub fn ui_settings(
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
-    chunk_sys: Option<ResMut<ClientChunkSystem>>,
+    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
     // mut global_volume: ResMut<GlobalVolume>,
 
     // mut cmds: Commands,
@@ -116,15 +116,17 @@ pub fn ui_settings(
 
                         ui.label("Voxel:");
 
-                        ui_setting_line(
-                            ui,
-                            "Chunks Meshing Max Concurrency",
-                            egui::Slider::new(&mut cli.max_concurrent_meshing, 0..=50),
-                        );
+                        // ui_setting_line(
+                        //     ui,
+                        //     "Chunks Meshing Max Concurrency",
+                        //     egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50),
+                        // );
 
-                        ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cli.chunks_load_distance.x, -1..=25));
-                        ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cli.chunks_load_distance.y, -1..=25));
-
+                        if let Some(chunk_sys) = &mut chunk_sys {
+                            ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut chunk_sys.chunks_load_distance.x, -1..=25));
+                            ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut chunk_sys.chunks_load_distance.y, -1..=25));    
+                        }
+                        
                         ui_setting_line(ui, "Brush Size", egui::Slider::new(&mut cli.brush_size, 0.0..=20.0));
 
                         ui_setting_line(ui, "Brush Indensity", egui::Slider::new(&mut cli.brush_strength, 0.0..=1.0));

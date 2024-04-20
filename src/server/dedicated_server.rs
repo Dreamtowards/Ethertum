@@ -9,11 +9,12 @@ use crate::{
     voxel::ServerVoxelPlugin,
 };
 
-pub struct ServerGamePlugin;
+pub struct DedicatedServerPlugin;
 
-impl Plugin for ServerGamePlugin {
+impl Plugin for DedicatedServerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ServerInfo::default());
+        app.insert_resource(ServerSettings::default());
 
         // Network
         app.add_plugins(ServerNetworkPlugin);
@@ -35,14 +36,23 @@ impl Plugin for ServerGamePlugin {
     }
 }
 
-fn on_init(mut serv: ResMut<ServerInfo>) {
-    if let Err(err) = serv.load() {
-        panic!("{}", err);
+const SERVER_SETTINGS_FILE: &str = "server.settings.json";
+
+fn on_init(mut cfg: ResMut<ServerSettings>) {
+    info!("Loading server settings from {SERVER_SETTINGS_FILE}");
+
+    if let Ok(c) = serde_json::from_str(&SERVER_SETTINGS_FILE) {
+        *cfg = c;
     }
 }
 
-fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, serv: ResMut<ServerInfo>) {
-    for _ in exit_events.read() {}
+fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, cfg: Res<ServerSettings>) {
+    for _ in exit_events.read() {
+        info!("Saving server settings to {SERVER_SETTINGS_FILE}");
+
+        let s = serde_json::to_string_pretty(&*cfg).unwrap();
+        std::fs::write(SERVER_SETTINGS_FILE, s).unwrap();
+    }
 }
 
 pub mod rcon {
@@ -80,22 +90,17 @@ pub mod rcon {
     }
 }
 
-const SERVER_SETTINGS_FILE: &str = "server.settings.json";
 
-#[derive(serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
+
+
+#[derive(Resource, serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ServerSettings {
-    addr: String,
+    pub port: u16,
 }
 
 impl Default for ServerSettings {
     fn default() -> Self {
-        Self { addr: "0.0.0.0:4000".into() }
-    }
-}
-
-impl ServerSettings {
-    pub fn addr(&self) -> &str {
-        &self.addr
+        Self { port: 4060 }
     }
 }
 
@@ -103,31 +108,8 @@ impl ServerSettings {
 pub struct ServerInfo {
     // PlayerList
     pub online_players: HashMap<ClientId, PlayerInfo>,
-    cfg: ServerSettings,
 }
 
-impl ServerInfo {
-    pub fn cfg(&self) -> &ServerSettings {
-        &self.cfg
-    }
-
-    fn load(&mut self) -> anyhow::Result<()> {
-        match std::fs::read_to_string(SERVER_SETTINGS_FILE) {
-            Ok(s) => {
-                info!("Loading server settings from {SERVER_SETTINGS_FILE}");
-
-                self.cfg = serde_json::from_str(&s)?
-            }
-            Err(_) => {
-                info!("Saving server settings to {SERVER_SETTINGS_FILE}");
-
-                let s = serde_json::to_string_pretty(&self.cfg)?;
-                std::fs::write(SERVER_SETTINGS_FILE, s)?;
-            }
-        };
-        Ok(())
-    }
-}
 
 pub struct PlayerInfo {
     pub username: String,

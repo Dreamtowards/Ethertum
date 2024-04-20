@@ -5,27 +5,23 @@ use std::{
 };
 
 use bevy::prelude::*;
-use bevy_renet::{
-    renet::{
-        transport::{
-            ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES,
-        },
-        ChannelConfig, ClientId, ConnectionConfig, DefaultChannel, RenetClient, RenetServer, SendType,
+use bevy_renet::renet::{
+    transport::{
+        ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES,
     },
-    transport::{NetcodeClientPlugin, NetcodeServerPlugin},
-    RenetClientPlugin, RenetServerPlugin,
+    ChannelConfig, ClientId, DefaultChannel, RenetClient, RenetServer, SendType,
 };
 
-use crate::util::current_timestamp;
 mod packet;
-pub use packet::{CPacket, CellData, SPacket};
 pub mod netproc_client;
 mod netproc_server;
 
-const PROTOCOL_ID: u64 = 1;
-
+use crate::util::current_timestamp;
+pub use packet::{CPacket, CellData, SPacket};
 pub use netproc_client::ClientNetworkPlugin;
 pub use netproc_server::ServerNetworkPlugin;
+
+const PROTOCOL_ID: u64 = 1;
 
 pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -> NetcodeServerTransport {
     let public_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), public_addr_port);

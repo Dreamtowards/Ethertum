@@ -35,25 +35,41 @@ impl Plugin for ClientVoxelPlugin {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
             app.insert_resource(ChannelTx(tx));
             app.insert_resource(ChannelRx(rx));
+
+            let (tx, rx) = crate::channel_impl::unbounded::<Chunk>();
+            app.insert_resource(ChannelTx(tx));
+            app.insert_resource(ChannelRx(rx));
         }
 
         app.add_systems(First, on_world_init.run_if(condition::load_world));
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
         app.insert_resource(HitResult::default());
-        app.add_systems(Update, (raycast, chunks_remesh_enqueue, draw_gizmos).chain().run_if(condition::in_world));
+        app.add_systems(Update, (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos).chain().run_if(condition::in_world));
     }
 }
 
-fn on_world_init(mut cmds: Commands, asset_server: Res<AssetServer>, mut terrain_materials: ResMut<Assets<TerrainMaterial>>) {
-    info!("Init ChunkSystem");
-
+fn on_world_init(
+    mut cmds: Commands, asset_server: Res<AssetServer>,
+    mut terrain_materials: ResMut<Assets<TerrainMaterial>>, 
+    mut std_mtls: ResMut<Assets<StandardMaterial>>
+) {
+    info!("Init ClientChunkSystem");
     let mut chunk_sys = ClientChunkSystem::new();
 
-    chunk_sys.shader_terrain = terrain_materials.add(TerrainMaterial {
+    chunk_sys.mtl_terrain = terrain_materials.add(TerrainMaterial {
         texture_diffuse: Some(asset_server.load("baked/atlas_diff.png")),
         texture_normal: Some(asset_server.load("baked/atlas_norm.png")),
         texture_dram: Some(asset_server.load("baked/atlas_dram.png")),
+        ..default()
+    });
+
+    chunk_sys.mtl_foliage = std_mtls.add(StandardMaterial {
+        base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
+        // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
+        double_sided: true,
+        alpha_mode: AlphaMode::Mask(0.5),
+        cull_mode: None,
         ..default()
     });
 
@@ -76,6 +92,60 @@ fn on_world_exit(mut cmds: Commands) {
     cmds.remove_resource::<ClientChunkSystem>();
 }
 
+type ChunkLoadingData = Chunk;
+
+fn chunks_detect_load_and_unload(
+    query_cam: Query<&Transform, With<CharacterControllerCamera>>,
+
+    mut chunk_sys: ResMut<ClientChunkSystem>,
+
+    mut cmds: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+
+    mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
+    tx_chunk_load: Res<ChannelTx<ChunkLoadingData>>,
+    rx_chunk_load: Res<ChannelRx<ChunkLoadingData>>,
+) {
+    // let chunk_sys_entity = commands.entity(chunk_sys.entity);
+
+    let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()); // viewer pos
+    let vd = chunk_sys.chunks_load_distance;
+
+    // Chunks Detect Load/Gen
+
+    iter::iter_center_spread(vd.x, vd.y, |rp| {
+        if chunks_loading.len() > 8 { //chunk_sys.max_concurrent_loading {
+            return;
+        }
+        let chunkpos = rp * Chunk::SIZE + vp;
+
+        // the chunk already exists, skip.
+        if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
+            return;
+        }
+
+        let tx = tx_chunk_load.clone();
+        let task = AsyncComputeTaskPool::get().spawn(async move {
+            // info!("Load Chunk: {:?}", chunkpos);
+            let mut chunk = Chunk::new(chunkpos);
+
+            super::WorldGen::generate_chunk(&mut chunk);
+
+            tx.send(chunk).unwrap();
+        });
+        task.detach();
+        chunks_loading.insert(chunkpos);
+
+    });
+
+
+    while let Ok(chunk) = rx_chunk_load.try_recv() {
+        chunks_loading.remove(&chunk.chunkpos);
+
+        chunk_sys.spawn_chunk(chunk, &mut cmds, &mut meshes);
+    }
+}
+
 type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>);
 
 use crate::voxel::meshgen::VertexBuffer;
@@ -92,6 +162,7 @@ fn chunks_remesh_enqueue(
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut query: Query<(Entity, &Handle<Mesh>, &mut ChunkMeshingTask, &ChunkComponent, &mut Visibility)>,
+
     mut cli: ResMut<ClientInfo>,
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
@@ -103,15 +174,16 @@ fn chunks_remesh_enqueue(
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::utils::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
-        if cli.chunks_meshing.len() >= cli.max_concurrent_meshing {
+        if chunk_sys.chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
             break;
         }
-        if cli.chunks_meshing.contains(&chunkpos) {
+        if chunk_sys.chunks_meshing.contains(&chunkpos) {
             continue;
         }
 
+        let mut has = false;
         if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
-            cli.chunks_meshing.insert(chunkpos);
+            has = true;
 
             let chunkptr = chunkptr.clone();
             let tx = tx_chunks_meshing.clone();
@@ -184,6 +256,9 @@ fn chunks_remesh_enqueue(
 
             // info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
         }
+        if has {
+            chunk_sys.chunks_meshing.insert(chunkpos);
+        }
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
@@ -201,7 +276,7 @@ fn chunks_remesh_enqueue(
             }
         }
 
-        cli.chunks_meshing.remove(&chunkpos);
+        chunk_sys.chunks_meshing.remove(&chunkpos);
         // info!("[ReMesh Completed] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
     }
 }
@@ -359,7 +434,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         }
 
         // chunks meshing
-        for cp in cli.chunks_meshing.iter() {
+        for cp in chunk_sys.chunks_meshing.iter() {
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
                 Color::RED,
@@ -379,8 +454,14 @@ pub struct ClientChunkSystem {
     // mark to ReMesh
     pub chunks_remesh: HashSet<IVec3>,
 
-    pub shader_terrain: Handle<TerrainMaterial>,
+    pub mtl_terrain: Handle<TerrainMaterial>,
+    pub mtl_foliage: Handle<StandardMaterial>,
     pub entity: Entity,
+
+
+    pub max_concurrent_meshing: usize,
+    pub chunks_meshing: HashSet<IVec3>,
+    pub chunks_load_distance: IVec2, // not real, but send to server,
 }
 
 impl ChunkSystem for ClientChunkSystem {
@@ -401,8 +482,14 @@ impl ClientChunkSystem {
             chunks: HashMap::default(),
             chunks_remesh: HashSet::default(),
 
-            shader_terrain: Handle::default(),
+            mtl_terrain: Handle::default(),
+            mtl_foliage: Handle::default(),
             entity: Entity::PLACEHOLDER,
+
+
+            max_concurrent_meshing: 8,
+            chunks_meshing: HashSet::default(),
+            chunks_load_distance: IVec2::new(-1, -1),
         }
     }
 
@@ -410,7 +497,45 @@ impl ClientChunkSystem {
         self.chunks_remesh.insert(chunkpos);
     }
 
-    pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
+    pub fn spawn_chunk(&mut self, mut chunk: Chunk, cmds: &mut Commands, meshes: &mut Assets<Mesh>) {
+        let chunkpos = chunk.chunkpos;
+
+        let aabb = bevy::render::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
+
+        chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+        chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+
+        chunk.entity = cmds
+            .spawn((
+                // ChunkComponent::new(*chunkpos),
+                MaterialMeshBundle {
+                    mesh: chunk.mesh_handle.clone(),
+                    material: self.mtl_terrain.clone(), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
+                    transform: Transform::from_translation(chunkpos.as_vec3()),
+                    visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
+                    ..default()
+                },
+                aabb,
+                bevy_xpbd_3d::components::RigidBody::Static,
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    MaterialMeshBundle {
+                        mesh: chunk.mesh_handle_foliage.clone(),
+                        material: self.mtl_foliage.clone(),
+                        // visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
+                        ..default()
+                    },
+                    aabb,
+                ));
+            })
+            .set_parent(self.entity)
+            .id();
+    
+
+        let chunkptr = Arc::new(chunk);
+
+
         let chunkpos;
         {
             let chunk = chunkptr.as_ref_mut();

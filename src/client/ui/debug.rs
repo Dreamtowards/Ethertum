@@ -292,7 +292,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
         let num_chunks_loading = -1; //chunk_sys.chunks_loading.len();
         let num_chunks_remesh = chunk_sys.chunks_remesh.len();
-        let num_chunks_meshing = cli.chunks_meshing.len();
+        let num_chunks_meshing = chunk_sys.chunks_meshing.len();
 
         let mut hit_str = "none".into();
         if hit_result.is_hit {

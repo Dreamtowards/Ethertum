@@ -1,4 +1,4 @@
-use crate::{client::prelude::*, server::game_server::rcon::Motd, util};
+use crate::{client::prelude::*, server::{dedicated_server::rcon::Motd, prelude::ServerSettings}, util};
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
@@ -21,9 +21,9 @@ pub fn ui_connecting_server(mut ctx: EguiContexts, mut cli: EthertiaClient, net_
             ui.add_space(h * 0.2);
 
             if net_client.is_some_and(|e| e.is_connected()) {
-                ui.label("Authenticating & logging in...");
+                ui.label("Authenticating & Logging in...");
             } else {
-                ui.label("Connecting server...");
+                ui.label("Connecting to the server...");
             }
             ui.add_space(38.);
             ui.spinner();
@@ -171,7 +171,7 @@ pub fn ui_serverlist(
                                         is_refreshing = true;
                                     }
                                     if ui.btn("▶").on_hover_text("Join & Play").clicked() {
-                                        do_join_addr = Some(ui_server_info.gameplay_addr.clone());
+                                        do_join_addr = Some(if ui_server_info.gameplay_addr.is_empty() { server_item.addr.clone() } else { ui_server_info.gameplay_addr.clone() });
                                     }
                                 }
                             });
@@ -238,7 +238,7 @@ pub fn ui_serverlist(
     });
 }
 
-pub fn ui_localsaves(mut ctx: EguiContexts, mut cli: EthertiaClient, mut idx_editing: Local<Option<usize>>) {
+pub fn ui_localsaves(mut ctx: EguiContexts, mut cli: EthertiaClient, mut idx_editing: Local<Option<usize>>, serv_cfg: Res<ServerSettings>) {
     new_egui_window("Local Worlds").show(ctx.ctx_mut(), |ui| {
         ui_lr_panel(
             ui,
@@ -287,7 +287,9 @@ Inhabited: 10.3 hours",
                                         *idx_editing = Some(idx);
                                     }
                                     if ui.btn("▶").on_hover_text("Play").clicked() {
-                                        cli.enter_world();
+                                        // cli.enter_world();
+
+                                        cli.connect_server(format!("127.0.0.1:{}", serv_cfg.port));
                                     }
                                 }
                             });

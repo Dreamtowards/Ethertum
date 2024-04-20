@@ -11,7 +11,7 @@ use bevy_xpbd_3d::prelude::*;
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
-use crate::client::prelude::*;
+use crate::{client::prelude::*, server::prelude::IntegratedServerPlugin};
 use crate::ui::prelude::*;
 
 use crate::item::{Inventory, ItemPlugin};
@@ -57,7 +57,10 @@ impl Plugin for ClientGamePlugin {
         app.add_plugins(CharacterControllerPlugin); // CharacterController
         app.add_plugins(ClientVoxelPlugin); // Voxel
         app.add_plugins(ItemPlugin); // Items
+
+        // Network
         app.add_plugins(ClientNetworkPlugin); // Network Client
+        app.add_plugins(IntegratedServerPlugin);
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
@@ -314,9 +317,9 @@ fn tick_world(
             net_client.send_packet(&CPacket::PlayerPos { position: player_pos });
         }
     }
-    net_client.send_packet(&CPacket::LoadDistance {
-        load_distance: cli.chunks_load_distance,
-    }); // todo: Only Send after Edit Dist Config
+    // net_client.send_packet(&CPacket::LoadDistance {
+    //     load_distance: cli.chunks_load_distance,
+    // }); // todo: Only Send after Edit Dist Config
 
     // Ping Network
     if time.at_interval(1.0) {
@@ -493,10 +496,6 @@ pub struct ClientInfo {
     pub brush_shape: u16,
     pub brush_tex: u16,
 
-    pub max_concurrent_meshing: usize,
-    pub chunks_meshing: HashSet<IVec3>,
-    pub chunks_load_distance: IVec2, // not real, but send to server,
-
     // Render Sky
     pub sky_fog_color: Color,
     pub sky_fog_visibility: f32,
@@ -547,10 +546,6 @@ impl Default for ClientInfo {
             brush_strength: 0.8,
             brush_shape: 0,
             brush_tex: 21,
-
-            max_concurrent_meshing: 8,
-            chunks_meshing: HashSet::default(),
-            chunks_load_distance: IVec2::new(-1, -1),
 
             vsync: true,
 

@@ -33,17 +33,16 @@ impl Plugin for ServerNetworkPlugin {
     }
 }
 
-fn bind_server_endpoint(mut cmds: Commands, serv: Res<ServerInfo>) {
-    let addr = serv.cfg().addr().parse().unwrap();
-
-    cmds.insert_resource(super::new_netcode_server_transport(addr, 64));
-    info!("Server bind endpoint at {}", addr);
+fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>) {
+    cmds.insert_resource(super::new_netcode_server_transport(cfg.port, 64));
+    info!("Server bind endpoint at port {}", cfg.port);
 }
 
 pub fn server_sys(
     mut server_events: EventReader<ServerEvent>,
     mut server: ResMut<RenetServer>,
     transport: Res<NetcodeServerTransport>,
+
     mut serverinfo: ResMut<ServerInfo>,
     // mut worldinfo: ResMut<WorldInfo>,
     chunk_sys: ResMut<ServerChunkSystem>,
@@ -219,14 +218,14 @@ pub fn server_sys(
                             let playerlist = serverinfo.online_players.iter().map(|e| (e.1.username.clone(), e.1.ping_rtt)).collect();
                             server.send_packet(client_id, &SPacket::PlayerList { playerlist });
                         }
-                        CPacket::ChunkModify { chunkpos, voxel } => {
+                        // CPacket::ChunkModify { chunkpos, voxel } => {
                             // todo: NonLock
-                            let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
+                            // let chunk = chunk_sys.get_chunk(chunkpos).unwrap();
 
-                            CellData::to_chunk(&voxel, chunk.as_ref_mut());
+                            // CellData::to_chunk(&voxel, chunk.as_ref_mut());
 
-                            server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
-                        }
+                            // server.broadcast_packet(&SPacket::ChunkModify { chunkpos, voxel });
+                        // }
                         _ => {
                             warn!("Unknown Packet {:?}", packet);
                         }

@@ -60,8 +60,6 @@ pub trait ChunkSystem {
     }
 }
 
-// #[derive(Component)]
-// struct ChunkMeshingTask;//(Task<Mesh>);
 
 // fn chunks_detect_load_and_unload(
 //     query_cam: Query<&Transform, With<CharacterControllerCamera>>,

@@ -160,51 +160,8 @@ pub fn client_sys(
 
                 CellData::to_chunk(voxel, &mut chunk);
 
-                // todo 封装函数
-                {
-                    let aabb = Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
 
-                    chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
-                    chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
-
-                    chunk.entity = cmds
-                        .spawn((
-                            ChunkComponent::new(*chunkpos),
-                            MaterialMeshBundle {
-                                mesh: chunk.mesh_handle.clone(),
-                                material: chunk_sys.shader_terrain.clone(), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
-                                transform: Transform::from_translation(chunkpos.as_vec3()),
-                                visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
-                                ..default()
-                            },
-                            aabb,
-                            RigidBody::Static,
-                        ))
-                        .with_children(|parent| {
-                            parent.spawn((
-                                MaterialMeshBundle {
-                                    mesh: chunk.mesh_handle_foliage.clone(),
-                                    material: materials.add(StandardMaterial {
-                                        base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
-                                        // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
-                                        double_sided: true,
-                                        alpha_mode: AlphaMode::Mask(0.5),
-                                        cull_mode: None,
-                                        ..default()
-                                    }),
-                                    // visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
-                                    ..default()
-                                },
-                                aabb,
-                            ));
-                        })
-                        .set_parent(chunk_sys.entity)
-                        .id();
-                }
-
-                let chunkptr = Arc::new(chunk);
-
-                chunk_sys.spawn_chunk(chunkptr);
+                chunk_sys.spawn_chunk(chunk, &mut cmds, &mut *meshes);
 
                 // info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
             }

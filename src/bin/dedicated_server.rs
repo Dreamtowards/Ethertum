@@ -10,7 +10,7 @@ fn main() {
                 MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(frame_time)), // fixed fps
             )
             .add_plugins(bevy::log::LogPlugin::default())
-            .add_plugins(ethertia::server::prelude::ServerGamePlugin)
+            .add_plugins(ethertia::server::prelude::DedicatedServerPlugin)
             .run();
     }
 }
