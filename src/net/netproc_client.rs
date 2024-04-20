@@ -10,7 +10,6 @@ use bevy::{
 };
 use bevy_renet::renet::{DefaultChannel, DisconnectReason, RenetClient};
 use bevy_xpbd_3d::{components::RigidBody, plugins::collision::Collider};
-use leafwing_input_manager::{action_state::ActionState, axislike::DualAxis};
 
 use crate::{
     client::prelude::*,

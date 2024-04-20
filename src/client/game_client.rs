@@ -26,9 +26,9 @@ use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
 use crate::util::TimeIntervals;
 use crate::voxel::ClientVoxelPlugin;
 
-pub struct GameClientPlugin;
+pub struct ClientGamePlugin;
 
-impl Plugin for GameClientPlugin {
+impl Plugin for ClientGamePlugin {
     fn build(&self, app: &mut App) {
         // Render
         {

@@ -1,6 +1,6 @@
 use crate::{
     client::prelude::*,
-    game_server::{self, rcon::Motd},
+    server::{game_server::rcon::Motd},
     util,
 };
 use bevy::{
@@ -117,7 +117,7 @@ pub fn ui_serverlist(
 
                     let is_editing = ui_server_info.is_editing;
                     let is_accessable = ui_server_info.ping != 0;
-                    let mut is_refreshing = ui_server_info.refreshing_task.is_some();
+                    let mut is_refreshing = ui_server_info.refreshing_task.is_some() || do_refresh_all.get();
 
                     ui.group(|ui| {
                         // First Line
@@ -183,12 +183,12 @@ pub fn ui_serverlist(
                     });
 
                     // ServerStatus Process
-                    if is_refreshing || do_refresh_all.get() {
+                    if is_refreshing {
                         let addr = server_item.addr.clone(); // opt
                         let (task, time) = ui_server_info.refreshing_task.get_or_insert_with(|| {
                             (
                                 AsyncComputeTaskPool::get()
-                                    .spawn(async move { util::http_get_json::<game_server::rcon::Motd>(&format!("http://{}", addr)) }),
+                                    .spawn(async move { util::http_get_json::<Motd>(&format!("http://{}", addr)) }),
                                 util::current_timestamp_millis(),
                             )
                         });

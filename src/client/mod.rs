@@ -6,7 +6,7 @@ mod input;
 
 pub mod prelude {
     use super::*;
-    pub use game_client::{condition, ClientInfo, WorldInfo, ClientSettings, EthertiaClient, GameClientPlugin, ServerListItem, DespawnOnWorldUnload};
+    pub use game_client::{condition, ClientInfo, WorldInfo, ClientSettings, EthertiaClient, ClientGamePlugin, ServerListItem, DespawnOnWorldUnload};
     pub use input::InputAction;
 
     pub use character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin};

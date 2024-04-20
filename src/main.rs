@@ -16,6 +16,6 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(ethertia::client::prelude::GameClientPlugin)
+        .add_plugins(ethertia::client::prelude::ClientGamePlugin)
         .run();
 }

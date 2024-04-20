@@ -1,14 +1,16 @@
-use bevy::{log::LogPlugin, prelude::*};
+use bevy::prelude::*;
 
 fn main() {
     #[cfg(feature = "target_native_os")]
     {
+        let frame_time = std::time::Duration::from_secs_f32(1.0 / 30.0);
+
         App::new()
             .add_plugins(
-                MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(std::time::Duration::from_secs_f32(1.0 / 30.0))), // fixed fps
+                MinimalPlugins.set(bevy::app::ScheduleRunnerPlugin::run_loop(frame_time)), // fixed fps
             )
-            .add_plugins(LogPlugin::default())
-            .add_plugins(ethertia::game_server::GameServerPlugin)
+            .add_plugins(bevy::log::LogPlugin::default())
+            .add_plugins(ethertia::server::prelude::ServerGamePlugin)
             .run();
     }
 }

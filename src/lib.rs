@@ -3,7 +3,7 @@ pub mod client;
 pub use client::ui;
 
 // Server
-pub mod game_server;
+pub mod server;
 
 // Common
 pub mod item;

@@ -5,11 +5,11 @@ use bevy::{
 };
 use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, WorldGen};
 use crate::{
-    game_server::ServerInfo,
+    server::prelude::ServerInfo,
     net::{CellData, RenetServerHelper, SPacket},
     util::{iter, AsRefMut},
 };

@@ -9,9 +9,9 @@ use crate::{
     voxel::ServerVoxelPlugin,
 };
 
-pub struct GameServerPlugin;
+pub struct ServerGamePlugin;
 
-impl Plugin for GameServerPlugin {
+impl Plugin for ServerGamePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ServerInfo::default());
 
