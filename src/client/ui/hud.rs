@@ -206,13 +206,14 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSe
                 // bar fg
                 let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (cli.health as f32 / cli.health_max as f32));
                 ui.painter().rect_filled(rect_fg, rounding, Color32::WHITE);
-                ui.painter().text(
-                    rect.left_center(),
-                    Align2::LEFT_CENTER,
-                    format!(" {} / {}", cli.health, cli.health_max),
-                    FontId::proportional(10.),
-                    Color32::GRAY,
-                );
+
+                // ui.painter().text(
+                //     rect.left_center(),
+                //     Align2::LEFT_CENTER,
+                //     format!(" {} / {}", cli.health, cli.health_max),
+                //     FontId::proportional(10.),
+                //     Color32::BLACK,
+                // );
 
                 ui.add_space(health_bar_size.y + 8.);
             }

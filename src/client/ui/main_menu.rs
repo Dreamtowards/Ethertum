@@ -26,11 +26,15 @@ pub fn ui_item_stack(ui: &mut egui::Ui, stack: &ItemStack, reg: &crate::item::It
 
     unsafe {
         let uv_siz = 1. / crate::item::_NUM_ITEMS as f32;
-        ui.painter().image(crate::item::_UI_ITEMS_ATLAS, resp.rect, 
+        ui.painter().image(crate::item::_UI_ITEMS_ATLAS, resp.rect.shrink(3.), 
             Rect::from_min_size(pos2(uv_siz * stack.item_id as f32, 0.), vec2(uv_siz, 1.)), Color32::WHITE);
     }
-    ui.painter().text(resp.rect.max - vec2(6., 6.), Align2::RIGHT_BOTTOM, 
+    ui.painter().text(resp.rect.max - vec2(4., 2.), Align2::RIGHT_BOTTOM, 
         stack.count.to_string(), egui::FontId::proportional(12.), Color32::from_gray(190));
+
+    if resp.clicked() {
+        crate::util::as_mut(stack).count = 0;
+    }
 }
 
 pub fn ui_main_menu(
@@ -46,16 +50,13 @@ pub fn ui_main_menu(
 
     egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
 
-        // ui.painter().image(crate::item::_UI_ITEMS_ATLAS, ui.min_rect(), 
-        //     Rect::from_min_size(pos2(0.5, 0.), vec2(0.5, 1.)), Color32::WHITE);
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true), |ui| {
+            ui.style_mut().spacing.item_spacing = vec2(4., 4.);
 
-        for i in 0..5 {
-            ui.horizontal(|ui| {
-                for j in 0..8 {
-                    ui_item_stack(ui, &ItemStack::new(i*j, i+j), &*items);
-                }
-            });
-        }
+            for i in 0..30 {
+                ui_item_stack(ui, &ItemStack::new(i, i), &*items);
+            }
+        });
     });
 
     // if *rendered_texture_id == egui::TextureId::default() {
