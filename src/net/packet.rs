@@ -1,7 +1,7 @@
 use bevy::math::{IVec2, IVec3, Vec3};
 use serde::{Deserialize, Serialize};
 
-use crate::voxel::{Cell, Chunk};
+use crate::voxel::{Cell, Chunk, VoxShape};
 
 use super::EntityId;
 
@@ -10,7 +10,7 @@ use super::EntityId;
 pub struct CellData {
     pub local_idx: u16, // 12 bits
     pub tex_id: u16,
-    pub shape_id: u16,
+    pub shape_id: VoxShape,
     pub isoval: u8,
 }
 

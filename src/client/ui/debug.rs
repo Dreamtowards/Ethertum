@@ -10,11 +10,10 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    client::character_controller::CharacterControllerCamera,
-    client::game_client::{ClientInfo, EthertiaClient, WorldInfo},
+    client::{character_controller::CharacterControllerCamera, game_client::{ClientInfo, EthertiaClient, WorldInfo}},
     ui::{color32_of, CurrentUI, UiExtra},
     util::AsRefMut,
-    voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult},
+    voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult, VoxShape},
 };
 
 pub fn ui_menu_panel(
@@ -176,7 +175,7 @@ pub fn ui_menu_panel(
                                     let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_ref_mut();
                                     for x in 0..16 {
                                         for z in 0..16 {
-                                            chunk.set_cell(IVec3::new(x, 0, z), &Cell::new(0, 1, 0.));
+                                            chunk.set_cell(IVec3::new(x, 0, z), &Cell::new(1, VoxShape::Cube, 0.));
                                         }
                                     }
                                 }
@@ -304,7 +303,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
         let mut cam_cell_str = "none".into();
         if let Some(c) = chunk_sys.get_cell(cam_pos.as_ivec3()) {
-            cam_cell_str = format!("tex: {}, shape: {}, isoval: {}", c.tex_id, c.shape_id, c.isovalue());
+            cam_cell_str = format!("tex: {}, shape: {:?}, isoval: {}", c.tex_id, c.shape_id, c.isovalue());
         }
 
         str_world = format!(

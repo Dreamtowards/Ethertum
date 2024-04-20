@@ -5,7 +5,7 @@ mod voxel_client;
 mod voxel_server;
 pub mod worldgen;
 
-pub use chunk::{Cell, Chunk};
+pub use chunk::{Cell, Chunk, VoxShape, Vox};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 pub use worldgen::WorldGen;

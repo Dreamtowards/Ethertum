@@ -8,14 +8,13 @@ use bevy::{
     tasks::AsyncComputeTaskPool,
     utils::{HashMap, HashSet},
 };
-use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::plugins::{
     collision::Collider,
     spatial_query::{SpatialQuery, SpatialQueryFilter},
 };
 use leafwing_input_manager::action_state::ActionState;
 
-use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
+use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
 use crate::{
     client::{
         character_controller::{CharacterController, CharacterControllerCamera},
@@ -23,7 +22,6 @@ use crate::{
         prelude::{ClientSettings, InputAction},
         ui::CurrentUI,
     },
-    net::{CPacket, CellData, RenetClientHelper},
     util::{iter, AsRefMut},
 };
 
@@ -49,10 +47,14 @@ impl Plugin for ClientVoxelPlugin {
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
 
         app.insert_resource(VoxelBrush::default());
+        app.register_type::<VoxelBrush>();
+
         app.insert_resource(HitResult::default());
+        app.register_type::<HitResult>();
+
         app.add_systems(
             Update,
-            (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos)
+            (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos, draw_crosshair_cube)
                 .chain()
                 .run_if(condition::in_world),
         );
@@ -287,11 +289,12 @@ fn chunks_remesh_enqueue(
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct VoxelBrush {
     pub size: f32,
     pub strength: f32,
-    pub shape: u16,
+    pub shape: VoxShape,
     pub tex: u16,
 }
 impl Default for VoxelBrush {
@@ -299,7 +302,7 @@ impl Default for VoxelBrush {
         Self {
             size: 4.,
             strength: 0.8,
-            shape: 0,
+            shape: VoxShape::Isosurface,
             tex: 21,
         }
     }
@@ -313,7 +316,9 @@ pub struct HitResult {
     pub normal: Vec3,
     pub distance: f32,
     // entity: Entity,
+
     pub is_voxel: bool,
+    pub voxel_pos: IVec3,
 }
 
 fn raycast(
@@ -348,6 +353,8 @@ fn raycast(
         hit_result.position = ray_pos + ray_dir * dist;
 
         // commands.entity(hit.entity)
+
+        hit_result.voxel_pos = (hit_result.position + -0.01 * hit_result.normal).floor().as_ivec3();
     } else {
         hit_result.is_hit = false;
     }
@@ -371,11 +378,8 @@ fn raycast(
 
         iter::iter_aabb(n, n, |lp| {
             // +0.01*norm: for placing cube like MC.
-
-            let p = (hit_result.position + if do_place { 1. } else { -1. } * 0.01 * hit_result.normal)
-                .floor()
-                .as_ivec3()
-                + lp;
+            let p = hit_result.voxel_pos + lp + 
+                if do_place {1} else {0} * hit_result.normal.normalize_or_zero().as_ivec3();
 
             if let Some(v) = chunk_sys.get_voxel(p) {
                 let v = v.as_ref_mut();
@@ -391,7 +395,7 @@ fn raycast(
                         v.shape_id = brush.shape;
 
                         // placing Block
-                        if brush.shape != 0 {
+                        if brush.shape != VoxShape::Isosurface {
                             v.set_isovalue(0.0);
                         }
                     } else if v.is_isoval_empty() {
@@ -409,6 +413,20 @@ fn raycast(
         // for e in map {
         //     net_client.send_packet(&CPacket::ChunkModify { chunkpos: e.0, voxel: e.1 });
         // }
+    }
+}
+
+fn draw_crosshair_cube(mut gizmos: Gizmos, hit_result: Res<HitResult>, vbrush: Res<VoxelBrush>,) {
+
+    if hit_result.is_hit {
+        if vbrush.shape == VoxShape::Isosurface {
+            gizmos.sphere(hit_result.position, Quat::IDENTITY, vbrush.size, Color::BLACK);
+        } else {
+            let trans = Transform::from_translation(hit_result.voxel_pos.as_vec3() + 0.5)
+                .with_scale(Vec3::ONE * vbrush.size.floor());
+
+            gizmos.cuboid(trans, Color::BLACK);
+        }
     }
 }
 

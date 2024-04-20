@@ -1,24 +1,37 @@
-use std::{sync::Weak, usize};
-
+use std::sync::Weak;
 use bevy::{math::ivec3, prelude::*};
 
-// Voxel System
 
-// enum CellShape {
-//     Isosurface,
-//     Cube,
-//     Leaves,
-//     Grass,
-//     // CustomMesh {
-//     //     mesh_id: u16,
-//     // }
-// }
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize, Default, Reflect)]
+pub enum VoxShape {
+    #[default]
+    Isosurface,
+
+    Cube,
+    Leaves,
+    Grass,
+
+    SlabYMin,
+    SlabYMax,
+    SlabXMin,
+    SlabXMax,
+    SlabZMin,
+    SlabZMax,
+
+    Fence,
+
+    // CustomMesh {
+    //     mesh_id: u16,
+    // }
+}
+
 
 #[derive(Clone, Copy)]
 pub struct Cell {
     pub tex_id: u16,
 
-    pub shape_id: u16,
+    pub shape_id: VoxShape,
 
     /// SDF value, used for Isosurface Extraction.
     /// 0 -> surface, +0 positive -> void, -0 negative -> solid.
@@ -31,7 +44,7 @@ pub struct Cell {
 impl Default for Cell {
     fn default() -> Self {
         Cell {
-            shape_id: 0,
+            shape_id: VoxShape::Isosurface,
             tex_id: 0,
             isoval: isoval_f32_u8(0.0),
             // cached_fp: Vec3::INFINITY,
@@ -39,6 +52,13 @@ impl Default for Cell {
         }
     }
 }
+
+use serde::{Deserialize, Serialize};
+// naming VoxelUnit?: BlockState, Cell, Voxel or Vox?
+pub use Cell as Vox;
+
+
+
 
 // todo: bugfix 自从压缩成u8后，地下有一些小碎片三角形 可能是由于精度误差 -0.01 变成 0.01 之类的了。要
 // 修复这种bug 应该是把接近0的数值扩大 再转成u8.
@@ -51,7 +71,7 @@ fn isoval_u8_f32(u: u8) -> f32 {
 }
 
 impl Cell {
-    pub fn new(tex_id: u16, shape_id: u16, isovalue: f32) -> Self {
+    pub fn new(tex_id: u16, shape_id: VoxShape, isovalue: f32) -> Self {
         Self {
             tex_id,
             shape_id,
@@ -76,7 +96,7 @@ impl Cell {
     }
 
     pub fn is_obaque_cube(&self) -> bool {
-        self.shape_id == 1 && !self.is_tex_empty()
+        self.shape_id == VoxShape::Cube && !self.is_tex_empty()
     }
 }
 
@@ -142,7 +162,7 @@ impl Chunk {
     }
 
     pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
-        self.get_cell_neighbor(relpos).unwrap_or(Cell::new(0, 0, 0.0))
+        self.get_cell_neighbor(relpos).unwrap_or(Cell::default())
     }
 
     pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {

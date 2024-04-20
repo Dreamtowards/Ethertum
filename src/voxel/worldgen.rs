@@ -40,7 +40,7 @@ impl WorldGen {
                         val = 0.1;
                         tex = mtl::WATER;
                     }
-                    chunk.set_cell(lp, &Cell::new(tex, 0, val));
+                    chunk.set_cell(lp, &Cell::new(tex, VoxShape::Isosurface, val));
                 }
             }
         }
@@ -108,7 +108,7 @@ impl WorldGen {
                             } else {
                                 mtl::SHORTGRASS
                             };
-                            c.shape_id = 3;
+                            c.shape_id = VoxShape::Grass;
                             break;
                         }
                     }
@@ -130,7 +130,7 @@ impl WorldGen {
                                     break;
                                 }
                                 c.tex_id = mtl::LEAVES;
-                                c.shape_id = 2;
+                                c.shape_id = VoxShape::Leaves;
                             }
                             break;
                         }
@@ -169,7 +169,7 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         }
         let c = chunk.get_cell_mut(lp);
         c.tex_id = mtl::LEAVES;
-        c.shape_id = 2;
+        c.shape_id = VoxShape::Leaves;
     });
 
     // Trunk
@@ -179,7 +179,7 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         }
         let c = chunk.get_cell_mut(lp + IVec3::Y * i);
         c.tex_id = mtl::LOG;
-        c.shape_id = 0;
+        c.shape_id = VoxShape::Isosurface;
         c.set_isovalue(2.0 * (1.2 - i as f32 / trunk_height as f32));
     }
 }

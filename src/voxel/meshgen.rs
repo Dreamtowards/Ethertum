@@ -225,7 +225,7 @@ impl MeshGen {
 
                     let c = chunk.get_cell(lp);
 
-                    if c.tex_id != 0 && c.shape_id == 1 {
+                    if c.tex_id != 0 && c.shape_id == VoxShape::Cube {
                         put_cube(vbuf, lp, chunk, c.tex_id);
                     }
                 }
@@ -238,9 +238,9 @@ impl MeshGen {
             let c = chunk.get_cell(lp);
 
             if c.tex_id != 0 {
-                if c.shape_id == 2 {
+                if c.shape_id == VoxShape::Leaves {
                     put_leaves(vbuf, lp.as_vec3(), c.tex_id);
-                } else if c.shape_id == 3 {
+                } else if c.shape_id == VoxShape::Grass {
                     put_grass(vbuf, lp.as_vec3(), c.tex_id);
                 }
             }

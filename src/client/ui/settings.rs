@@ -134,7 +134,7 @@ pub fn ui_settings(
 
                         ui_setting_line(ui, "Indensity", egui::Slider::new(&mut vox_brush.strength, 0.0..=1.0));
 
-                        ui_setting_line(ui, "Shape", egui::Slider::new(&mut vox_brush.shape, 0..=5));
+                        // ui_setting_line(ui, "Shape", egui::Slider::new(&mut vox_brush.shape, 0..=5));
 
                         ui_setting_line(ui, "Tex", egui::Slider::new(&mut vox_brush.tex, 0..=25));
                     }
