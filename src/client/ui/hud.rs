@@ -112,7 +112,7 @@ pub fn hud_chat(
                     // state.scrollback.push(msg.into());
                     let cmdstr = state.buf.clone();
 
-                    if state.history.len() == 0 {
+                    if state.history.is_empty() {
                         state.history.push_front(String::default()); // editing line
                     }
                     state.history.insert(1, cmdstr.clone());
@@ -165,7 +165,7 @@ pub fn hud_chat(
                     && state.history_index < state.history.len() - 1
                 {
                     if state.history_index == 0 && !state.buf.trim().is_empty() {
-                        *state.history.get_mut(0).unwrap() = state.buf.clone().into();
+                        *state.history.get_mut(0).unwrap() = state.buf.clone();
                     }
 
                     state.history_index += 1;

@@ -6,7 +6,6 @@ use crate::{
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
-    utils::HashMap,
 };
 use bevy_egui::{
     egui::{self, Color32, Layout},

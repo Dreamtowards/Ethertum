@@ -1,6 +1,6 @@
 use std::{
-    f32::consts::{E, PI, TAU},
-    net::{SocketAddr, ToSocketAddrs},
+    f32::consts::{PI, TAU},
+    net::{ToSocketAddrs},
 };
 
 use bevy::{
@@ -14,7 +14,7 @@ use bevy::{
     window::{CursorGrabMode, PresentMode, PrimaryWindow, WindowMode},
 };
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
-use bevy_touch_stick::*;
+
 use bevy_xpbd_3d::prelude::*;
 
 #[cfg(feature = "target_native_os")]
@@ -224,8 +224,8 @@ fn wfc_test(
 fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<StandardMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
     cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");

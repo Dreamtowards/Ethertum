@@ -4,7 +4,6 @@ use bevy::{prelude::*, utils::HashSet};
 use bevy_renet::renet::{transport::NetcodeServerTransport, DefaultChannel, RenetServer, ServerEvent};
 
 use crate::{
-    client::game_client::WorldInfo,
     game_server::{PlayerInfo, ServerInfo},
     net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
     util::{current_timestamp_millis, AsRefMut},
@@ -143,7 +142,7 @@ pub fn server_sys(
 
                     match packet {
                         CPacket::ChatMessage { message } => {
-                            if message.starts_with("/") {
+                            if message.starts_with('/') {
                                 let args = shlex::split(&message[1..]).unwrap();
 
                                 if args[0] == "time" {

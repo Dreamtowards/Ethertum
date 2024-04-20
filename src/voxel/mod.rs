@@ -15,14 +15,13 @@ pub mod worldgen;
 pub use worldgen::WorldGen;
 
 use std::{
-    cell::UnsafeCell,
-    sync::{Arc, RwLock},
+    sync::{Arc},
 };
 pub type ChunkPtr = Arc<Chunk>; // Box<Chunk>;         not supported for SharedPtr
 
 use bevy::{prelude::*, utils::HashMap};
 
-use crate::util::AsRefMut;
+
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelTx<T>(crate::channel_impl::Sender<T>);

@@ -1,5 +1,5 @@
 use bevy::{
-    math::{ivec3, vec3},
+    math::{vec3},
     prelude::*,
 };
 use rand::Rng;
@@ -136,6 +136,12 @@ pub struct WFC {
     pub all_patterns: Vec<Pattern>,
 }
 
+impl Default for WFC {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WFC {
     pub fn new() -> Self {
         Self {
@@ -152,7 +158,7 @@ impl WFC {
             name: name.clone(),
             is_flipped: false,
             rotation: 0,
-            sockets: sockets,
+            sockets,
         });
         if flip {
             self.all_patterns.push(Pattern {

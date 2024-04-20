@@ -20,7 +20,7 @@ use crate::{
     client::game_client::{condition, ClientInfo, DespawnOnWorldUnload},
     client::ui::CurrentUI,
     net::{CPacket, CellData, RenetClientHelper},
-    util::{self, iter, AsRefMut},
+    util::{iter, AsRefMut},
 };
 
 pub struct ClientVoxelPlugin;
@@ -130,9 +130,9 @@ fn chunks_remesh_enqueue(
                     let chunk = chunkptr.as_ref();
 
                     // Generate Mesh
-                    MeshGen::generate_chunk_mesh(&mut _vbuf.0, &chunk);
+                    MeshGen::generate_chunk_mesh(&mut _vbuf.0, chunk);
 
-                    MeshGen::generate_chunk_mesh_foliage(&mut _vbuf.1, &chunk);
+                    MeshGen::generate_chunk_mesh_foliage(&mut _vbuf.1, chunk);
 
                     entity = chunk.entity;
                     mesh_handle = chunk.mesh_handle.clone();
@@ -413,7 +413,7 @@ impl ClientChunkSystem {
     pub fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
         let chunkpos;
         {
-            let mut chunk = chunkptr.as_ref_mut();
+            let chunk = chunkptr.as_ref_mut();
             chunkpos = chunk.chunkpos;
 
             let mut neighbors_nearby_completed = Vec::new();
@@ -427,7 +427,7 @@ impl ClientChunkSystem {
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        let mut neib_chunk = neib_chunkptr.as_ref_mut();
+                        let neib_chunk = neib_chunkptr.as_ref_mut();
 
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));

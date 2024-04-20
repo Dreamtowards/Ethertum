@@ -1,6 +1,6 @@
 //! Client Networking Handler
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 
 use bevy::{
     ecs::system::EntityCommands,

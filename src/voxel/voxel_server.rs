@@ -5,7 +5,7 @@ use bevy::{
 };
 use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc};
 
 use super::{ChannelRx, ChannelTx, Chunk, ChunkComponent, ChunkPtr, ChunkSystem, WorldGen};
 use crate::{

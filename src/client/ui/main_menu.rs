@@ -1,12 +1,12 @@
 use bevy::{app::AppExit, prelude::*};
 use bevy_egui::{
-    egui::{self, pos2, vec2, Align2, Color32, Frame, Layout, OpenUrl, Rect, RichText, Rounding},
+    egui::{self, Align2, Color32, Layout, OpenUrl, RichText},
     EguiContexts,
 };
-use bevy_renet::renet::RenetClient;
+
 
 use super::{sfx_play, CurrentUI, UiExtra};
-use crate::client::game_client::{ClientInfo, EthertiaClient, WorldInfo};
+use crate::client::game_client::{EthertiaClient};
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
