@@ -125,16 +125,8 @@ pub fn ui_settings(
                         //     egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50),
                         // );
 
-                        ui_setting_line(
-                            ui,
-                            "Chunk Load Distance X",
-                            egui::Slider::new(&mut cfg.chunks_load_distance.x, -1..=25),
-                        );
-                        ui_setting_line(
-                            ui,
-                            "Chunk Load Distance Y",
-                            egui::Slider::new(&mut cfg.chunks_load_distance.y, -1..=25),
-                        );
+                        ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cfg.chunks_load_distance.x, -1..=25));
+                        ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cfg.chunks_load_distance.y, -1..=25));
 
                         ui.label("Voxel Brush:");
 

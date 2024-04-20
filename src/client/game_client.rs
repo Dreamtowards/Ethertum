@@ -478,8 +478,6 @@ impl Default for ClientSettings {
     }
 }
 
-
-
 pub const HOTBAR_SLOTS: u32 = 9;
 
 #[derive(Resource, Reflect)]
@@ -507,7 +505,6 @@ pub struct ClientInfo {
     pub sky_fog_is_atomspheric: bool,
     pub skylight_shadow: bool,
     pub skylight_illuminance: f32,
-
 
     // Control
     pub enable_cursor_look: bool,

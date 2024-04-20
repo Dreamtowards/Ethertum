@@ -177,6 +177,10 @@ pub fn ui_serverlist(
                                     if ui.btn("▶").on_hover_text("Join & Play").clicked() {
                                         do_join_addr = Some(if ui_server_info.gameplay_addr.is_empty() {
                                             server_item.addr.clone()
+                                        } else if ui_server_info.gameplay_addr.starts_with(":") {
+                                            // Concat: same ip but different port.
+                                            let i = server_item.addr.find(":").unwrap_or(server_item.addr.len());
+                                            format!("{}{}", &server_item.addr[0..i], ui_server_info.gameplay_addr)
                                         } else {
                                             ui_server_info.gameplay_addr.clone()
                                         });

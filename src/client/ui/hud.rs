@@ -234,7 +234,13 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSe
         });
 }
 
-pub fn hud_playerlist(mut ctx: EguiContexts, input_key: Res<ButtonInput<KeyCode>>, cli: Res<ClientInfo>, cfg: Res<ClientSettings>, mut net_client: ResMut<RenetClient>) {
+pub fn hud_playerlist(
+    mut ctx: EguiContexts,
+    input_key: Res<ButtonInput<KeyCode>>,
+    cli: Res<ClientInfo>,
+    cfg: Res<ClientSettings>,
+    mut net_client: ResMut<RenetClient>,
+) {
     if !input_key.pressed(KeyCode::Tab) {
         return;
     }

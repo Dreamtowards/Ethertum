@@ -72,16 +72,16 @@ pub mod rcon {
         pub server: tiny_http::Server,
     }
 
-    pub fn on_http_recv(http: Res<HttpServer>, serv: Res<ServerInfo>) {
+    pub fn on_http_recv(http: Res<HttpServer>, serv: Res<ServerInfo>, cfg: Res<ServerSettings>) {
         if let Ok(Some(req)) = http.server.try_recv() {
             info!("Req URL: {}", req.url());
             let motd = Motd {
-                motd: "An Ethertum Server".into(),
-                num_player_limit: 80,
-                num_player_online: 0,
+                motd: cfg.motd.clone(),
+                num_player_limit: cfg.num_player_limit,
+                num_player_online: serv.online_players.len() as u32,
                 protocol_version: 0,
                 favicon_url: "".into(),
-                game_addr: "127.0.0.1:4000".into(),
+                game_addr: format!(":{}", cfg.port),
             };
             req.respond(tiny_http::Response::from_string(serde_json::to_string(&motd).unwrap()))
                 .unwrap();
@@ -92,11 +92,17 @@ pub mod rcon {
 #[derive(Resource, serde::Deserialize, serde::Serialize, Asset, TypePath, Clone)]
 pub struct ServerSettings {
     pub port: u16,
+    pub num_player_limit: u32,
+    pub motd: String,
 }
 
 impl Default for ServerSettings {
     fn default() -> Self {
-        Self { port: 4060 }
+        Self {
+            port: 4060,
+            num_player_limit: 80, 
+            motd: "An Ethertum Server".into(),
+        }
     }
 }
 
