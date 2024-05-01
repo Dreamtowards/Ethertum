@@ -280,8 +280,9 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
     let mut cam_visible_entities_num = 0;
     let mut str_world = String::default();
-    if let Some(worldinfo) = worldinfo {
+    if chunk_sys.is_some() && worldinfo.is_some() {
         let chunk_sys = chunk_sys.unwrap();
+        let worldinfo = worldinfo.unwrap();
 
         let (cam_trans, cam_visible_entities) = query_cam.single();
         let cam_pos = cam_trans.translation;

@@ -5,15 +5,14 @@ use std::{
 
 use bevy::{app::AppExit, ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*, utils::HashSet};
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
-
 use bevy_xpbd_3d::prelude::*;
 
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
 
 use crate::ui::prelude::*;
-use crate::{client::prelude::*, server::prelude::IntegratedServerPlugin};
-
+use crate::client::prelude::*;
+use crate::server::prelude::IntegratedServerPlugin;
 use crate::item::{Inventory, ItemPlugin};
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
 use crate::util::TimeIntervals;
@@ -64,9 +63,10 @@ impl Plugin for ClientGamePlugin {
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
-        app.insert_resource(ClientSettings::default());
         app.register_type::<ClientInfo>();
         app.register_type::<WorldInfo>();
+
+        super::settings::build_plugin(app);
 
         // World Setup/Cleanup, Tick
         app.add_systems(First, on_world_init.run_if(condition::load_world)); // Camera, Player, Sun
@@ -79,13 +79,9 @@ impl Plugin for ClientGamePlugin {
         app.add_plugins(leafwing_input_manager::plugin::InputManagerPlugin::<InputAction>::default());
         // app.add_plugins((bevy_touch_stick::TouchStickPlugin::<InputStickId>::default());
 
-        // App Init/Exit
-        app.add_systems(PreStartup, on_app_init); // load settings
-        app.add_systems(Last, on_app_exit); // save settings
-
         // Debug
         {
-            app.add_systems(Update, wfc_test);
+            // app.add_systems(Update, wfc_test);
 
             // Draw Basis
             app.add_systems(PostUpdate, debug_draw_gizmo.after(PhysicsSet::Sync).run_if(condition::in_world));
@@ -93,24 +89,6 @@ impl Plugin for ClientGamePlugin {
             // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
-    }
-}
-
-fn on_app_init(mut cfg: ResMut<ClientSettings>) {
-    info!("Loading {CLIENT_SETTINGS_FILE}");
-    if let Ok(str) = std::fs::read_to_string(CLIENT_SETTINGS_FILE) {
-        if let Ok(val) = serde_json::from_str(&str) {
-            *cfg = val;
-        }
-    }
-}
-
-fn on_app_exit(mut exit_events: EventReader<AppExit>, cfg: Res<ClientSettings>) {
-    for _ in exit_events.read() {
-        info!("Program Terminate");
-
-        info!("Saving {CLIENT_SETTINGS_FILE}");
-        std::fs::write(CLIENT_SETTINGS_FILE, serde_json::to_string_pretty(&*cfg).unwrap()).unwrap();
     }
 }
 
@@ -214,10 +192,10 @@ fn wfc_test(
 
 fn on_world_init(
     mut cmds: Commands,
-    asset_server: Res<AssetServer>,
-    materials: ResMut<Assets<StandardMaterial>>,
-    meshes: ResMut<Assets<Mesh>>,
-    cli: ResMut<ClientInfo>,
+    // asset_server: Res<AssetServer>,
+    // materials: ResMut<Assets<StandardMaterial>>,
+    // meshes: ResMut<Assets<Mesh>>,
+    // cli: ResMut<ClientInfo>,
 ) {
     info!("Load World. setup Player, Camera, Sun.");
 
@@ -439,44 +417,6 @@ impl Default for WorldInfo {
     }
 }
 
-// ClientSettings Configs
-
-#[derive(serde::Deserialize, serde::Serialize, Default)]
-pub struct ServerListItem {
-    pub name: String,
-    pub addr: String,
-
-    #[serde(skip)]
-    pub ui: crate::ui::serverlist::UiServerInfo,
-}
-
-const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
-
-#[derive(Resource, serde::Deserialize, serde::Serialize, Asset, TypePath)]
-pub struct ClientSettings {
-    // Name, Addr
-    pub serverlist: Vec<ServerListItem>,
-    pub fov: f32,
-    pub username: String,
-    pub hud_padding: f32,
-    pub vsync: bool,
-
-    pub chunks_load_distance: IVec2,
-}
-
-impl Default for ClientSettings {
-    fn default() -> Self {
-        Self {
-            serverlist: Vec::default(),
-            fov: 85.,
-            username: crate::util::generate_simple_user_name(),
-            hud_padding: 24.,
-            vsync: true,
-
-            chunks_load_distance: IVec2::new(4, 3),
-        }
-    }
-}
 
 pub const HOTBAR_SLOTS: u32 = 9;
 

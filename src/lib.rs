@@ -21,4 +21,5 @@ pub mod wfc;
 
 pub mod prelude {
     pub use bevy::prelude::*;
+    pub use serde::{Serialize, Deserialize};
 }

@@ -1,3 +1,22 @@
+
+mod debug;
+mod main_menu;
+mod settings;
+mod items;
+pub mod hud;
+pub mod serverlist;
+
+pub mod prelude {
+    pub use super::CurrentUI;
+    pub use super::UiExtra;
+    pub use super::sfx_play;
+    pub use super::items::{ui_item_stack, ui_inventory};
+    pub use bevy_egui::egui::{self, pos2, vec2, Align2, Color32, Rect, InnerResponse};
+    pub use bevy_egui::EguiContexts;
+}
+
+
+
 use bevy::{
     diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
@@ -9,21 +28,10 @@ use bevy_egui::{
     EguiContexts, EguiPlugin,
 };
 use egui_extras::{Size, StripBuilder};
+use rand::Rng;
 
 use crate::client::prelude::*;
 
-mod debug;
-pub mod hud;
-mod main_menu;
-pub mod serverlist;
-mod settings;
-
-pub use main_menu::ui_item_stack;
-
-pub mod prelude {
-    pub use super::CurrentUI;
-    pub use super::UiExtra;
-}
 
 pub struct UiPlugin;
 
@@ -61,8 +69,9 @@ impl Plugin for UiPlugin {
                 Update,
                 (hud::hud_hotbar, hud::hud_chat, hud::hud_playerlist.run_if(condition::manipulating)).run_if(condition::in_world),
             );
-
             app.insert_resource(hud::ChatHistory::default());
+
+            app.add_systems(Update, items::draw_ui_holding_item);
         }
 
         app.add_systems(
@@ -199,10 +208,11 @@ fn play_bgm(asset_server: Res<AssetServer>, mut cmds: Commands, mut limbo_played
             "sounds/music/dead_voxel.ogg",
             "sounds/music/milky_way_wishes.ogg",
             "sounds/music/gion.ogg",
+            "sounds/music/radiance.ogg",
         ];
 
         cmds.spawn(AudioBundle {
-            source: asset_server.load(ls[crate::util::current_timestamp_millis() as usize % ls.len()]),
+            source: asset_server.load(ls[rand::thread_rng().gen_range(0..ls.len())]),
             settings: PlaybackSettings::DESPAWN,
         });
     }

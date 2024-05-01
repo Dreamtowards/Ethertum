@@ -1,41 +1,12 @@
 use bevy::{app::AppExit, prelude::*};
 use bevy_egui::{
-    egui::{self, pos2, vec2, Align2, Color32, Layout, OpenUrl, Rect, RichText},
+    egui::{Layout, OpenUrl, RichText},
     EguiContexts,
 };
 
-use super::{sfx_play, CurrentUI, UiExtra};
-use crate::{client::game_client::EthertiaClient, item::{ItemStack, Items}};
+use crate::ui::prelude::*;
+use crate::client::prelude::*;
 
-pub fn ui_item_stack(ui: &mut egui::Ui, stack: &ItemStack, reg: &crate::item::Items) {
-
-    let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
-
-    // if cli.hotbar_index == i {
-    //     slot = slot.stroke(Stroke::new(3., Color32::WHITE));
-    // }
-    
-    let empty = "nil".into();
-    let name = reg.reg.at(stack.item_id as u16).unwrap_or(&empty);
-
-    let s = 50.;
-    let resp = ui.add_sized([s, s], slot).on_hover_ui(|ui| {
-        ui.label(name);
-        ui.small(format!("{} [{}/{}] x{}", name, stack.item_id, unsafe {crate::item::_NUM_ITEMS}, stack.count));
-    });
-
-    unsafe {
-        let uv_siz = 1. / crate::item::_NUM_ITEMS as f32;
-        ui.painter().image(crate::item::_UI_ITEMS_ATLAS, resp.rect.shrink(3.), 
-            Rect::from_min_size(pos2(uv_siz * stack.item_id as f32, 0.), vec2(uv_siz, 1.)), Color32::WHITE);
-    }
-    ui.painter().text(resp.rect.max - vec2(4., 2.), Align2::RIGHT_BOTTOM, 
-        stack.count.to_string(), egui::FontId::proportional(12.), Color32::from_gray(190));
-
-    if resp.clicked() {
-        crate::util::as_mut(stack).count = 0;
-    }
-}
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
@@ -43,22 +14,9 @@ pub fn ui_main_menu(
     mut app_exit_events: EventWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
-    items: Res<Items>,
     // cmds: Commands,
     // mut dbg_server_addr: Local<String>,
 ) {
-
-    egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
-
-        ui.with_layout(egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true), |ui| {
-            ui.style_mut().spacing.item_spacing = vec2(4., 4.);
-
-            for i in 0..30 {
-                ui_item_stack(ui, &ItemStack::new(i, i), &*items);
-            }
-        });
-    });
-
     // if *rendered_texture_id == egui::TextureId::default() {
     //     *rendered_texture_id = ctx.add_image(asset_server.load("ui/main_menu/1.png"));
     // }
@@ -155,6 +113,12 @@ pub fn ui_pause_menu(
     mut cli: EthertiaClient,
     // mut net_client: ResMut<RenetClient>,
 ) {
+
+    egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
+
+        ui_inventory(ui, &mut cli.data().inventory);
+    });
+
     super::new_egui_window("Pause")
         .anchor(Align2::CENTER_TOP, [0., 32.])
         .show(ctx.ctx_mut(), |ui| {

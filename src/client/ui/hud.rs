@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 
-use bevy::{prelude::*, reflect::List};
+use crate::prelude::*;
+
 use bevy_egui::{
-    egui::{self, text::CCursorRange, Align, Align2, Color32, FontId, Frame, Id, Layout, Rounding, Stroke, TextEdit, Vec2},
+    egui::{text::CCursorRange, Align, Frame, Id, Layout, TextEdit, Vec2},
     EguiContexts,
 };
 use bevy_renet::renet::RenetClient;
@@ -11,7 +12,8 @@ use crate::{
     client::game_client::ClientInfo, item::ItemStack, net::{CPacket, RenetClientHelper}
 };
 
-use super::{ClientSettings, CurrentUI};
+use crate::ui::prelude::*;
+use super::ClientSettings;
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 
@@ -185,7 +187,7 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSettings>, items: Res<crate::item::Items>,) {
+pub fn hud_hotbar(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, cfg: Res<ClientSettings>) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
@@ -193,6 +195,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSe
         .frame(Frame::default().fill(Color32::from_black_alpha(0)))
         .show(ctx.ctx_mut(), |ui| {
 
+            // Health bar
             {
                 let health_bar_size = Vec2::new(250., 4.);
                 let mut rect = ui.min_rect();
@@ -207,27 +210,17 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cli: Res<ClientInfo>, cfg: Res<ClientSe
                 let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (cli.health as f32 / cli.health_max as f32));
                 ui.painter().rect_filled(rect_fg, rounding, Color32::WHITE);
 
-                // ui.painter().text(
-                //     rect.left_center(),
-                //     Align2::LEFT_CENTER,
-                //     format!(" {} / {}", cli.health, cli.health_max),
-                //     FontId::proportional(10.),
-                //     Color32::BLACK,
-                // );
+                // ui.painter().text(rect.left_center(), Align2::LEFT_CENTER,
+                //     format!(" {} / {}", cli.health, cli.health_max), FontId::proportional(10.), Color32::BLACK, );
 
                 ui.add_space(health_bar_size.y + 8.);
             }
 
             ui.horizontal(|ui| {
                 for i in 0..crate::client::game_client::HOTBAR_SLOTS {
-                    // let s = 50.;
-                    // let mut slot = egui::Button::new("").fill(Color32::from_black_alpha(100));
-                    // if cli.hotbar_index == i {
-                    //     slot = slot.stroke(Stroke::new(3., Color32::WHITE));
-                    // }
-                    // ui.add_sized([s, s], slot);
+                    let item = cli.inventory.items.get_mut(i as usize).unwrap();
 
-                    super::ui_item_stack(ui, &ItemStack::new(i as u8, i as u8), &*items);
+                    ui_item_stack(ui, item);
                 }
             });
         });

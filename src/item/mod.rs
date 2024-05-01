@@ -1,5 +1,7 @@
 use crate::util::registry::{RegId, Registry};
 
+use crate::prelude::*;
+
 // pub struct Item {
 //     // tab_category
 //     max_stacksize: u32,
@@ -8,9 +10,11 @@ use crate::util::registry::{RegId, Registry};
 //     // name
 // }
 
+#[derive(Default, Clone, Copy)]
 pub struct ItemStack {
     pub count: u8,
     pub item_id: u8,
+
     // pub durability
 }
 impl ItemStack {
@@ -20,7 +24,22 @@ impl ItemStack {
             item_id: item,
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.count == 0 || self.item_id == 0
+    }
+
+    pub fn clear(&mut self) {
+        *self = ItemStack::default();
+    }
+
+    pub fn swap(a: &mut Self, b: &mut Self) {
+        let tmp = *a;
+        *a = *b;
+        *b = tmp;
+    }
 }
+
 
 #[derive(Default)]
 pub struct Inventory {
@@ -28,14 +47,16 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    pub fn new(size: usize) -> Self {
+    pub fn new(len: usize) -> Self {
+        let mut items = Vec::new();
+        items.resize(len, ItemStack::default());
+
         Self {
-            items: Vec::with_capacity(size),
+            items,
         }
     }
 }
 
-use bevy::prelude::*;
 
 pub struct ItemPlugin;
 
@@ -54,6 +75,7 @@ impl Plugin for ItemPlugin {
 pub struct Items {
     pub reg: Registry,
     pub atlas: Handle<Image>,
+    pub atlas_egui: bevy_egui::egui::TextureId,
 
     pub apple: RegId,
 
@@ -69,8 +91,8 @@ pub struct Items {
     pub iron_ingot: RegId,
 }
 
-pub static mut _UI_ITEMS_ATLAS: bevy_egui::egui::TextureId = bevy_egui::egui::TextureId::Managed(0);
-pub static mut _NUM_ITEMS: usize = 8;
+// pub static mut _UI_ITEMS_ATLAS: bevy_egui::egui::TextureId = bevy_egui::egui::TextureId::Managed(0);
+pub static mut _ITEMS_REG: *const Items = std::ptr::null();
 
 fn setup_items(
     mut items: ResMut<Items>, 
@@ -107,10 +129,10 @@ fn setup_items(
     info!("Registered {} items: {:?}", reg.len(), reg.vec);
 
     items.atlas = asset_server.load("baked/items.png");
+    items.atlas_egui = egui_ctx.add_image(items.atlas.clone());
 
     unsafe {
-        _UI_ITEMS_ATLAS = egui_ctx.add_image(items.atlas.clone());
-        _NUM_ITEMS =  reg.len();
+        _ITEMS_REG = std::ptr::from_ref(items);
     }
 }
 
