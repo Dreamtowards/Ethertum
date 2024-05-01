@@ -209,7 +209,7 @@ pub fn hud_debug_text(
     #[cfg(feature = "target_native_os")] mut sys: Local<sysinfo::System>,
     render_adapter_info: Res<bevy::render::renderer::RenderAdapterInfo>,
 
-    cli: Res<ClientInfo>,
+    // cli: Res<ClientInfo>,
     worldinfo: Option<Res<WorldInfo>>,
     chunk_sys: Option<Res<ClientChunkSystem>>,
     hit_result: Res<HitResult>,
@@ -232,12 +232,12 @@ pub fn hud_debug_text(
 
         let num_concurrency = std::thread::available_parallelism().unwrap().get();
 
-        use sysinfo::{CpuExt, SystemExt};
+        // use sysinfo::{CpuExt, SystemExt};
 
         let cpu_arch = std::env::consts::ARCH;
         let dist_id = std::env::consts::OS;
-        let os_ver = sys.long_os_version().unwrap_or_default();
-        let os_ver_sm = sys.os_version().unwrap_or_default();
+        let os_ver = sysinfo::System::long_os_version().unwrap_or_default();
+        let os_ver_sm = sysinfo::System::os_version().unwrap_or_default();
 
         // let curr_path = std::env::current_exe().unwrap().display().to_string();
         let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
@@ -309,9 +309,8 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
         str_world = format!(
             "
-Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph.
+Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph. vox: {cam_cell_str}
 Hit: {hit_str},
-CamCell: {cam_cell_str}
 World: '{}', daytime: {}. inhabited: {}, seed: {}
 Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
             cam_pos.x,

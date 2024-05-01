@@ -85,18 +85,18 @@ pub fn server_sys(
                         server.send_packet_disconnect(client_id, "Server outdated.".into());
                     }
                 }
-                CPacket::ServerQuery {} => {
-                    server.send_packet(
-                        client_id,
-                        &SPacket::ServerInfo {
-                            motd: "Motd".into(),
-                            num_players_limit: 64,
-                            num_players_online: 0,
-                            protocol_version: PROTOCOL_ID,
-                            favicon: "None".into(),
-                        },
-                    );
-                }
+                // CPacket::ServerQuery {} => {
+                //     server.send_packet(
+                //         client_id,
+                //         &SPacket::ServerInfo {
+                //             motd: "Motd".into(),
+                //             num_players_limit: 64,
+                //             num_players_online: 0,
+                //             protocol_version: PROTOCOL_ID,
+                //             favicon: "None".into(),
+                //         },
+                //     );
+                // }
                 CPacket::Login {
                     uuid,
                     access_token,

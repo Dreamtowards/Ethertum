@@ -1,6 +1,8 @@
 #[macro_use]
 mod macros;
 
+pub mod wfc;
+
 #[allow(invalid_reference_casting)]
 pub fn as_mut<T>(v: &T) -> &mut T {
     unsafe { &mut *((v as *const T) as *mut T) }

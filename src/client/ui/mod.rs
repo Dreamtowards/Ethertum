@@ -171,8 +171,9 @@ fn setup_egui_style(mut ctx: EguiContexts) {
 
         visuals.window_fill = color32_gray_alpha(0.1, 0.99);
         visuals.window_shadow = egui::epaint::Shadow {
-            extrusion: 8.,
+            blur: 8.,
             color: Color32::from_black_alpha(45),
+            ..default()
         };
         visuals.popup_shadow = visuals.window_shadow;
     });
@@ -275,7 +276,7 @@ pub fn ui_lr_panel(ui: &mut Ui, separator: bool, mut add_nav: impl FnMut(&mut Ui
                 });
             });
             if separator {
-                strip.cell(|ui| {});
+                strip.cell(|_ui| {});
             }
             strip.cell(|ui| {
                 if separator {

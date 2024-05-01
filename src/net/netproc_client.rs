@@ -47,7 +47,7 @@ pub fn client_sys(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
-    entity_s2c: Local<HashMap<Entity, Entity>>,
+    // entity_s2c: Local<HashMap<Entity, Entity>>,
 ) {
     if *last_connected != 1 && net_client.is_connecting() {
         *last_connected = 1;
@@ -77,15 +77,15 @@ pub fn client_sys(
                 cli.disconnected_reason.clone_from(reason);
                 net_client.disconnect_due_to_transport();
             }
-            SPacket::ServerInfo {
-                motd,
-                num_players_limit,
-                num_players_online,
-                protocol_version,
-                favicon,
-            } => {
-                info!("ServerInfo: {:?}", &packet);
-            }
+            // SPacket::ServerInfo {
+            //     motd,
+            //     num_players_limit,
+            //     num_players_online,
+            //     protocol_version,
+            //     favicon,
+            // } => {
+            //     info!("ServerInfo: {:?}", &packet);
+            // }
             SPacket::Pong { client_time, server_time } => {
                 let curr = current_timestamp_millis();
 

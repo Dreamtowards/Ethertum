@@ -95,7 +95,7 @@ pub struct Items {
 pub static mut _ITEMS_REG: *const Items = std::ptr::null();
 
 fn setup_items(
-    mut items: ResMut<Items>, 
+    items: ResMut<Items>, 
     // mut reg: ResMut<Registry>, 
     asset_server: Res<AssetServer>,
     mut egui_ctx: bevy_egui::EguiContexts,

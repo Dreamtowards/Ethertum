@@ -35,7 +35,7 @@ pub fn ui_settings(
     mut worldinfo: Option<ResMut<WorldInfo>>,
     mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
-    mut chunk_sys: Option<ResMut<ClientChunkSystem>>,
+    chunk_sys: Option<ResMut<ClientChunkSystem>>,
 
     mut vox_brush: ResMut<crate::voxel::VoxelBrush>,
     // mut global_volume: ResMut<GlobalVolume>,

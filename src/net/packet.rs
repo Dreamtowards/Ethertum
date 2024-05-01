@@ -72,14 +72,14 @@ pub enum SPacket {
     Disconnect {
         reason: String,
     },
-    ServerInfo {
-        motd: String,
-        num_players_limit: u32,
-        num_players_online: u32,
-        // online_players: Vec<(u64 uuid, String name)>
-        protocol_version: u64,
-        favicon: String,
-    },
+    // ServerInfo {
+    //     motd: String,
+    //     num_players_limit: u32,
+    //     num_players_online: u32,
+    //     // online_players: Vec<(u64 uuid, String name)>
+    //     protocol_version: u64,
+    //     favicon: String,
+    // },
     Pong {
         client_time: u64,
         server_time: u64,
