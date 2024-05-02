@@ -9,8 +9,7 @@ use bevy::{
 use bevy_egui::egui::emath::inverse_lerp;
 
 use crate::util::iter;
-
-use super::{chunk::*, material::mtl_tex};
+use super::chunk::*;
 
 // Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
 // #[derive(PartialEq)]
@@ -485,7 +484,7 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
         let n = rot * n;
 
         let uv = Vec2::from_slice(&CUBE_UV[i * 2..]);
-        let uv = mtl_tex::map_uv(uv, tex_id);
+        let uv = VoxTex::map_uv(uv, tex_id);
 
         vbuf.push_vertex(p, uv, n);
     }

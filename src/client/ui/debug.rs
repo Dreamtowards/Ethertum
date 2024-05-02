@@ -181,8 +181,8 @@ pub fn ui_menu_panel(
                                 }
                             }
                         });
-                        ui.menu_button("Render", |ui| {});
-                        ui.menu_button("Audio", |ui| {});
+                        ui.menu_button("Render", |_ui| {});
+                        ui.menu_button("Audio", |_ui| {});
                         ui.menu_button("View", |ui| {
                             ui.toggle_value(&mut true, "HUD");
                             ui.toggle_value(&mut false, "Fullscreen");

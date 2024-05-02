@@ -1,5 +1,4 @@
 mod chunk;
-mod material;
 mod meshgen;
 mod voxel_client;
 mod voxel_server;

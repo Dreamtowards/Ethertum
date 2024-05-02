@@ -107,6 +107,32 @@ struct VoxLight {
     light: u16,
 }
 
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
+pub mod VoxTex {
+
+    pub const Nil: u16 = 0;
+    pub const Stone: u16 = 22;
+    pub const Dirt: u16 = 1;
+    pub const Grass: u16 = 12; // 7 11
+    pub const Water: u16 = 24;
+    pub const Sand: u16 = 19;
+    pub const Log: u16 = 13;
+
+    pub const ShortGrass: u16 = 13;
+    pub const Bush: u16 = 14;
+    pub const Rose: u16 = 15;
+    pub const Fern: u16 = 16;
+    pub const Leaves: u16 = 23;
+
+    use bevy::math::Vec2;
+    pub fn map_uv(uv: Vec2, tex_id: u16) -> Vec2 {
+        const TEX_CAP: f32 = 24.;
+        let tex = tex_id - 1; // -1: offset the 0 Nil
+        Vec2::new(uv.x / TEX_CAP + tex as f32 / TEX_CAP, uv.y)
+    }
+}
+
 // Chunk is "Heavy" type (big size, stored a lot voxels). thus copy/clone are not allowed.
 pub struct Chunk {
     // shoud Box?
