@@ -218,12 +218,12 @@ impl MeshGen {
     pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
         Self::sn_contouring(vbuf, chunk);
 
-        for ly in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
-                for lx in 0..Chunk::SIZE {
+        for ly in 0..Chunk::LEN {
+            for lz in 0..Chunk::LEN {
+                for lx in 0..Chunk::LEN {
                     let lp = IVec3::new(lx, ly, lz);
 
-                    let c = chunk.get_cell(lp);
+                    let c = chunk.at_voxel(lp);
 
                     if c.tex_id != 0 && c.shape_id == VoxShape::Cube {
                         put_cube(vbuf, lp, chunk, c.tex_id);
@@ -234,8 +234,8 @@ impl MeshGen {
     }
 
     pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        iter::iter_xzy(Chunk::SIZE, |lp| {
-            let c = chunk.get_cell(lp);
+        iter::iter_xzy(Chunk::LEN, |lp| {
+            let c = chunk.at_voxel(lp);
 
             if c.tex_id != 0 {
                 if c.shape_id == VoxShape::Leaves {
@@ -311,7 +311,7 @@ impl MeshGen {
         [2, 3], // Z
     ];
 
-    fn sn_signchanged(c0: &Cell, c1: &Cell) -> bool {
+    fn sn_signchanged(c0: &Vox, c1: &Vox) -> bool {
         (c0.isovalue() > 0.) != (c1.isovalue() > 0.) // use .is_empty() ?
     }
 
@@ -325,8 +325,8 @@ impl MeshGen {
             let edge = Self::EDGE[edge_i];
             let v0 = Self::VERT[edge[0]];
             let v1 = Self::VERT[edge[1]];
-            let c0 = chunk.get_cell_rel(lp + v0);
-            let c1 = chunk.get_cell_rel(lp + v1);
+            let c0 = chunk.get_voxel_rel(lp + v0);
+            let c1 = chunk.get_voxel_rel(lp + v1);
 
             if Self::sn_signchanged(&c0, &c1) {
                 if let Some(t) = inverse_lerp(c0.isovalue()..=c1.isovalue(), 0.0) {
@@ -357,11 +357,11 @@ impl MeshGen {
     // via Approxiate Differental Gradient
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
-        let val = chunk.get_cell_rel(lp).isovalue();
+        let val = chunk.get_voxel_rel(lp).isovalue();
         vec3(
-            chunk.get_cell_rel(lp + IVec3::X).isovalue() - val,
-            chunk.get_cell_rel(lp + IVec3::Y).isovalue() - val,
-            chunk.get_cell_rel(lp + IVec3::Z).isovalue() - val,
+            chunk.get_voxel_rel(lp + IVec3::X).isovalue() - val,
+            chunk.get_voxel_rel(lp + IVec3::Y).isovalue() - val,
+            chunk.get_voxel_rel(lp + IVec3::Z).isovalue() - val,
             // chunk.get_cell_rel(lp + IVec3::X).value - chunk.get_cell_rel(lp - IVec3::X).value,
             // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
@@ -372,15 +372,15 @@ impl MeshGen {
     }
 
     fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        for ly in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
-                for lx in 0..Chunk::SIZE {
+        for ly in 0..Chunk::LEN {
+            for lz in 0..Chunk::LEN {
+                for lx in 0..Chunk::LEN {
                     let lp = IVec3::new(lx, ly, lz);
-                    let c0 = chunk.get_cell(lp);
+                    let c0 = chunk.at_voxel(lp);
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
-                        let c1 = match chunk.get_cell_neighbor(lp + Self::AXES[axis_i]) {
+                        let c1 = match chunk.get_voxel_neib(lp + Self::AXES[axis_i]) {
                             None => continue, // do not generate face if it's a Nil Cell (non-loaded)
                             Some(c1) => c1,
                         };
@@ -394,7 +394,7 @@ impl MeshGen {
                             let winded_vi = if winding_flip { 5 - quadvert_i } else { quadvert_i };
 
                             let p = lp + Self::ADJACENT[axis_i][winded_vi];
-                            let c = chunk.get_cell_rel(p);
+                            let c = chunk.get_voxel_rel(p);
 
                             let fp = Self::sn_featurepoint(p, chunk);
                             let norm = -Self::sn_grad(p, chunk);
@@ -402,7 +402,7 @@ impl MeshGen {
                             let mut nearest_val = f32::INFINITY;
                             let mut nearest_tex = c.tex_id;
                             for vert in Self::VERT {
-                                let c = chunk.get_cell_rel(p + vert);
+                                let c = chunk.get_voxel_rel(p + vert);
                                 if !c.is_isoval_empty() && c.isovalue() < nearest_val {
                                     nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
@@ -457,7 +457,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]); // 18: 3 scalar * 3 vertex * 2 triangle
 
         // skip the face if there's Obaque
-        if chunk.get_cell_rel(lp + face_dir.as_ivec3()).is_obaque_cube() {
+        if chunk.get_voxel_rel(lp + face_dir.as_ivec3()).is_obaque_cube() {
             continue;
         }
 

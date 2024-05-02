@@ -11,7 +11,7 @@ use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, WorldGen};
 use crate::{
     net::{CellData, RenetServerHelper, SPacket},
     server::prelude::ServerInfo,
-    util::{iter, AsRefMut},
+    util::{iter, AsMutRef},
 };
 
 type ChunkLoadingData = (IVec3, ChunkPtr);
@@ -30,10 +30,6 @@ impl Plugin for ServerVoxelPlugin {
 
         app.add_systems(Update, chunks_load);
     }
-}
-
-fn in_load_distance(mid_cp: IVec3, cp: IVec3, vd: IVec2) -> bool {
-    (mid_cp.x - cp.x).abs() <= vd.x * Chunk::SIZE && (mid_cp.z - cp.z).abs() <= vd.x * Chunk::SIZE && (mid_cp.y - cp.y).abs() <= vd.y * Chunk::SIZE
 }
 
 fn chunks_load(
@@ -56,7 +52,7 @@ fn chunks_load(
         let cp = Chunk::as_chunkpos(player.position.as_ivec3());
 
         iter::iter_center_spread(vd.x, vd.y, |rp| {
-            let chunkpos = rp * Chunk::SIZE + cp;
+            let chunkpos = rp * Chunk::LEN + cp;
             if chunks_loading.len() > 8 {
                 // max_concurrent_loading_chunks
                 return;
@@ -88,7 +84,7 @@ fn chunks_load(
         chunks_loading.remove(&chunkpos);
 
         {
-            let chunk = chunkptr.as_ref_mut();
+            let chunk = chunkptr.as_mut();
 
             chunk.entity = cmds
                 .spawn((
@@ -112,7 +108,7 @@ fn chunks_load(
         let mut any_desire = false;
 
         for player in server.online_players.values_mut() {
-            if in_load_distance(Chunk::as_chunkpos(player.position.as_ivec3()), chunkpos, player.chunks_load_distance) {
+            if crate::voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(player.position.as_ivec3()), chunkpos, player.chunks_load_distance) {
                 any_desire = true;
             }
         }
@@ -141,7 +137,7 @@ fn chunks_load(
         let mut num_sent = 0;
 
         iter::iter_center_spread(vd.x, vd.y, |rp| {
-            let chunkpos = rp * Chunk::SIZE + cp;
+            let chunkpos = rp * Chunk::LEN + cp;
             if num_sent > 4 {
                 // 不能一次性给玩家发送太多数据包 否则会溢出缓冲区 "send channel 2 with error: reliable channel memory usage was exausted"
                 return;

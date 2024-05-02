@@ -118,7 +118,7 @@ impl ChunkSystem {
 
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
-                let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
+                let neib_chunkpos = chunkpos + neib_dir * Chunk::LEN;
 
                 // todo: delay remesh or only remesh full-neighbor complete chunks
 

@@ -22,7 +22,7 @@ use crate::{
         prelude::{ClientSettings, InputAction},
         ui::CurrentUI,
     },
-    util::{iter, AsRefMut},
+    util::{iter, AsMutRef},
 };
 
 pub struct ClientVoxelPlugin;
@@ -83,6 +83,7 @@ fn on_world_init(
         double_sided: true,
         alpha_mode: AlphaMode::Mask(0.5),
         cull_mode: None,
+        unlit: true,
         ..default()
     });
 
@@ -129,7 +130,7 @@ fn chunks_detect_load_and_unload(
             //chunk_sys.max_concurrent_loading {
             return;
         }
-        let chunkpos = rp * Chunk::SIZE + vp;
+        let chunkpos = rp * Chunk::LEN + vp;
 
         // the chunk already exists, skip.
         if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
@@ -153,6 +154,15 @@ fn chunks_detect_load_and_unload(
         chunks_loading.remove(&chunk.chunkpos);
 
         chunk_sys.spawn_chunk(chunk, &mut cmds, &mut meshes);
+    }
+
+    // Chunks Unload
+
+    let chunkpos_all = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+    for chunkpos in chunkpos_all {
+        if !crate::voxel::is_chunk_in_load_distance(vp, chunkpos, vd) {
+            chunk_sys.despawn_chunk(chunkpos, &mut cmds);
+        }
     }
 }
 
@@ -221,7 +231,7 @@ fn chunks_remesh_enqueue(
                 // let dbg_time = Instant::now() - dbg_time;
 
                 // vbuf.compute_flat_normals();
-                _vbuf.0.compute_smooth_normals();
+                // _vbuf.0.compute_smooth_normals();
 
                 // let nv = vbuf.vertices.len();
                 // vbuf.compute_indexed();  // save 70%+ vertex data space!
@@ -382,7 +392,7 @@ fn raycast(
                 if do_place {1} else {0} * hit_result.normal.normalize_or_zero().as_ivec3();
 
             if let Some(v) = chunk_sys.get_voxel(p) {
-                let v = v.as_ref_mut();
+                let v = v.as_mut();
                 let f = (n as f32 - lp.as_vec3().length()).max(0.) * brush.strength;
 
                 v.set_isovalue(v.isovalue() + if do_break { -f } else { f });
@@ -434,7 +444,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
     // // chunks loading
     // for cp in chunk_sys.chunks_loading.keys() {
     //     gizmos.cuboid(
-    //         Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+    //         Transform::from_translation(cp.as_vec3()).with_scale(Vec3::splat(Chunk::LEN as f32)),
     //         Color::GREEN,
     //     );
     // }
@@ -443,7 +453,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
     if cli.dbg_gizmo_all_loaded_chunks {
         for cp in chunk_sys.get_chunks().keys() {
             gizmos.cuboid(
-                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 Color::DARK_GRAY,
             );
         }
@@ -453,7 +463,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         if let Ok(trans) = query_cam.get_single() {
             let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
             gizmos.cuboid(
-                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 Color::GRAY,
             );
         }
@@ -463,7 +473,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         // chunks remesh
         for cp in chunk_sys.chunks_remesh.iter() {
             gizmos.cuboid(
-                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 Color::ORANGE,
             );
         }
@@ -471,7 +481,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         // chunks meshing
         for cp in chunk_sys.chunks_meshing.iter() {
             gizmos.cuboid(
-                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::SIZE as f32).with_scale(Vec3::splat(Chunk::SIZE as f32)),
+                Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 Color::RED,
             );
         }
@@ -532,7 +542,7 @@ impl ClientChunkSystem {
     pub fn spawn_chunk(&mut self, mut chunk: Chunk, cmds: &mut Commands, meshes: &mut Assets<Mesh>) {
         let chunkpos = chunk.chunkpos;
 
-        let aabb = bevy::render::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::SIZE as f32));
+        let aabb = bevy::render::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::LEN as f32));
 
         chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
         chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
@@ -555,7 +565,7 @@ impl ClientChunkSystem {
                     MaterialMeshBundle {
                         mesh: chunk.mesh_handle_foliage.clone(),
                         material: self.mtl_foliage.clone(),
-                        // visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
+                        visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash
                         ..default()
                     },
                     aabb,
@@ -568,21 +578,21 @@ impl ClientChunkSystem {
 
         let chunkpos;
         {
-            let chunk = chunkptr.as_ref_mut();
+            let chunk = chunkptr.as_mut();
             chunkpos = chunk.chunkpos;
 
             let mut neighbors_nearby_completed = Vec::new();
 
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
-                let neib_chunkpos = chunkpos + neib_dir * Chunk::SIZE;
+                let neib_chunkpos = chunkpos + neib_dir * Chunk::LEN;
 
                 // todo: delay remesh or only remesh full-neighbor complete chunks
 
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        let neib_chunk = neib_chunkptr.as_ref_mut();
+                        let neib_chunk = neib_chunkptr.as_mut();
 
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
@@ -616,10 +626,10 @@ impl ClientChunkSystem {
         // self.set_chunk_meshing(chunkpos, ChunkMeshingState::Pending);
     }
 
-    pub fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
+    pub fn despawn_chunk(&mut self, chunkpos: IVec3, cmds: &mut Commands) -> Option<ChunkPtr> {
         let chunk = self.chunks.remove(&chunkpos)?;
 
-        //cmds.entity(chunk.entity).despawn_recursive();
+        cmds.entity(chunk.entity).despawn_recursive();
 
         Some(chunk)
     }
@@ -675,6 +685,45 @@ impl Material for TerrainMaterial {
     }
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
         "shaders/terrain.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Opaque
+    }
+}
+
+// Foliage
+
+
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
+#[reflect(Asset)]
+pub struct FoliageMaterial {
+    #[sampler(0)]
+    #[texture(1)]
+    pub texture_diffuse: Option<Handle<Image>>,
+
+    // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
+    // #[uniform(4)]
+    // pub wasm0: Vec4,
+    // pub sample_scale: f32,
+    // #[uniform(5)]
+    // pub normal_intensity: f32,
+}
+
+impl Default for FoliageMaterial {
+    fn default() -> Self {
+        Self {
+            texture_diffuse: None,
+        }
+    }
+}
+
+impl Material for FoliageMaterial {
+    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/foliage.wgsl".into()
+    }
+    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+        "shaders/foliage.wgsl".into()
     }
 
     fn alpha_mode(&self) -> AlphaMode {

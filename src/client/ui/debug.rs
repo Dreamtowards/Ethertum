@@ -12,8 +12,8 @@ use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 use crate::{
     client::{character_controller::CharacterControllerCamera, game_client::{ClientInfo, EthertiaClient, WorldInfo}},
     ui::{color32_of, CurrentUI, UiExtra},
-    util::AsRefMut,
-    voxel::{worldgen, Cell, Chunk, ChunkSystem, ClientChunkSystem, HitResult, VoxShape},
+    util::AsMutRef,
+    voxel::{worldgen, Vox, Chunk, ChunkSystem, ClientChunkSystem, HitResult, VoxShape},
 };
 
 pub fn ui_menu_panel(
@@ -163,7 +163,7 @@ pub fn ui_menu_panel(
                                 }
                                 if ui.button("Gen Tree").clicked() {
                                     let p = query_cam.single().translation.as_ivec3();
-                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().as_ref_mut();
+                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().as_mut();
 
                                     worldgen::gen_tree(chunk, Chunk::as_localpos(p), 0.8);
                                 }
@@ -172,10 +172,10 @@ pub fn ui_menu_panel(
 
                                     // crate::util::iter::iter_center_spread(10, 1, |p| {
                                     // });
-                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_ref_mut();
+                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_mut();
                                     for x in 0..16 {
                                         for z in 0..16 {
-                                            chunk.set_cell(IVec3::new(x, 0, z), &Cell::new(1, VoxShape::Cube, 0.));
+                                            *chunk.at_voxel_mut(IVec3::new(x, 0, z)) = Vox::new(1, VoxShape::Cube, 0.);
                                         }
                                     }
                                 }
@@ -220,12 +220,11 @@ pub fn hud_debug_text(
     #[cfg(feature = "target_native_os")]
     {
         use crate::util::TimeIntervals;
-
+        
         if time.at_interval(2.0) {
             sys.refresh_cpu();
             sys.refresh_memory();
         }
-
         // "HOMEPATH", "\\Users\\Dreamtowards",
         // "LANG", "en_US.UTF-8",
         // "USERNAME", "Dreamtowards",
@@ -274,7 +273,7 @@ pub fn hud_debug_text(
             "\nOS:  {dist_id}.{cpu_arch}, {num_concurrency} concurrency, {cpu_cores} cores; {os_lang}. {os_ver}, {os_ver_sm}.
 CPU: {cpu_name}, usage {cpu_usage:.1}%
 GPU: {gpu_name}, {gpu_backend}. {gpu_driver_name} {gpu_driver_info}
-RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB\n\n"
+RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {mem_total:.2} GB\n"
         );
     }
 
@@ -303,7 +302,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         }
 
         let mut cam_cell_str = "none".into();
-        if let Some(c) = chunk_sys.get_cell(cam_pos.as_ivec3()) {
+        if let Some(c) = chunk_sys.get_voxel(cam_pos.as_ivec3()) {
             cam_cell_str = format!("tex: {}, shape: {:?}, isoval: {}", c.tex_id, c.shape_id, c.isovalue());
         }
 
@@ -311,7 +310,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
             "
 Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph. vox: {cam_cell_str}
 Hit: {hit_str},
-World: '{}', daytime: {}. inhabited: {}, seed: {}
+World: '{}', daytime: {:.2}. inhabited: {:.1}, seed: {}
 Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
             cam_pos.x,
             cam_pos.y,
@@ -340,7 +339,7 @@ Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num
 
     let str = format!(
         "fps: {fps:.1}, dt: {frame_time:.4}ms
-entity vis: {cam_visible_entities_num} / all {num_entity}
+entity: vis {cam_visible_entities_num} / all {num_entity}
 {str_sys}
 {str_world}
 "

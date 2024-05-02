@@ -8,18 +8,18 @@ pub fn as_mut<T>(v: &T) -> &mut T {
     unsafe { &mut *((v as *const T) as *mut T) }
 }
 
-pub trait AsRefMut<T> {
-    fn as_ref_mut(&self) -> &mut T;
+pub trait AsMutRef<T> {
+    fn as_mut(&self) -> &mut T;
 }
 
-impl AsRefMut<crate::voxel::Chunk> for Arc<crate::voxel::Chunk> {
-    fn as_ref_mut(&self) -> &mut crate::voxel::Chunk {
+impl AsMutRef<crate::voxel::Chunk> for Arc<crate::voxel::Chunk> {
+    fn as_mut(&self) -> &mut crate::voxel::Chunk {
         as_mut(self.as_ref())
     }
 }
 
-impl AsRefMut<crate::voxel::Cell> for crate::voxel::Cell {
-    fn as_ref_mut(&self) -> &mut crate::voxel::Cell {
+impl AsMutRef<crate::voxel::Vox> for crate::voxel::Vox {
+    fn as_mut(&self) -> &mut crate::voxel::Vox {
         as_mut(self)
     }
 }

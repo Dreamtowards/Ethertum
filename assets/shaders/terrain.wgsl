@@ -1,24 +1,7 @@
 
-// #import bevy_pbr::{
-//     pbr_functions::alpha_discard,
-//     pbr_fragment::pbr_input_from_standard_material,
-//     forward_io::{VertexOutput, FragmentOutput},
-//     pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
-// }
-// #import bevy_pbr::mesh_bindings
-// #import bevy_pbr::mesh_view_bindings
-// #import bevy_pbr::pbr_bindings
-// #import bevy_pbr::fog
-// #import bevy_pbr::shadows
-// #import bevy_pbr::lighting
-// #import bevy_pbr::pbr_ambient
-// #import bevy_pbr::clustered_forward
-// #import bevy_pbr::utils
-
 #import bevy_pbr::forward_io::VertexOutput
 #import bevy_pbr::forward_io::Vertex
 #import bevy_pbr::mesh_functions
-
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::pbr_fragment
@@ -141,6 +124,9 @@ fn fragment(
     // blend_triplanar = max(blend_triplanar - vec3<f32>(triplanar_blend_sharpness), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
+    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar);
+    //return vec4<f32>(worldnorm /2.0 + 0.5, 1.0);
+    /*
 
 #ifdef BLEND 
 
@@ -166,7 +152,7 @@ fn fragment(
 #endif
 
     let base_color = triplanar_sample(tex_diffuse, mtls[vi_mtl], worldpos, blend_triplanar);
-    
+
     // NORMAL
     // let normal_intensity = vec3<f32>(1., 1., 1.0);
     blend_triplanar = blend_triplanar * ubo.normal_intensity;
@@ -207,4 +193,5 @@ fn fragment(
     // color = vec4<f32>(bary, 1.0); 
     // color = vec4<f32>(world_normal, 1.0); 
     return color;
+    */
 }

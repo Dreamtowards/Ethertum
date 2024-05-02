@@ -1,7 +1,7 @@
 use bevy::math::{IVec2, IVec3, Vec3};
 use serde::{Deserialize, Serialize};
 
-use crate::voxel::{Cell, Chunk, VoxShape};
+use crate::voxel::{Vox, Chunk, VoxShape};
 
 use super::EntityId;
 
@@ -15,7 +15,7 @@ pub struct CellData {
 }
 
 impl CellData {
-    pub fn from_cell(local_idx: u16, c: &Cell) -> Self {
+    pub fn from_cell(local_idx: u16, c: &Vox) -> Self {
         Self {
             local_idx,
             tex_id: c.tex_id,
@@ -26,8 +26,8 @@ impl CellData {
 
     pub fn from_chunk(chunk: &Chunk) -> Vec<CellData> {
         let mut data = Vec::new();
-        for i in 0..Chunk::LOCAL_IDX_CAP {
-            let c = chunk.get_cell(Chunk::local_idx_pos(i as i32));
+        for i in 0..Chunk::LEN3 {
+            let c = chunk.at_voxel(Chunk::local_idx_pos(i as i32));
             if !c.is_tex_empty() {
                 // FIXED: Dont use {isovalue() > -0.5} as condition, because Non-Isosurface voxels e.g. Leaves should always be transmit regardless it's isovalue
                 // dens: ((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
@@ -38,9 +38,9 @@ impl CellData {
     }
     pub fn to_chunk(data: &Vec<CellData>, chunk: &mut Chunk) {
         for c in data {
-            let mut a = Cell::new(c.tex_id, c.shape_id, 0.0);
+            let mut a = Vox::new(c.tex_id, c.shape_id, 0.0);
             a.isoval = c.isoval;
-            chunk.set_cell(Chunk::local_idx_pos(c.local_idx as i32), &a);
+            *chunk.at_voxel_mut(Chunk::local_idx_pos(c.local_idx as i32)) = a;
         }
     }
 }

@@ -11,7 +11,7 @@ use bevy_xpbd_3d::plugins::collision::Collider;
 use crate::{
     client::prelude::*,
     client::ui::CurrentUI,
-    util::{current_timestamp_millis, AsRefMut},
+    util::{current_timestamp_millis, AsMutRef},
     voxel::{Chunk, ChunkSystem, ClientChunkSystem},
 };
 
@@ -159,17 +159,17 @@ pub fn client_sys(
                 // info!("ChunkNew: {} ({})", chunkpos, chunk_sys.num_chunks());
             }
             SPacket::ChunkDel { chunkpos } => {
-                // info!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
+                error!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
 
-                if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
-                    let entity = chunkptr.entity;
+            //     if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
+            //         let entity = chunkptr.entity;
 
-                    // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
-                    // why the entity may not exists even if it in the chunk_sys?
-                    if let Some(cmds) = cmds.get_entity(entity) {
-                        cmds.despawn_recursive();
-                    }
-                }
+            //         // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
+            //         // why the entity may not exists even if it in the chunk_sys?
+            //         if let Some(cmds) = cmds.get_entity(entity) {
+            //             cmds.despawn_recursive();
+            //         }
+            //     }
             }
             SPacket::ChunkModify { chunkpos, voxel } => {
                 info!("ChunkModify: {}", chunkpos);
@@ -181,14 +181,14 @@ pub fn client_sys(
                     let lp = Chunk::local_idx_pos(data.local_idx as i32);
                     let neib = Chunk::at_boundary_naive(lp);
                     if neib != -1 {
-                        chunk_sys.mark_chunk_remesh(*chunkpos + Chunk::NEIGHBOR_DIR[neib as usize] * Chunk::SIZE);
+                        chunk_sys.mark_chunk_remesh(*chunkpos + Chunk::NEIGHBOR_DIR[neib as usize] * Chunk::LEN);
                     }
                 }
 
                 // todo: NonLock
                 let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
 
-                CellData::to_chunk(voxel, chunk.as_ref_mut());
+                CellData::to_chunk(voxel, chunk.as_mut());
             }
         }
     }

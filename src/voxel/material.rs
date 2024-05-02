@@ -25,6 +25,11 @@
 //     }
 // }
 
+pub mod VoxTex {
+
+
+}
+
 pub mod mtl {
     pub const NIL: u16 = 0;
     pub const STONE: u16 = 22;

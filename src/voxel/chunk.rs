@@ -1,5 +1,7 @@
 use std::sync::Weak;
-use bevy::{math::ivec3, prelude::*};
+use bevy::math::ivec3;
+
+use crate::{prelude::*, util::AsMutRef};
 
 
 #[repr(u8)]
@@ -27,8 +29,11 @@ pub enum VoxShape {
 }
 
 
+
+
+// naming VoxelUnit?: BlockState, Cell, Voxel or Vox?
 #[derive(Clone, Copy)]
-pub struct Cell {
+pub struct Vox {
     pub tex_id: u16,
 
     pub shape_id: VoxShape,
@@ -41,9 +46,9 @@ pub struct Cell {
     // pub cached_norm: Vec3,
 }
 
-impl Default for Cell {
+impl Default for Vox {
     fn default() -> Self {
-        Cell {
+        Vox {
             shape_id: VoxShape::Isosurface,
             tex_id: 0,
             isoval: isoval_f32_u8(0.0),
@@ -52,13 +57,6 @@ impl Default for Cell {
         }
     }
 }
-
-use serde::{Deserialize, Serialize};
-// naming VoxelUnit?: BlockState, Cell, Voxel or Vox?
-pub use Cell as Vox;
-
-
-
 
 // todo: bugfix 自从压缩成u8后，地下有一些小碎片三角形 可能是由于精度误差 -0.01 变成 0.01 之类的了。要
 // 修复这种bug 应该是把接近0的数值扩大 再转成u8.
@@ -70,7 +68,7 @@ fn isoval_u8_f32(u: u8) -> f32 {
     u as f32 / 255.0 * 2.0 - 1.0
 }
 
-impl Cell {
+impl Vox {
     pub fn new(tex_id: u16, shape_id: VoxShape, isovalue: f32) -> Self {
         Self {
             tex_id,
@@ -81,6 +79,9 @@ impl Cell {
     }
 
     pub fn isovalue(&self) -> f32 {
+        if self.shape_id != VoxShape::Isosurface {
+            return 0.0;
+        }
         isoval_u8_f32(self.isoval)
     }
     pub fn set_isovalue(&mut self, val: f32) {
@@ -100,10 +101,17 @@ impl Cell {
     }
 }
 
+#[derive(Default, Clone, Copy)]
+struct VoxLight {
+    // SkyLight, R, G, B u4
+    light: u16,
+}
+
 // Chunk is "Heavy" type (big size, stored a lot voxels). thus copy/clone are not allowed.
 pub struct Chunk {
     // shoud Box?
-    cells: [Cell; 16 * 16 * 16],
+    voxel: [Vox; Self::LEN3],
+    light: [VoxLight; Self::LEN3],
 
     pub chunkpos: IVec3,
 
@@ -117,11 +125,14 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub const SIZE: i32 = 16;
+    pub const LEN: i32 = 16;  // i32 for xyz iter
+    pub const LEN3: usize = (Self::LEN * Self::LEN * Self::LEN) as usize;
+    // pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
 
     pub fn new(chunkpos: IVec3) -> Self {
         Self {
-            cells: [Cell::default(); 16 * 16 * 16],
+            voxel: [Vox::default(); Self::LEN3],
+            light: [VoxLight::default(); Self::LEN3],
             chunkpos,
             neighbor_chunks: Default::default(),
             entity: Entity::PLACEHOLDER,
@@ -130,68 +141,37 @@ impl Chunk {
         }
     }
 
-    pub fn get_cell(&self, localpos: IVec3) -> &Cell {
-        &self.cells[Chunk::local_idx(localpos)]
+    pub fn at_voxel(&self, localpos: IVec3) -> &Vox {
+        &self.voxel[Chunk::local_idx(localpos)]
     }
 
-    pub fn get_cell_neighbor(&self, relpos: IVec3) -> Option<Cell> {
-        if Chunk::is_localpos(relpos) {
-            Some(*self.get_cell(relpos))
-        } else {
-            /*
-            let neib_idx = Chunk::neighbor_idx(relpos)?;
-            self.neighbor_chunks[neib_idx].as_ref()
-                .and_then(|neib_weak| neib_weak.upgrade())
-                .and_then(|neib_chunkptr| neib_chunkptr.read().unwrap())
-                .and_then(|neib_chunk| {
-                    // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
-                    Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)))
-                })
-            */
+    pub fn at_voxel_mut(&self, localpos: IVec3) -> &mut Vox {
+        self.at_voxel(localpos).as_mut()
+    }
 
+    pub fn get_voxel_neib(&self, relpos: IVec3) -> Option<Vox> {
+        if Chunk::is_localpos(relpos) {
+            Some(*self.at_voxel(relpos))
+        } else {
             let neib_idx = Chunk::neighbor_idx(relpos)?;
             if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
                 let neib_chunkptr = neib_weak.upgrade()?;
                 let neib_chunk = neib_chunkptr.as_ref();
-                // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::SIZE, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
+                // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::LEN, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
-                return Some(*neib_chunk.get_cell(Chunk::as_localpos(relpos)));
+                return Some(*neib_chunk.at_voxel(Chunk::as_localpos(relpos)));
             }
             None
         }
     }
 
-    pub fn get_cell_rel(&self, relpos: IVec3) -> Cell {
-        self.get_cell_neighbor(relpos).unwrap_or(Cell::default())
-    }
-
-    pub fn get_cell_mut(&mut self, localpos: IVec3) -> &mut Cell {
-        &mut self.cells[Chunk::local_idx(localpos)]
-    }
-
-    pub fn set_cell(&mut self, localpos: IVec3, cell: &Cell) {
-        self.cells[Chunk::local_idx(localpos)] = *cell;
+    pub fn get_voxel_rel(&self, relpos: IVec3) -> Vox {
+        self.get_voxel_neib(relpos).unwrap_or(Vox::default())
     }
 
     pub fn is_neighbors_complete(&self) -> bool {
-        /*
-        for e in self.neighbor_chunks.iter() {
-            if e.is_none() {
-                return false;
-            }
-        }
-        true
-        */
         !self.neighbor_chunks.iter().any(|e| e.is_none())
     }
-
-    // pub fn neighbor_chunk(&self, i: i32) -> Option<ChunkPtr> {
-    //     if let Some(chunk) = &self.neighbors[i as usize] {
-    //         chunk.upgrade()
-    //     } else {
-    //         None
-    //     }
-    // }
 
     fn _floor16(x: i32) -> i32 {
         x & (!15)
@@ -216,8 +196,6 @@ impl Chunk {
     pub fn is_localpos(p: IVec3) -> bool {
         p.x >= 0 && p.x < 16 && p.y >= 0 && p.y < 16 && p.z >= 0 && p.z < 16
     }
-
-    pub const LOCAL_IDX_CAP: usize = 4096; // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
 
     // the index range is [0, 16^3 or 4096)
     pub fn local_idx(localpos: IVec3) -> usize {
@@ -255,6 +233,7 @@ impl Chunk {
 
 
 
+    
     #[rustfmt::skip]
     pub const NEIGHBOR_DIR: [IVec3; 6 + 12 + 8] = [
         // 6 Faces
@@ -290,7 +269,7 @@ impl Chunk {
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
         assert!(!Chunk::is_localpos(relpos));
-        (0..Chunk::NEIGHBOR_DIR.len()).find(|&i| Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::SIZE)))
+        (0..Chunk::NEIGHBOR_DIR.len()).find(|&i| Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::LEN as i32)))
     }
 
     // assert!(Self::NEIGHBOR_DIR[idx] + Self::NEIGHBOR_DIR[opposite_idx] == IVec3::ZERO, "idx = {}, opposite = {}", idx, opposite_idx);

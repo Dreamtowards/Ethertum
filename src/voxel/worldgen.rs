@@ -1,15 +1,13 @@
 use std::ops::Div;
 
 use bevy::{math::ivec3, prelude::*};
-
-use crate::util::{hash, iter};
-
-use super::chunk::*;
-
 use noise::{Fbm, NoiseFn, Perlin};
 
-pub struct WorldGen {}
+use crate::util::{hash, iter, AsMutRef};
+use super::chunk::*;
 use super::material::mtl;
+
+pub struct WorldGen {}
 
 impl WorldGen {
     pub fn generate_chunk(chunk: &mut Chunk) {
@@ -21,9 +19,9 @@ impl WorldGen {
         fbm.octaves = 5;
         // fbm.persistence = 2;
 
-        for ly in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
-                for lx in 0..Chunk::SIZE {
+        for ly in 0..Chunk::LEN {
+            for lz in 0..Chunk::LEN {
+                for lx in 0..Chunk::LEN {
                     let lp = IVec3::new(lx, ly, lz);
                     let p = chunk.chunkpos + lp;
 
@@ -36,11 +34,12 @@ impl WorldGen {
                     let mut tex = mtl::NIL; //(p.x / 2 % 24).abs() as u16;
                     if val > 0.0 {
                         tex = mtl::STONE;
-                    } else if p.y < 0 && val < 0. {
-                        val = 0.1;
-                        tex = mtl::WATER;
-                    }
-                    chunk.set_cell(lp, &Cell::new(tex, VoxShape::Isosurface, val));
+                    } 
+                    // else if p.y < 0 && val < 0. {
+                    //     val = 0.1;
+                    //     tex = mtl::WATER;
+                    // }
+                    *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Cube, 0.);
                 }
             }
         }
@@ -52,15 +51,13 @@ impl WorldGen {
         let chunkpos = chunk.chunkpos;
         let perlin = Perlin::new(123);
 
-        for lx in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
+        for lx in 0..Chunk::LEN {
+            for lz in 0..Chunk::LEN {
                 let mut air_dist = 0;
 
-                for ly in (0..Chunk::SIZE).rev() {
+                for ly in (0..Chunk::LEN).rev() {
                     let lp = IVec3::new(lx, ly, lz);
-                    let p = chunk.chunkpos + lp;
-
-                    let mut c = *chunk.get_cell(lp);
+                    let c = chunk.at_voxel_mut(lp);
 
                     if c.is_tex_empty() {
                         air_dist = 0;
@@ -68,6 +65,7 @@ impl WorldGen {
                         air_dist += 1;
                     }
 
+                    let p = chunk.chunkpos + lp;
                     if c.tex_id == mtl::STONE {
                         let mut replace = c.tex_id;
                         if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
@@ -79,26 +77,24 @@ impl WorldGen {
                         }
                         c.tex_id = replace;
                     }
-
-                    chunk.set_cell(lp, &c);
                 }
             }
         }
 
-        for lx in 0..Chunk::SIZE {
-            for lz in 0..Chunk::SIZE {
+        for lx in 0..Chunk::LEN {
+            for lz in 0..Chunk::LEN {
                 let x = chunkpos.x + lx;
                 let z = chunkpos.z + lz;
 
-                // Grass
+                // TallGrass
                 // hash(x * z * 100) < 0.23
                 let g = perlin.get([x as f64 / 18., z as f64 / 18.]);
                 if g > 0.0 {
-                    for ly in 0..Chunk::SIZE - 1 {
+                    for ly in 0..Chunk::LEN - 1 {
                         let lp = ivec3(lx, ly, lz);
 
-                        if chunk.get_cell(lp).tex_id == mtl::GRASS && chunk.get_cell(lp + IVec3::Y).tex_id == 0 {
-                            let c = chunk.get_cell_mut(lp + IVec3::Y);
+                        if chunk.at_voxel(lp).tex_id == mtl::GRASS && chunk.at_voxel(lp + IVec3::Y).is_tex_empty() {
+                            let c = chunk.at_voxel_mut(lp + IVec3::Y);
                             c.tex_id = if g > 0.94 {
                                 mtl::ROSE
                             } else if g > 0.8 {
@@ -116,17 +112,17 @@ impl WorldGen {
 
                 // Vines
                 if hash(x ^ (z * 7384)) < (18.0 / 256.0) {
-                    for ly in 0..Chunk::SIZE - 1 {
+                    for ly in 0..Chunk::LEN - 1 {
                         let lp = ivec3(lx, ly, lz);
 
-                        if chunk.get_cell(lp).tex_id == 0 && chunk.get_cell(lp + IVec3::Y).tex_id == mtl::STONE {
+                        if chunk.at_voxel(lp).is_tex_empty() && chunk.at_voxel(lp + IVec3::Y).tex_id == mtl::STONE {
                             for i in 0..(12.0 * hash(x ^ (z * 121))) as i32 {
                                 let lp = lp + IVec3::NEG_Y * i;
                                 if lp.y < 0 {
                                     break;
                                 }
-                                let c = chunk.get_cell_mut(lp);
-                                if c.tex_id != 0 {
+                                let c = chunk.at_voxel_mut(lp);
+                                if !c.is_tex_empty() {
                                     break;
                                 }
                                 c.tex_id = mtl::LEAVES;
@@ -139,10 +135,10 @@ impl WorldGen {
 
                 // Trees
                 if hash(x ^ (z * 9572)) < (3.0 / 256.0) {
-                    for ly in 0..Chunk::SIZE {
+                    for ly in 0..Chunk::LEN {
                         let lp = ivec3(lx, ly, lz);
 
-                        if chunk.get_cell(lp).tex_id != mtl::GRASS {
+                        if chunk.at_voxel(lp).tex_id != mtl::GRASS {
                             continue;
                         }
                         let siz = hash(x ^ ly ^ z);
@@ -167,7 +163,7 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         if !Chunk::is_localpos(lp) {
             return;
         }
-        let c = chunk.get_cell_mut(lp);
+        let c = chunk.at_voxel_mut(lp);
         c.tex_id = mtl::LEAVES;
         c.shape_id = VoxShape::Leaves;
     });
@@ -177,7 +173,7 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         if i + lp.y > 15 {
             break;
         }
-        let c = chunk.get_cell_mut(lp + IVec3::Y * i);
+        let c = chunk.at_voxel_mut(lp + IVec3::Y * i);
         c.tex_id = mtl::LOG;
         c.shape_id = VoxShape::Isosurface;
         c.set_isovalue(2.0 * (1.2 - i as f32 / trunk_height as f32));
