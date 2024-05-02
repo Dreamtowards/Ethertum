@@ -142,7 +142,7 @@ fn chunks_detect_load_and_unload(
             // info!("Load Chunk: {:?}", chunkpos);
             let mut chunk = Chunk::new(chunkpos);
 
-            super::WorldGen::generate_chunk(&mut chunk);
+            super::worldgen::generate_chunk(&mut chunk);
 
             tx.send(chunk).unwrap();
         });
@@ -581,7 +581,7 @@ impl ClientChunkSystem {
             let chunk = chunkptr.as_mut();
             chunkpos = chunk.chunkpos;
 
-            let mut neighbors_nearby_completed = Vec::new();
+            // let mut neighbors_completed = Vec::new();
 
             for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
@@ -596,11 +596,14 @@ impl ClientChunkSystem {
 
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
+                        
+                        if neib_chunk.is_neighbors_complete() && !neib_chunk.is_populated {
+                            // neighbors_completed.push(neib_chunk.chunkpos);
+                            neib_chunk.is_populated = true;
+                            super::worldgen::populate_chunk(neib_chunk);  // todo: ChunkGen Thread
 
-                        if neib_chunk.is_neighbors_complete() {
-                            neighbors_nearby_completed.push(neib_chunk.chunkpos);
+                            crate::util::as_mut(self).mark_chunk_remesh(neib_chunk.chunkpos);
                         }
-
                         Some(Arc::downgrade(neib_chunkptr))
                     } else {
                         None
@@ -611,9 +614,9 @@ impl ClientChunkSystem {
             // if chunk.is_neighbors_complete() {
             self.mark_chunk_remesh(chunkpos);
             // }
-            for cp in neighbors_nearby_completed {
-                self.mark_chunk_remesh(cp);
-            }
+            // for cp in neighbors_completed {
+            //     self.mark_chunk_remesh(cp);
+            // }
         }
 
         self.chunks.insert(chunkpos, chunkptr);
@@ -622,12 +625,19 @@ impl ClientChunkSystem {
         // if chunkpos.y <= 64 {
         //     entity_commands.insert(NotShadowCaster);
         // }
-
-        // self.set_chunk_meshing(chunkpos, ChunkMeshingState::Pending);
     }
 
     pub fn despawn_chunk(&mut self, chunkpos: IVec3, cmds: &mut Commands) -> Option<ChunkPtr> {
         let chunk = self.chunks.remove(&chunkpos)?;
+
+        // update neighbors' `neighbors_chunk`
+        for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
+            if let Some(neib_chunkptr) = chunk.get_chunk_neib(neib_idx) {
+                let neib_chunk = neib_chunkptr.as_mut();  // problematic: may cause data tiring
+
+                neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = None;
+            }
+        }
 
         cmds.entity(chunk.entity).despawn_recursive();
 

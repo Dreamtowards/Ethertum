@@ -3,6 +3,8 @@ use bevy::math::ivec3;
 
 use crate::{prelude::*, util::AsMutRef};
 
+use super::ChunkPtr;
+
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize, Default, Reflect)]
@@ -91,6 +93,9 @@ impl Vox {
     pub fn is_tex_empty(&self) -> bool {
         self.tex_id == 0
     }
+    pub fn is_nil(&self) -> bool {
+        self.is_tex_empty()
+    }
 
     pub fn is_isoval_empty(&self) -> bool {
         self.isovalue() <= 0.0
@@ -141,6 +146,8 @@ pub struct Chunk {
 
     pub chunkpos: IVec3,
 
+    pub is_populated: bool,
+
     pub entity: Entity,
     pub mesh_handle: Handle<Mesh>, // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
@@ -160,6 +167,7 @@ impl Chunk {
             voxel: [Vox::default(); Self::LEN3],
             light: [VoxLight::default(); Self::LEN3],
             chunkpos,
+            is_populated: false,
             neighbor_chunks: Default::default(),
             entity: Entity::PLACEHOLDER,
             mesh_handle: Handle::default(),
@@ -179,16 +187,21 @@ impl Chunk {
         if Chunk::is_localpos(relpos) {
             Some(*self.at_voxel(relpos))
         } else {
-            let neib_idx = Chunk::neighbor_idx(relpos)?;
-            if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
-                let neib_chunkptr = neib_weak.upgrade()?;
+            if let Some(neib_chunkptr) = self.get_chunk_neib(Chunk::neighbor_idx(relpos)?) {
                 let neib_chunk = neib_chunkptr.as_ref();
-                // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::LEN, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
 
                 return Some(*neib_chunk.at_voxel(Chunk::as_localpos(relpos)));
             }
             None
         }
+    }
+
+    pub fn get_chunk_neib(&self, neib_idx: usize) -> Option<ChunkPtr> {
+        if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
+            // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::LEN, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
+            return Some(neib_weak.upgrade()?);
+        }
+        None
     }
 
     pub fn get_voxel_rel(&self, relpos: IVec3) -> Vox {

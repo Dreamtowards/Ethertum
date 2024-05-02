@@ -7,7 +7,6 @@ pub mod worldgen;
 pub use chunk::{Vox, Chunk, VoxShape};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
-pub use worldgen::WorldGen;
 
 use crate::util::AsMutRef;
 use bevy::{prelude::*, utils::HashMap};

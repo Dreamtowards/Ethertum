@@ -9,11 +9,9 @@ use bevy_egui::{
 use bevy_renet::renet::RenetClient;
 
 use crate::{
-    client::game_client::ClientInfo, item::ItemStack, net::{CPacket, RenetClientHelper}
+    client::prelude::*, net::{CPacket, RenetClientHelper}
 };
-
 use crate::ui::prelude::*;
-use super::ClientSettings;
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 

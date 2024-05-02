@@ -7,7 +7,7 @@ use bevy_renet::renet::RenetServer;
 use bevy_xpbd_3d::components::RigidBody;
 use std::sync::Arc;
 
-use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, WorldGen};
+use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
 use crate::{
     net::{CellData, RenetServerHelper, SPacket},
     server::prelude::ServerInfo,
@@ -66,7 +66,7 @@ fn chunks_load(
                 // info!("Load Chunk: {:?}", chunkpos);
                 let mut chunk = Chunk::new(chunkpos);
 
-                WorldGen::generate_chunk(&mut chunk);
+                super::worldgen::generate_chunk(&mut chunk);
 
                 let chunkptr = Arc::new(chunk);
                 tx.send((chunkpos, chunkptr)).unwrap();

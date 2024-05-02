@@ -10,7 +10,7 @@ use bevy_egui::{
 use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 
 use crate::{
-    client::{character_controller::CharacterControllerCamera, game_client::{ClientInfo, EthertiaClient, WorldInfo}},
+    client::prelude::*,
     ui::{color32_of, CurrentUI, UiExtra},
     util::AsMutRef,
     voxel::{worldgen, Vox, Chunk, ChunkSystem, ClientChunkSystem, HitResult, VoxShape},

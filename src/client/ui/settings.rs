@@ -7,7 +7,6 @@ use bevy_egui::{
 use crate::{
     client::character_controller::CharacterController,
     client::game_client::{ClientInfo, WorldInfo},
-    voxel::ClientChunkSystem,
 };
 
 use super::{new_egui_window, sfx_play, ui_lr_panel, ClientSettings};
