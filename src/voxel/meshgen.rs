@@ -85,6 +85,7 @@ impl VertexBuffer {
         }
     }
 
+    // len_triangles
     fn triangle_count(&self) -> u32 {
         (self.vertex_count() / 3) as u32
     }

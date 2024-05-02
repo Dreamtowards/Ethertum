@@ -4,12 +4,8 @@ use bevy_egui::{
     EguiContexts, EguiSettings,
 };
 
-use crate::{
-    client::character_controller::CharacterController,
-    client::game_client::{ClientInfo, WorldInfo},
-};
-
-use super::{new_egui_window, sfx_play, ui_lr_panel, ClientSettings};
+use crate::client::prelude::*;
+use super::{new_egui_window, sfx_play, ui_lr_panel};
 
 #[derive(Default, PartialEq, Debug, Clone, Copy)]
 pub enum SettingsPanel {

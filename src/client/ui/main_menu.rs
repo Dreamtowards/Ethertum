@@ -4,7 +4,7 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use crate::ui::prelude::*;
+use crate::{client::client_world::ClientPlayerInfo, ui::prelude::*};
 use crate::client::prelude::*;
 
 
@@ -111,12 +111,13 @@ pub fn ui_main_menu(
 pub fn ui_pause_menu(
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
+    mut player: ResMut<ClientPlayerInfo>,
     // mut net_client: ResMut<RenetClient>,
 ) {
 
     egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
 
-        ui_inventory(ui, &mut cli.data().inventory);
+        ui_inventory(ui, &mut player.inventory);
     });
 
     super::new_egui_window("Pause")

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::prelude::*;
+use crate::{client::client_world::ClientPlayerInfo, prelude::*};
 
 use bevy_egui::{
     egui::{text::CCursorRange, Align, Frame, Id, Layout, TextEdit, Vec2},
@@ -185,7 +185,7 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, cfg: Res<ClientSettings>) {
+pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: ResMut<ClientPlayerInfo>) {
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)
@@ -205,7 +205,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, cfg: Res<C
                 ui.painter().rect_filled(rect, rounding, Color32::from_black_alpha(200));
     
                 // bar fg
-                let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (cli.health as f32 / cli.health_max as f32));
+                let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (player.health as f32 / player.health_max as f32));
                 ui.painter().rect_filled(rect_fg, rounding, Color32::WHITE);
 
                 // ui.painter().text(rect.left_center(), Align2::LEFT_CENTER,
@@ -215,8 +215,8 @@ pub fn hud_hotbar(mut ctx: EguiContexts, mut cli: ResMut<ClientInfo>, cfg: Res<C
             }
 
             ui.horizontal(|ui| {
-                for i in 0..crate::client::game_client::HOTBAR_SLOTS {
-                    let item = cli.inventory.items.get_mut(i as usize).unwrap();
+                for i in 0..ClientPlayerInfo::HOTBAR_SLOTS {
+                    let item = player.inventory.items.get_mut(i as usize).unwrap();
 
                     ui_item_stack(ui, item);
                 }

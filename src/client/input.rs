@@ -9,6 +9,15 @@ use crate::client::prelude::*;
 use crate::client::ui::*;
 use crate::prelude::*;
 
+pub fn init(app: &mut App) {
+
+    app.add_systems(Startup, super::input::input_setup);
+    app.add_systems(Update, super::input::input_handle);
+    app.add_plugins(leafwing_input_manager::plugin::InputManagerPlugin::<InputAction>::default());
+    // app.add_plugins((bevy_touch_stick::TouchStickPlugin::<InputStickId>::default());
+}
+
+
 #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
 pub enum InputStickId {
     #[default]
@@ -84,6 +93,7 @@ pub fn input_handle(
     mut query_controller: Query<&mut CharacterController>,
 
     worldinfo: Option<ResMut<WorldInfo>>,
+    player: Option<ResMut<ClientPlayerInfo>>,
     mut cli: ResMut<ClientInfo>,
     cfg: Res<ClientSettings>,
 ) {
@@ -122,10 +132,11 @@ pub fn input_handle(
         cli.enable_cursor_look = !cli.enable_cursor_look;
     }
 
-    if curr_manipulating && !key.pressed(KeyCode::AltLeft) {
+    if curr_manipulating && !key.pressed(KeyCode::AltLeft) && player.is_some() {
         let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
+        let mut player = player.unwrap();
 
-        cli.hotbar_index = (cli.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(crate::client::game_client::HOTBAR_SLOTS as i32) as u32;
+        player.hotbar_index = (player.hotbar_index as i32 + -wheel_delta as i32).rem_euclid(ClientPlayerInfo::HOTBAR_SLOTS as i32) as u32;
     }
 
     // Temporary F4 Debug Settings
