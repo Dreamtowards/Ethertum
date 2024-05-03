@@ -1,17 +1,17 @@
 use std::net::ToSocketAddrs;
 
-use bevy::{ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*,};
+use bevy::{ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*};
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
 // #[cfg(feature = "target_native_os")]
 // use bevy_atmosphere::prelude::*;
 
-use crate::ui::prelude::*;
 use crate::client::prelude::*;
-use crate::server::prelude::IntegratedServerPlugin;
 use crate::item::ItemPlugin;
 use crate::net::{CPacket, ClientNetworkPlugin, RenetClientHelper};
+use crate::server::prelude::IntegratedServerPlugin;
+use crate::ui::prelude::*;
 use crate::voxel::ClientVoxelPlugin;
 
 pub struct ClientGamePlugin;
@@ -54,19 +54,18 @@ impl Plugin for ClientGamePlugin {
         app.add_plugins(ItemPlugin); // Items
 
         // Network
-        app.add_plugins(ClientNetworkPlugin); // Client Network 
+        app.add_plugins(ClientNetworkPlugin); // Client Network
         app.add_plugins(IntegratedServerPlugin);
 
         // ClientInfo
         app.insert_resource(ClientInfo::default());
         app.register_type::<ClientInfo>();
 
-        super::settings::build_plugin(app);  // Config
-        super::input::init(app);  // Input
+        super::settings::build_plugin(app); // Config
+        super::input::init(app); // Input
 
         // World
         super::client_world::init(app);
-
 
         // Debug
         {
@@ -136,7 +135,6 @@ fn debug_draw_gizmo(
         gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
     }
 }
-
 
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]

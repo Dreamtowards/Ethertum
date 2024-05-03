@@ -13,7 +13,8 @@ struct MyVertexOutput {
     @location(1) world_normal: vec3<f32>,
 
     @location(2) bary: vec3<f32>,
-    @location(3) mtls: vec3<f32>,  // material texture ids. u32
+    @location(3) mtls: vec3<f32>,   // material texture ids. u32
+    @location(4) light: vec3<f32>,  // light level
 
     @location(5) @interpolate(flat) instance_index: u32,
 }
@@ -37,6 +38,8 @@ fn vertex(
     let bary = vec3<f32>(f32(vi == 0u), f32(vi == 1u), f32(vi == 2u));
     out.bary = bary;
     out.mtls = bary * vec3<f32>(in.uv.x, in.uv.x, in.uv.x);
+
+    out.light = (vec3<f32>(in.uv.y, in.uv.y, in.uv.y) / 15.0);
 
     return out;
 }
@@ -124,7 +127,10 @@ fn fragment(
     // blend_triplanar = max(blend_triplanar - vec3<f32>(triplanar_blend_sharpness), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
-    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar);
+    let vlights = in.light;// / in.bary;
+    let L = max(0.1, max(max(in.light.x, in.light.y), in.light.z));
+    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar) * vec4<f32>(L,L,L, 1.0);
+
     //return vec4<f32>(worldnorm /2.0 + 0.5, 1.0);
     /*
 

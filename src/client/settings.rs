@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-
 pub const CLIENT_SETTINGS_FILE: &str = "client.settings.json";
 
 fn on_app_init(mut cfg: ResMut<ClientSettings>) {
@@ -23,18 +22,13 @@ fn on_app_exit(mut exit_events: EventReader<bevy::app::AppExit>, cfg: Res<Client
     }
 }
 
-
 pub fn build_plugin(app: &mut App) {
-
     app.insert_resource(ClientSettings::default());
     app.register_type::<ClientSettings>();
 
     app.add_systems(PreStartup, on_app_init); // load settings
     app.add_systems(Last, on_app_exit); // save settings
-
 }
-
-
 
 #[derive(Resource, Deserialize, Serialize, Reflect)]
 #[reflect(Resource)]
@@ -63,8 +57,6 @@ impl Default for ClientSettings {
         }
     }
 }
-
-
 
 #[derive(serde::Deserialize, serde::Serialize, Default)]
 pub struct ServerListItem {

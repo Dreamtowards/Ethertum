@@ -3,9 +3,8 @@ use std::ops::Div;
 use bevy::{math::ivec3, prelude::*};
 use noise::{Fbm, NoiseFn, Perlin};
 
-use crate::util::{hash, iter};
 use super::chunk::*;
-
+use crate::util::{hash, iter};
 
 pub fn generate_chunk(chunk: &mut Chunk) {
     let seed = 100;
@@ -31,12 +30,12 @@ pub fn generate_chunk(chunk: &mut Chunk) {
                 let mut tex = VoxTex::Nil; //(p.x / 2 % 24).abs() as u16;
                 if val > 0.0 {
                     tex = VoxTex::Stone;
-                } 
+                }
                 // else if p.y < 0 && val < 0. {
                 //     val = 0.1;
                 //     tex = mtl::WATER;
                 // }
-                *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Cube, 0.);
+                *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Cube, 0.);//VoxShape::Isosurface, val);
             }
         }
     }
@@ -52,7 +51,7 @@ pub fn populate_chunk(chunk: &mut Chunk) {
 
             // check top air_dist. for CubicChunk system, otherwise the chunk-top will be surface/grass
             for i in 0..3 {
-                if chunk.get_voxel_neib(ivec3(lx, Chunk::LEN+i, lz)).is_some_and(|v| !v.is_nil()) {
+                if chunk.get_voxel_neib(ivec3(lx, Chunk::LEN + i, lz)).is_some_and(|v| !v.is_nil()) {
                     air_dist += 1;
                 }
             }

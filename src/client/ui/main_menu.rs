@@ -4,9 +4,8 @@ use bevy_egui::{
     EguiContexts,
 };
 
-use crate::{client::client_world::ClientPlayerInfo, ui::prelude::*};
 use crate::client::prelude::*;
-
+use crate::{client::client_world::ClientPlayerInfo, ui::prelude::*};
 
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
@@ -114,9 +113,7 @@ pub fn ui_pause_menu(
     mut player: ResMut<ClientPlayerInfo>,
     // mut net_client: ResMut<RenetClient>,
 ) {
-
     egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
-
         ui_inventory(ui, &mut player.inventory);
     });
 

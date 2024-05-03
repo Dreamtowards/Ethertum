@@ -1,7 +1,7 @@
 use bevy::math::{IVec2, IVec3, Vec3};
 use serde::{Deserialize, Serialize};
 
-use crate::voxel::{Vox, Chunk, VoxShape};
+use crate::voxel::{Chunk, Vox, VoxShape};
 
 use super::EntityId;
 

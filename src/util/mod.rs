@@ -3,6 +3,15 @@ mod macros;
 
 pub mod wfc;
 
+mod vertexbuffer;
+pub mod vtx {
+    pub use super::vertexbuffer::{Vertex, VertexBuffer};
+}
+
+pub mod registry;
+
+// Unsafe as_mut()
+
 #[allow(invalid_reference_casting)]
 pub fn as_mut<T>(v: &T) -> &mut T {
     unsafe { &mut *((v as *const T) as *mut T) }
@@ -30,10 +39,66 @@ impl AsMutRef<crate::voxel::Vox> for crate::voxel::Vox {
 //     }
 // }
 
-pub mod registry;
+
+// Time
+use std::time::{Duration, SystemTime};
+
+pub fn current_timestamp() -> Duration {
+    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
+}
+
+pub fn current_timestamp_millis() -> u64 {
+    current_timestamp().as_millis() as u64
+}
+
+pub trait TimeIntervals {
+    fn intervals(&self, interval: f32) -> usize;
+
+    fn at_interval(&self, interval: f32) -> bool {
+        self.intervals(interval) != 0
+    }
+
+    fn _intervals(t: f32, dt: f32, u: f32) -> usize {
+        ((t / u).floor() - ((t - dt) / u).floor()) as usize
+    }
+}
+impl TimeIntervals for bevy::time::Time {
+    fn intervals(&self, u: f32) -> usize {
+        Self::_intervals(self.elapsed_seconds(), self.delta_seconds(), u)
+    }
+}
+
+// Hash
+
+pub fn hash(i: i32) -> f32 {
+    let i = (i << 13) ^ i;
+    // (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
+    // wrapping_mul: avoid overflow
+    let i = i
+        .wrapping_mul(i)
+        .wrapping_mul(15731)
+        .wrapping_add(789221)
+        .wrapping_mul(i)
+        .wrapping_add(1376312589);
+    i as u32 as f32 / 0xffffffffu32 as f32
+}
+pub fn hash3(v: IVec3) -> Vec3 {
+    Vec3::new(hash(v.x), hash(v.y), hash(v.z))
+}
+
+
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
+pub fn hashcode<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
+// Iter
 
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
 
 pub mod iter {
     use bevy::math::IVec3;
@@ -83,55 +148,6 @@ pub mod iter {
 use bevy::prelude::*;
 use serde::de::DeserializeOwned;
 
-pub fn hash(i: i32) -> f32 {
-    let i = (i << 13) ^ i;
-    // (((i * i * 15731 + 789221) * i + 1376312589) as u32 & 0xffffffffu32) as f32 / 0xffffffffu32 as f32
-    // wrapping_mul: avoid overflow
-    let i = i
-        .wrapping_mul(i)
-        .wrapping_mul(15731)
-        .wrapping_add(789221)
-        .wrapping_mul(i)
-        .wrapping_add(1376312589);
-    i as u32 as f32 / 0xffffffffu32 as f32
-}
-pub fn hash3(v: IVec3) -> Vec3 {
-    Vec3::new(hash(v.x), hash(v.y), hash(v.z))
-}
-
-pub fn current_timestamp() -> Duration {
-    SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()
-}
-
-pub fn current_timestamp_millis() -> u64 {
-    current_timestamp().as_millis() as u64
-}
-
-pub trait TimeIntervals {
-    fn intervals(&self, interval: f32) -> usize;
-
-    fn at_interval(&self, interval: f32) -> bool {
-        self.intervals(interval) != 0
-    }
-
-    fn _intervals(t: f32, dt: f32, u: f32) -> usize {
-        ((t / u).floor() - ((t - dt) / u).floor()) as usize
-    }
-}
-impl TimeIntervals for bevy::time::Time {
-    fn intervals(&self, u: f32) -> usize {
-        Self::_intervals(self.elapsed_seconds(), self.delta_seconds(), u)
-    }
-}
-
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
-pub fn hashcode<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
 
 #[derive(Default)]
 pub struct SmoothValue {
@@ -145,15 +161,15 @@ impl SmoothValue {
     }
 }
 
-pub mod raw {
-    pub unsafe fn as_ref<'a, T>(ptr: *const T) -> &'a T {
-        &*ptr
-    }
+// pub mod raw {
+//     pub unsafe fn as_ref<'a, T>(ptr: *const T) -> &'a T {
+//         &*ptr
+//     }
 
-    pub unsafe fn as_mut<'a, T>(ptr: *mut T) -> &'a mut T {
-        &mut *ptr
-    }
-}
+//     pub unsafe fn as_mut<'a, T>(ptr: *mut T) -> &'a mut T {
+//         &mut *ptr
+//     }
+// }
 
 pub fn generate_simple_user_name() -> String {
     static ADJS: [&str; 5] = ["Happy", "Sunny", "Sweet", "Bright", "Cheerful"];

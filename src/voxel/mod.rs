@@ -4,7 +4,7 @@ mod voxel_client;
 mod voxel_server;
 pub mod worldgen;
 
-pub use chunk::{Vox, Chunk, VoxShape};
+pub use chunk::{Chunk, Vox, VoxShape, VoxLight, VoxTex};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 
@@ -51,3 +51,4 @@ pub trait ChunkSystem {
         self.get_voxel(p).map(|v| v.as_mut())
     }
 }
+

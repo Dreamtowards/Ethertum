@@ -14,15 +14,11 @@ use crate::prelude::*;
 pub struct ItemStack {
     pub count: u8,
     pub item_id: u8,
-
     // pub durability
 }
 impl ItemStack {
     pub fn new(count: u8, item: u8) -> Self {
-        Self {
-            count,
-            item_id: item,
-        }
+        Self { count, item_id: item }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -40,7 +36,6 @@ impl ItemStack {
     }
 }
 
-
 #[derive(Default)]
 pub struct Inventory {
     pub items: Vec<ItemStack>,
@@ -51,12 +46,9 @@ impl Inventory {
         let mut items = Vec::new();
         items.resize(len, ItemStack::default());
 
-        Self {
-            items,
-        }
+        Self { items }
     }
 }
-
 
 pub struct ItemPlugin;
 
@@ -95,8 +87,8 @@ pub struct Items {
 pub static mut _ITEMS_REG: *const Items = std::ptr::null();
 
 fn setup_items(
-    items: ResMut<Items>, 
-    // mut reg: ResMut<Registry>, 
+    items: ResMut<Items>,
+    // mut reg: ResMut<Registry>,
     asset_server: Res<AssetServer>,
     mut egui_ctx: bevy_egui::EguiContexts,
 ) {
@@ -104,7 +96,7 @@ fn setup_items(
     let items = crate::util::as_mut(&*items);
     // Food
     items.apple = reg.insert("apple");
-     reg.insert("avocado");  // tmp
+    reg.insert("avocado"); // tmp
 
     // Material
     items.coal = reg.insert("coal");

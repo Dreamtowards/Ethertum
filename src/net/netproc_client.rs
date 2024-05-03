@@ -161,15 +161,15 @@ pub fn client_sys(
             SPacket::ChunkDel { chunkpos } => {
                 error!("ChunkDel: {} ({})", chunkpos, chunk_sys.num_chunks());
 
-            //     if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
-            //         let entity = chunkptr.entity;
+                //     if let Some(chunkptr) = chunk_sys.despawn_chunk(*chunkpos) {
+                //         let entity = chunkptr.entity;
 
-            //         // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
-            //         // why the entity may not exists even if it in the chunk_sys?
-            //         if let Some(cmds) = cmds.get_entity(entity) {
-            //             cmds.despawn_recursive();
-            //         }
-            //     }
+                //         // bug crash: "Attempting to create an EntityCommands for entity 9649v15, which doesn't exist."
+                //         // why the entity may not exists even if it in the chunk_sys?
+                //         if let Some(cmds) = cmds.get_entity(entity) {
+                //             cmds.despawn_recursive();
+                //         }
+                //     }
             }
             SPacket::ChunkModify { chunkpos, voxel } => {
                 info!("ChunkModify: {}", chunkpos);

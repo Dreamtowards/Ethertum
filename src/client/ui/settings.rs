@@ -4,8 +4,8 @@ use bevy_egui::{
     EguiContexts, EguiSettings,
 };
 
-use crate::client::prelude::*;
 use super::{new_egui_window, sfx_play, ui_lr_panel};
+use crate::client::prelude::*;
 
 #[derive(Default, PartialEq, Debug, Clone, Copy)]
 pub enum SettingsPanel {
@@ -31,7 +31,6 @@ pub fn ui_settings(
     mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
     // chunk_sys: Option<ResMut<ClientChunkSystem>>,
-
     mut vox_brush: ResMut<crate::voxel::VoxelBrush>,
     // mut global_volume: ResMut<GlobalVolume>,
 

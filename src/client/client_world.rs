@@ -1,16 +1,14 @@
-
 use std::f32::consts::PI;
 
 use bevy_renet::renet::transport::NetcodeClientTransport;
 use bevy_renet::renet::RenetClient;
 
+use crate::client::prelude::*;
 use crate::net::{CPacket, RenetClientHelper};
 use crate::prelude::*;
-use crate::client::prelude::*;
 use crate::util::TimeIntervals;
 
 pub fn init(app: &mut App) {
-
     app.register_type::<WorldInfo>();
 
     app.insert_resource(ClientPlayerInfo::default());
@@ -22,11 +20,9 @@ pub fn init(app: &mut App) {
     app.add_systems(Update, tick_world.run_if(condition::in_world)); // Sun, World Timing.
 }
 
-
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct ClientPlayerInfo {
-
     #[reflect(ignore)]
     pub inventory: Inventory,
 
@@ -50,9 +46,6 @@ impl Default for ClientPlayerInfo {
         }
     }
 }
-
-
-
 
 /// the resource only exixts when world is loaded
 
@@ -102,10 +95,6 @@ impl Default for WorldInfo {
     }
 }
 
-
-
-
-
 /// Marker: Despawn the Entity on World Unload.
 #[derive(Component)]
 pub struct DespawnOnWorldUnload;
@@ -113,7 +102,6 @@ pub struct DespawnOnWorldUnload;
 // Marker: Sun
 #[derive(Component)]
 struct Sun;
-
 
 fn on_world_init(
     mut cmds: Commands,
@@ -176,7 +164,6 @@ fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOn
 
 fn tick_world(
     // #[cfg(feature = "target_native_os")] mut atmosphere: AtmosphereMut<Nishita>,
-
     mut query_sun: Query<(&mut Transform, &mut DirectionalLight), With<Sun>>,
     mut worldinfo: ResMut<WorldInfo>,
     time: Res<Time>,

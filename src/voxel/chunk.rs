@@ -1,10 +1,9 @@
-use std::sync::Weak;
 use bevy::math::ivec3;
+use std::{fmt::Display, sync::Weak};
 
-use crate::{prelude::*, util::AsMutRef};
+use crate::{prelude::*, util::{as_mut, AsMutRef}};
 
 use super::ChunkPtr;
-
 
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize, Default, Reflect)]
@@ -24,14 +23,10 @@ pub enum VoxShape {
     SlabZMax,
 
     Fence,
-
     // CustomMesh {
     //     mesh_id: u16,
     // }
 }
-
-
-
 
 // naming VoxelUnit?: BlockState, Cell, Voxel or Vox?
 #[derive(Clone, Copy)]
@@ -107,9 +102,72 @@ impl Vox {
 }
 
 #[derive(Default, Clone, Copy)]
-struct VoxLight {
-    // SkyLight, R, G, B u4
+pub struct VoxLight {
+    // 4*u4 channel: Sky, R, G, B
     light: u16,
+}
+
+impl VoxLight {
+    pub fn new(sky: u16, r: u16, g: u16, b: u16) -> Self {
+        let mut l = VoxLight::default();
+        l.set_sky(sky);
+        l.set_red(r);
+        l.set_green(g);
+        l.set_blue(b);
+        l
+    }
+
+    pub fn sky(&self) -> u16 {
+        self.light >> 12
+    }
+    pub fn red(&self) -> u16 {
+        (self.light >> 8) & 0xF
+    }
+    pub fn green(&self) -> u16 {
+        (self.light >> 4) & 0xF
+    }
+    pub fn blue(&self) -> u16 {
+        self.light & 0xF
+    }
+    pub fn get(&self, chan: u8) -> u16 {
+        if chan == Self::SKY { return self.sky(); }
+        if chan == Self::RED { return self.red(); }
+        if chan == Self::GREEN { return self.green(); }
+        if chan == Self::BLUE { return self.blue(); }
+        panic!("illegal channel {chan}");
+    }
+
+    pub fn set_sky(&mut self, v: u16) {
+        self.light = (self.light & !(0xF << 12)) | (v << 12);
+    }
+    pub fn set_red(&mut self, v: u16) {
+        self.light = (self.light & !(0xF << 8)) | ((v & 0xF) << 8);
+    }
+    pub fn set_green(&mut self, v: u16) {
+        self.light = (self.light & !(0xF << 4)) | ((v & 0xF) << 4);
+    }
+    pub fn set_blue(&mut self, v: u16) {
+        self.light = (self.light & !0xF) | (v & 0xF);
+    }
+    pub fn set(&mut self, chan: u8, val: u16) {
+        if chan == Self::SKY { self.set_sky(val); }
+        if chan == Self::RED { self.set_red(val); }
+        if chan == Self::GREEN { self.set_green(val); }
+        if chan == Self::BLUE { self.set_blue(val); }
+        panic!("illegal channel {chan}");
+    }
+
+    // Channels
+    pub const SKY: u8 = 0;
+    pub const RED: u8 = 1;
+    pub const GREEN: u8 = 2;
+    pub const BLUE: u8 = 3;
+}
+
+impl Display for VoxLight {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("Sky {}, R {}, G {}, B {}", self.sky(), self.red(), self.green(), self.blue()))
+    }
 }
 
 #[allow(non_snake_case)]
@@ -131,6 +189,7 @@ pub mod VoxTex {
     pub const Leaves: u16 = 23;
 
     use bevy::math::Vec2;
+    // [0,1] -> [0,1]
     pub fn map_uv(uv: Vec2, tex_id: u16) -> Vec2 {
         const TEX_CAP: f32 = 24.;
         let tex = tex_id - 1; // -1: offset the 0 Nil
@@ -158,7 +217,7 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub const LEN: i32 = 16;  // i32 for xyz iter
+    pub const LEN: i32 = 16; // i32 for xyz iter
     pub const LEN3: usize = (Self::LEN * Self::LEN * Self::LEN) as usize;
     // pub const LOCAL_IDX_CAP: usize = 4096;  // 16^3, 2^12 bits (12 = 3 axes * 4 bits)
 
@@ -173,6 +232,12 @@ impl Chunk {
             mesh_handle: Handle::default(),
             mesh_handle_foliage: Handle::default(),
         }
+    }
+
+    // Voxel Cell
+
+    pub fn ax_voxel(&self, local_idx: usize) -> &Vox {
+        &self.voxel[local_idx]
     }
 
     pub fn at_voxel(&self, localpos: IVec3) -> &Vox {
@@ -271,8 +336,6 @@ impl Chunk {
     }
 
 
-
-    
     #[rustfmt::skip]
     pub const NEIGHBOR_DIR: [IVec3; 6 + 12 + 8] = [
         // 6 Faces
@@ -315,5 +378,96 @@ impl Chunk {
     pub fn neighbor_idx_opposite(idx: usize) -> usize {
         // idx MOD 2 + (idx+1) MOD 2
         idx / 2 * 2 + (idx + 1) % 2
+    }
+
+
+
+
+
+
+
+    // Voxel Light
+
+    pub fn at_lights(&self, localpos: IVec3) -> &VoxLight {
+        &self.light[Chunk::local_idx(localpos)]
+    }
+    pub fn at_lights_mut(&self, localpos: IVec3) -> &mut VoxLight {
+        as_mut(self.at_lights(localpos))
+    }
+
+    pub fn reset_lights(&mut self) {
+        self.light = [VoxLight::default(); Self::LEN3];
+    }
+
+    pub fn compute_voxel_light(chunk: &mut Chunk) {
+
+        fn try_spread_light(chunk: &mut Chunk, lp: IVec3, lightlevel: u16, queue: &mut Vec<(u16, VoxLight)>) {
+            if !Chunk::is_localpos(lp) { return; }
+
+            let light = chunk.at_lights_mut(lp);
+
+            if  light.red() < lightlevel-1 {
+                light.set_red(lightlevel-1);
+
+                if !chunk.at_voxel(lp).is_obaque_cube() {
+                    queue.push((Chunk::local_idx(lp) as u16, *light));
+                }
+            }
+        }
+
+        let mut bfs: Vec<(u16, VoxLight)> = Vec::new();
+
+        chunk.reset_lights();
+        for i in 0..Chunk::LEN3 {
+            if chunk.ax_voxel(i).tex_id == VoxTex::Log {
+                bfs.push((i as u16, VoxLight::new(0, 15, 0, 0)))
+            }
+        }
+
+        while let Some((local_idx, light)) = bfs.pop() {
+            let lp = Chunk::local_idx_pos(local_idx as i32);
+            let x = lp.x; let y = lp.y; let z = lp.z;
+            let lightlevel = light.red();
+
+            try_spread_light(chunk, ivec3(x-1,y,z), lightlevel, &mut bfs);
+            try_spread_light(chunk, ivec3(x+1,y,z), lightlevel, &mut bfs);
+            try_spread_light(chunk, ivec3(x,y-1,z), lightlevel, &mut bfs);
+            try_spread_light(chunk, ivec3(x,y+1,z), lightlevel, &mut bfs);
+            try_spread_light(chunk, ivec3(x,y,z-1), lightlevel, &mut bfs);
+            try_spread_light(chunk, ivec3(x,y,z+1), lightlevel, &mut bfs);
+        }
+
+    }
+
+
+    // pub fn at_light(&self, localpos: IVec3, chan: u8) -> u16 {
+    //     self.at_lights(Chunk::local_idx(localpos)).get(chan)
+    // }
+
+    // pub fn set_light(&mut self, local_idx: u16, chan: u8, val: u8) {
+    //     self.at_lights_mut(local_idx).set(chan, val);
+    // }
+
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vox_light() {
+
+        let mut l = VoxLight::new(5, 6, 7, 8);
+        println!("{}", l);
+        
+        for i in 0..18 {
+            l.set_sky(i);
+            l.set_red(i+1);
+            l.set_green(i+2);
+            l.set_blue(i+3);
+            println!("{}", l);
+        }
     }
 }

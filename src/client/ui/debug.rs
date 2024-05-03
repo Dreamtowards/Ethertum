@@ -12,8 +12,8 @@ use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
 use crate::{
     client::prelude::*,
     ui::{color32_of, CurrentUI, UiExtra},
-    util::AsMutRef,
-    voxel::{worldgen, Vox, Chunk, ChunkSystem, ClientChunkSystem, HitResult, VoxShape},
+    util::{as_mut, AsMutRef},
+    voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult, Vox, VoxShape},
 };
 
 pub fn ui_menu_panel(
@@ -146,19 +146,25 @@ pub fn ui_menu_panel(
                                 app_exit_events.send(AppExit);
                             }
                         });
-                        ui.menu_button("World", |ui| {
+                        ui.menu_button("Voxel", |ui| {
                             let cli = cl.data();
-                            ui.label("Gizmos:");
-                            ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Loaded Chunks");
-                            ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Curr Chunk");
-                            ui.toggle_value(&mut cli.dbg_gizmo_remesh_chunks, "ReMesh Chunks");
+                            // ui.label("Gizmos:");
+                            ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Gizmo Loaded Chunks");
+                            ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Gizmo Current Chunk");
+                            ui.toggle_value(&mut cli.dbg_gizmo_remesh_chunks, "Gizmo ReMesh Chunks");
+                            
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
+                                if ui.button("Compute Voxel Light").clicked() {
+                                    for chunk in chunk_sys.get_chunks().values() {
+                                        Chunk::compute_voxel_light(chunk.as_mut());
+                                    }
+                                }
                                 if ui.button("ReMesh All Chunks").clicked() {
-                                    let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
-                                    for chunkpos in ls {
-                                        chunk_sys.mark_chunk_remesh(chunkpos);
+                                    // let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
+                                    for chunkpos in chunk_sys.get_chunks().keys() {
+                                        as_mut(&*chunk_sys).mark_chunk_remesh(*chunkpos);
                                     }
                                 }
                                 if ui.button("Gen Tree").clicked() {
@@ -220,7 +226,7 @@ pub fn hud_debug_text(
     #[cfg(feature = "target_native_os")]
     {
         use crate::util::TimeIntervals;
-        
+
         if time.at_interval(2.0) {
             sys.refresh_cpu();
             sys.refresh_memory();
@@ -302,16 +308,24 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         }
 
         let mut cam_cell_str = "none".into();
-        if let Some(c) = chunk_sys.get_voxel(cam_pos.as_ivec3()) {
-            cam_cell_str = format!("tex: {}, shape: {:?}, isoval: {}", c.tex_id, c.shape_id, c.isovalue());
+        if let Some(chunk) = chunk_sys.get_chunk(Chunk::as_chunkpos(cam_pos.as_ivec3())) {
+            let lp = Chunk::as_localpos(cam_pos.as_ivec3());
+            let vox = chunk.at_voxel(lp);
+            let light = chunk.at_lights(lp);
+            
+            cam_cell_str = format!(
+"Vox: tex: {}, shape: {:?}, isoval: {}, light: [sky {}, R {}, G {} B {}]
+Chunk: is_populated: {}", vox.tex_id, vox.shape_id, vox.isovalue(), light.sky(), light.red(), light.green(), light.blue(), chunk.is_populated);
         }
 
         str_world = format!(
             "
-Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph. vox: {cam_cell_str}
+Cam: ({:.1}, {:.2}, {:.3}). spd: {:.2} mps, {:.2} kph. 
+{cam_cell_str}
+
 Hit: {hit_str},
 World: '{}', daytime: {:.2}. inhabited: {:.1}, seed: {}
-Chunk: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
+ChunkSys: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {num_chunks_meshing} meshing, -- saving.",
             cam_pos.x,
             cam_pos.y,
             cam_pos.z,

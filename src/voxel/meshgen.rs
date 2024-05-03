@@ -1,251 +1,54 @@
-use std::{f32::consts::PI, hash::Hash, ops::Mul};
+use std::f32::consts::PI;
 
 use bevy::{
-    math::{ivec3, vec2, vec3},
+    math::{vec2, vec3},
     prelude::*,
-    render::mesh::Indices,
-    utils::HashMap,
 };
-use bevy_egui::egui::emath::inverse_lerp;
 
-use crate::util::iter;
 use super::chunk::*;
+use crate::util::{iter, vtx::VertexBuffer};
 
-// Temporary Solution. since i want make Vec3 as HashMap's key but glam Vec3 doesn't support trait of Hash, Eq,
-// #[derive(PartialEq)]
-// struct HashVec3(Vec3);
-// impl Hash for HashVec3 {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.0.x.to_bits().hash(state);
-//         self.0.y.to_bits().hash(state);
-//         self.0.z.to_bits().hash(state);
-//     }
-// }
-// impl Eq for HashVec3 {}
 
-#[derive(Clone, Copy)]
-pub struct Vertex {
-    pub pos: Vec3,
-    pub uv: Vec2,
-    pub norm: Vec3,
-}
+pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    sn::sn_contouring(vbuf, chunk);
 
-impl Hash for Vertex {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.pos.mul(100.).as_ivec3().hash(state);
-        self.norm.mul(100.).as_ivec3().hash(state);
-        self.uv.mul(100.).as_ivec2().hash(state);
-        // self.pos.x.to_bits().hash(state);
-        // self.pos.y.to_bits().hash(state);
-        // self.pos.z.to_bits().hash(state);
-        // self.norm.x.to_bits().hash(state);
-        // self.norm.y.to_bits().hash(state);
-        // self.norm.z.to_bits().hash(state);
-        // self.uv.x.to_bits().hash(state);
-        // self.uv.y.to_bits().hash(state);
-    }
-}
-impl PartialEq for Vertex {
-    fn eq(&self, other: &Self) -> bool {
-        self.pos.mul(100.).as_ivec3() == other.pos.mul(100.).as_ivec3()
-            && self.norm.mul(100.).as_ivec3() == other.norm.mul(100.).as_ivec3()
-            && self.uv.mul(100.).as_ivec2() == other.uv.mul(100.).as_ivec2()
-    }
-}
+    for ly in 0..Chunk::LEN {
+        for lz in 0..Chunk::LEN {
+            for lx in 0..Chunk::LEN {
+                let lp = IVec3::new(lx, ly, lz);
 
-impl Eq for Vertex {}
+                let vox: &Vox = chunk.at_voxel(lp);
 
-#[derive(Default)]
-pub struct VertexBuffer {
-    pub vertices: Vec<Vertex>,
-
-    pub indices: Vec<u32>,
-}
-
-impl VertexBuffer {
-    // pub fn with_capacity(num_vert: usize) -> Self {
-    //     let mut vtx = VertexBuffer::default();
-    //     vtx.vertices.reserve(num_vert);
-    //     vtx
-    // }
-
-    pub fn push_vertex(&mut self, pos: Vec3, uv: Vec2, norm: Vec3) {
-        self.vertices.push(Vertex { pos, uv, norm });
-    }
-
-    pub fn is_indexed(&self) -> bool {
-        !self.indices.is_empty()
-    }
-
-    pub fn vertex_count(&self) -> usize {
-        if self.is_indexed() {
-            self.indices.len()
-        } else {
-            self.vertices.len()
-        }
-    }
-
-    // len_triangles
-    fn triangle_count(&self) -> u32 {
-        (self.vertex_count() / 3) as u32
-    }
-
-    fn vert(&self, idx: u32) -> &Vertex {
-        if self.is_indexed() {
-            &self.vertices[self.indices[idx as usize] as usize]
-        } else {
-            &self.vertices[idx as usize]
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.vertices.clear();
-        self.indices.clear();
-    }
-
-    // pub fn compute_flat_normals(&mut self) {
-    //     assert!(!self.is_indexed());
-
-    //     for tri_i in 0..self.triangle_count() {
-    //         let v = &mut self.vertices[tri_i as usize * 3..];
-    //         let p0 = v[0].pos;
-    //         let p1 = v[1].pos;
-    //         let p2 = v[2].pos;
-
-    //         let n = (p1 - p0).cross(p2 - p0).normalize();
-
-    //         v[0].norm = n;
-    //         v[1].norm = n;
-    //         v[2].norm = n;
-    //     }
-    // }
-
-    pub fn compute_smooth_normals(&mut self) {
-        const SCALE: f32 = 100.;
-
-        let mut pos2norm = HashMap::<IVec3, Vec3>::new();
-
-        for tri_i in 0..self.triangle_count() {
-            let p0 = self.vert(tri_i * 3).pos;
-            let p1 = self.vert(tri_i * 3 + 1).pos;
-            let p2 = self.vert(tri_i * 3 + 2).pos;
-
-            let n = (p1 - p0).cross(p2 - p0);
-
-            let a0 = (p1 - p0).angle_between(p2 - p0);
-            let a1 = (p2 - p1).angle_between(p0 - p1);
-            let a2 = (p0 - p2).angle_between(p1 - p2);
-
-            *pos2norm.entry(p0.mul(SCALE).as_ivec3()).or_default() += n * a0;
-            *pos2norm.entry(p1.mul(SCALE).as_ivec3()).or_default() += n * a1;
-            *pos2norm.entry(p2.mul(SCALE).as_ivec3()).or_default() += n * a2;
-        }
-
-        for norm in pos2norm.values_mut() {
-            *norm = norm.normalize();
-        }
-
-        for v in &mut self.vertices {
-            v.norm = *pos2norm.get(&v.pos.mul(SCALE).as_ivec3()).unwrap();
-        }
-    }
-
-    pub fn compute_indexed_naive(&mut self) {
-        assert!(!self.is_indexed());
-        self.indices.clear();
-        self.indices.reserve(self.vertex_count());
-
-        for i in 0..self.vertex_count() {
-            self.indices.push(i as u32);
-        }
-    }
-
-    // pub fn compute_indexed(&mut self) {
-    //     assert!(!self.is_indexed());
-    //     self.indices.clear();
-    //     self.indices.reserve(self.vertex_count());
-
-    //     let mut vert2idx = HashMap::<Vertex, u32>::new();
-
-    //     let mut vertices = Vec::new();
-
-    //     for vert in self.vertices.iter() {
-    //         // if let Some(idx) = vert2idx.get(vert) {
-    //         //     self.indices.push(*idx);
-    //         // } else {
-    //         //     let idx = vertices.len() as u32;
-    //         //     vert2idx.insert(*vert, idx);
-    //         //     vertices.push(*vert);
-    //         //     self.indices.push(idx);
-    //         // }
-
-    //         match vert2idx.entry(*vert) {
-    //             Entry::Occupied(e) => {
-    //                 let idx = *e.get();
-    //                 self.indices.push(idx);
-    //             }
-    //             Entry::Vacant(e) => {
-    //                 let idx = vertices.len() as u32;
-    //                 e.insert(idx);
-    //                 vertices.push(*vert);
-    //                 self.indices.push(idx);
-    //             }
-    //         }
-    //     }
-
-    //     self.vertices = vertices;
-    // }
-
-    pub fn to_mesh(&self, mesh: &mut Mesh) {
-        let pos: Vec<Vec3> = self.vertices.iter().map(|v| v.pos).collect();
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, pos);
-
-        let uv: Vec<Vec2> = self.vertices.iter().map(|v| v.uv).collect();
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uv);
-
-        let norm: Vec<Vec3> = self.vertices.iter().map(|v| v.norm).collect();
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, norm);
-
-        if self.is_indexed() {
-            mesh.insert_indices(Indices::U32(self.indices.clone()));
-        }
-    }
-}
-
-pub struct MeshGen {}
-
-impl MeshGen {
-    pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        Self::sn_contouring(vbuf, chunk);
-
-        for ly in 0..Chunk::LEN {
-            for lz in 0..Chunk::LEN {
-                for lx in 0..Chunk::LEN {
-                    let lp = IVec3::new(lx, ly, lz);
-
-                    let c = chunk.at_voxel(lp);
-
-                    if c.tex_id != 0 && c.shape_id == VoxShape::Cube {
-                        put_cube(vbuf, lp, chunk, c.tex_id);
-                    }
+                if vox.tex_id != 0 && vox.shape_id == VoxShape::Cube {
+                    put_cube(vbuf, lp, chunk, vox.tex_id, chunk.at_lights(lp).red());
                 }
             }
         }
     }
+}
 
-    pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-        iter::iter_xzy(Chunk::LEN, |lp| {
-            let c = chunk.at_voxel(lp);
+pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    iter::iter_xzy(Chunk::LEN, |lp| {
+        let c = chunk.at_voxel(lp);
 
-            if c.tex_id != 0 {
-                if c.shape_id == VoxShape::Leaves {
-                    put_leaves(vbuf, lp.as_vec3(), c.tex_id);
-                } else if c.shape_id == VoxShape::Grass {
-                    put_grass(vbuf, lp.as_vec3(), c.tex_id);
-                }
+        if c.tex_id != 0 {
+            if c.shape_id == VoxShape::Leaves {
+                put_leaves(vbuf, lp.as_vec3(), c.tex_id);
+            } else if c.shape_id == VoxShape::Grass {
+                put_grass(vbuf, lp.as_vec3(), c.tex_id);
             }
-        });
-    }
+        }
+    });
+}
+
+mod sn {
+    use bevy::math::{ivec3, vec2, vec3, IVec3, Vec3};
+    use bevy_egui::egui::emath::inverse_lerp;
+
+    use crate::util::vtx::VertexBuffer;
+
+    use super::{Chunk, Vox};
+
 
     const AXES: [IVec3; 3] = [ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(0, 0, 1)];
     const ADJACENT: [[IVec3; 6]; 3] = [
@@ -322,13 +125,13 @@ impl MeshGen {
         let mut fp_sum = Vec3::ZERO;
 
         for edge_i in 0..12 {
-            let edge = Self::EDGE[edge_i];
-            let v0 = Self::VERT[edge[0]];
-            let v1 = Self::VERT[edge[1]];
+            let edge = EDGE[edge_i];
+            let v0 = VERT[edge[0]];
+            let v1 = VERT[edge[1]];
             let c0 = chunk.get_voxel_rel(lp + v0);
             let c1 = chunk.get_voxel_rel(lp + v1);
 
-            if Self::sn_signchanged(&c0, &c1) {
+            if sn_signchanged(&c0, &c1) {
                 if let Some(t) = inverse_lerp(c0.isovalue()..=c1.isovalue(), 0.0) {
                     // if !t.is_finite() {
                     //     continue;
@@ -371,7 +174,7 @@ impl MeshGen {
         .unwrap_or(Vec3::NEG_Y) // NEG_Y will be Y after grad-to-normal flip.
     }
 
-    fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    pub fn sn_contouring(vbuf: &mut VertexBuffer, chunk: &Chunk) {
         for ly in 0..Chunk::LEN {
             for lz in 0..Chunk::LEN {
                 for lx in 0..Chunk::LEN {
@@ -380,11 +183,11 @@ impl MeshGen {
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
-                        let c1 = match chunk.get_voxel_neib(lp + Self::AXES[axis_i]) {
+                        let c1 = match chunk.get_voxel_neib(lp + AXES[axis_i]) {
                             None => continue, // do not generate face if it's a Nil Cell (non-loaded)
                             Some(c1) => c1,
                         };
-                        if !Self::sn_signchanged(c0, &c1) {
+                        if !sn_signchanged(c0, &c1) {
                             continue;
                         }
 
@@ -393,24 +196,28 @@ impl MeshGen {
                         for quadvert_i in 0..6 {
                             let winded_vi = if winding_flip { 5 - quadvert_i } else { quadvert_i };
 
-                            let p = lp + Self::ADJACENT[axis_i][winded_vi];
+                            let p = lp + ADJACENT[axis_i][winded_vi];
                             let c = chunk.get_voxel_rel(p);
 
-                            let fp = Self::sn_featurepoint(p, chunk);
-                            let norm = -Self::sn_grad(p, chunk);
+                            let fp = sn_featurepoint(p, chunk);
+                            let norm = -sn_grad(p, chunk);
 
                             let mut nearest_val = f32::INFINITY;
                             let mut nearest_tex = c.tex_id;
-                            for vert in Self::VERT {
+                            let mut nearest_lit = 0;
+                            for vert in VERT {
                                 let c = chunk.get_voxel_rel(p + vert);
                                 if !c.is_isoval_empty() && c.isovalue() < nearest_val {
                                     nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
+                                    if Chunk::is_localpos(p + vert) {
+                                        nearest_lit = chunk.at_lights(p + vert).red();
+                                    }
                                     // assert(!c.is_tex_empty());  the nearest_tex shouldn't be Nil
                                 }
                             }
 
-                            vbuf.push_vertex(p.as_vec3() + fp + 0.5, vec2(nearest_tex as f32, -1.), norm);
+                            vbuf.push_vertex(p.as_vec3() + fp + 0.5, vec2(nearest_tex as f32, nearest_lit as f32), norm);
                         }
                     }
                 }
@@ -452,7 +259,7 @@ static CUBE_NORM: [f32; 6 * 6 * 3] = [
 // static CUBE_IDX: [u32;6*6] = [
 // ];
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16, light: u16) {
     for face_i in 0..6 {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]); // 18: 3 scalar * 3 vertex * 2 triangle
 
@@ -466,7 +273,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
 
             vbuf.push_vertex(
                 Vec3::from_slice(&CUBE_POS[face_i * 18 + vert_i * 3..]) + lp.as_vec3(),
-                Vec2::new(tex_id as f32, -1.),
+                Vec2::new(tex_id as f32, light as f32),
                 Vec3::from_slice(&CUBE_NORM[face_i * 18 + vert_i * 3..]),
             );
         }
@@ -486,6 +293,8 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
 
         let uv = Vec2::from_slice(&CUBE_UV[i * 2..]);
         let uv = VoxTex::map_uv(uv, tex_id);
+        // uv.x += tex_id;
+        // uv.y += light;
 
         vbuf.push_vertex(p, uv, n);
     }

@@ -14,7 +14,7 @@ use bevy_xpbd_3d::plugins::{
 };
 use leafwing_input_manager::action_state::ActionState;
 
-use super::{meshgen::MeshGen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
+use super::{meshgen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
 use crate::{
     client::prelude::*,
     util::{iter, AsMutRef},
@@ -47,12 +47,22 @@ impl Plugin for ClientVoxelPlugin {
         app.insert_resource(HitResult::default());
         app.register_type::<HitResult>();
 
+        app.add_systems(PreUpdate, raycast);
+
         app.add_systems(
             Update,
-            (chunks_detect_load_and_unload, chunks_remesh_enqueue, raycast, draw_gizmos, draw_crosshair_cube)
-                .chain()
-                .run_if(condition::in_world),
+            (
+                chunks_detect_load_and_unload,
+                chunks_remesh_enqueue,
+                draw_gizmos,
+                draw_crosshair_cube,
+            )
+            .chain()
+            .run_if(condition::in_world),
         );
+
+        // Draw Crosshair
+        // app.add_systems(PostUpdate, draw_crosshair_cube.after(bevy_xpbd_3d::PhysicsSet::Sync).before(bevy::transform::TransformSystem::TransformPropagate));
     }
 }
 
@@ -163,10 +173,10 @@ fn chunks_detect_load_and_unload(
 
 type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>);
 
-use crate::voxel::meshgen::VertexBuffer;
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, sync::Arc};
 use thread_local::ThreadLocal;
+use crate::util::vtx::VertexBuffer;
 
 static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
 
@@ -215,9 +225,9 @@ fn chunks_remesh_enqueue(
                     let chunk = chunkptr.as_ref();
 
                     // Generate Mesh
-                    MeshGen::generate_chunk_mesh(&mut _vbuf.0, chunk);
+                    meshgen::generate_chunk_mesh(&mut _vbuf.0, chunk);
 
-                    MeshGen::generate_chunk_mesh_foliage(&mut _vbuf.1, chunk);
+                    meshgen::generate_chunk_mesh_foliage(&mut _vbuf.1, chunk);
 
                     entity = chunk.entity;
                     mesh_handle = chunk.mesh_handle.clone();
@@ -321,7 +331,6 @@ pub struct HitResult {
     pub normal: Vec3,
     pub distance: f32,
     // entity: Entity,
-
     pub is_voxel: bool,
     pub voxel_pos: IVec3,
 }
@@ -383,8 +392,7 @@ fn raycast(
 
         iter::iter_aabb(n, n, |lp| {
             // +0.01*norm: for placing cube like MC.
-            let p = hit_result.voxel_pos + lp + 
-                if do_place {1} else {0} * hit_result.normal.normalize_or_zero().as_ivec3();
+            let p = hit_result.voxel_pos + lp + if do_place { 1 } else { 0 } * hit_result.normal.normalize_or_zero().as_ivec3();
 
             if let Some(v) = chunk_sys.get_voxel(p) {
                 let v = v.as_mut();
@@ -421,14 +429,12 @@ fn raycast(
     }
 }
 
-fn draw_crosshair_cube(mut gizmos: Gizmos, hit_result: Res<HitResult>, vbrush: Res<VoxelBrush>,) {
-
+fn draw_crosshair_cube(mut gizmos: Gizmos, hit_result: Res<HitResult>, vbrush: Res<VoxelBrush>) {
     if hit_result.is_hit {
         if vbrush.shape == VoxShape::Isosurface {
             gizmos.sphere(hit_result.position, Quat::IDENTITY, vbrush.size, Color::BLACK);
         } else {
-            let trans = Transform::from_translation(hit_result.voxel_pos.as_vec3() + 0.5)
-                .with_scale(Vec3::ONE * vbrush.size.floor());
+            let trans = Transform::from_translation(hit_result.voxel_pos.as_vec3() + 0.5).with_scale(Vec3::ONE * vbrush.size.floor());
 
             gizmos.cuboid(trans, Color::BLACK);
         }
@@ -591,11 +597,11 @@ impl ClientChunkSystem {
 
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
-                        
+
                         if neib_chunk.is_neighbors_complete() && !neib_chunk.is_populated {
                             // neighbors_completed.push(neib_chunk.chunkpos);
                             neib_chunk.is_populated = true;
-                            super::worldgen::populate_chunk(neib_chunk);  // todo: ChunkGen Thread
+                            super::worldgen::populate_chunk(neib_chunk); // todo: ChunkGen Thread
 
                             crate::util::as_mut(self).mark_chunk_remesh(neib_chunk.chunkpos);
                         }
@@ -628,7 +634,7 @@ impl ClientChunkSystem {
         // update neighbors' `neighbors_chunk`
         for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
             if let Some(neib_chunkptr) = chunk.get_chunk_neib(neib_idx) {
-                let neib_chunk = neib_chunkptr.as_mut();  // problematic: may cause data tiring
+                let neib_chunk = neib_chunkptr.as_mut(); // problematic: may cause data tiring
 
                 neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = None;
             }
@@ -699,14 +705,12 @@ impl Material for TerrainMaterial {
 
 // Foliage
 
-
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Asset)]
 pub struct FoliageMaterial {
     #[sampler(0)]
     #[texture(1)]
     pub texture_diffuse: Option<Handle<Image>>,
-
     // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
     // #[uniform(4)]
     // pub wasm0: Vec4,
@@ -717,9 +721,7 @@ pub struct FoliageMaterial {
 
 impl Default for FoliageMaterial {
     fn default() -> Self {
-        Self {
-            texture_diffuse: None,
-        }
+        Self { texture_diffuse: None }
     }
 }
 

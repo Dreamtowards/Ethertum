@@ -8,10 +8,11 @@ use bevy_egui::{
 };
 use bevy_renet::renet::RenetClient;
 
-use crate::{
-    client::prelude::*, net::{CPacket, RenetClientHelper}
-};
 use crate::ui::prelude::*;
+use crate::{
+    client::prelude::*,
+    net::{CPacket, RenetClientHelper},
+};
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 
@@ -192,7 +193,6 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
         .anchor(Align2::CENTER_BOTTOM, [0., -cfg.hud_padding])
         .frame(Frame::default().fill(Color32::from_black_alpha(0)))
         .show(ctx.ctx_mut(), |ui| {
-
             // Health bar
             {
                 let health_bar_size = Vec2::new(250., 4.);
@@ -200,10 +200,10 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
                 rect.set_height(health_bar_size.y);
                 rect.set_width(health_bar_size.x);
                 let rounding = ui.style().visuals.widgets.inactive.rounding;
-    
+
                 // bar bg
                 ui.painter().rect_filled(rect, rounding, Color32::from_black_alpha(200));
-    
+
                 // bar fg
                 let rect_fg = rect.with_max_x(rect.min.x + health_bar_size.x * (player.health as f32 / player.health_max as f32));
                 ui.painter().rect_filled(rect_fg, rounding, Color32::WHITE);

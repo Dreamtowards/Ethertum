@@ -10,13 +10,11 @@ use crate::client::ui::*;
 use crate::prelude::*;
 
 pub fn init(app: &mut App) {
-
     app.add_systems(Startup, super::input::input_setup);
     app.add_systems(Update, super::input::input_handle);
     app.add_plugins(leafwing_input_manager::plugin::InputManagerPlugin::<InputAction>::default());
     // app.add_plugins((bevy_touch_stick::TouchStickPlugin::<InputStickId>::default());
 }
-
 
 #[derive(Default, Reflect, Hash, Clone, PartialEq, Eq)]
 pub enum InputStickId {

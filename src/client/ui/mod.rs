@@ -1,21 +1,18 @@
-
 mod debug;
-mod main_menu;
-mod settings;
-mod items;
 pub mod hud;
+mod items;
+mod main_menu;
 pub mod serverlist;
+mod settings;
 
 pub mod prelude {
+    pub use super::items::{ui_inventory, ui_item_stack};
+    pub use super::sfx_play;
     pub use super::CurrentUI;
     pub use super::UiExtra;
-    pub use super::sfx_play;
-    pub use super::items::{ui_item_stack, ui_inventory};
-    pub use bevy_egui::egui::{self, pos2, vec2, Align2, Color32, Rect, InnerResponse};
+    pub use bevy_egui::egui::{self, pos2, vec2, Align2, Color32, InnerResponse, Rect};
     pub use bevy_egui::EguiContexts;
 }
-
-
 
 use bevy::{
     diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
@@ -31,7 +28,6 @@ use egui_extras::{Size, StripBuilder};
 use rand::Rng;
 
 use crate::client::prelude::*;
-
 
 pub struct UiPlugin;
 

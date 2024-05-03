@@ -100,7 +100,7 @@ impl Default for ServerSettings {
     fn default() -> Self {
         Self {
             port: 4060,
-            num_player_limit: 80, 
+            num_player_limit: 80,
             motd: "An Ethertum Server".into(),
         }
     }
