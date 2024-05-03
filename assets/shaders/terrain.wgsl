@@ -128,8 +128,8 @@ fn fragment(
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
     let vlights = in.light;// / in.bary;
-    let L = max(0.1, max(max(in.light.x, in.light.y), in.light.z));
-    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar) * vec4<f32>(L,L,L, 1.0);
+    let L = vlights + 0.1;//max(0.1, max(max(in.light.x, in.light.y), in.light.z));
+    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar) * vec4<f32>(L, 1.0);
 
     //return vec4<f32>(worldnorm /2.0 + 0.5, 1.0);
     /*

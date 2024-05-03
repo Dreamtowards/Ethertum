@@ -311,11 +311,10 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         if let Some(chunk) = chunk_sys.get_chunk(Chunk::as_chunkpos(cam_pos.as_ivec3())) {
             let lp = Chunk::as_localpos(cam_pos.as_ivec3());
             let vox = chunk.at_voxel(lp);
-            let light = chunk.at_lights(lp);
             
             cam_cell_str = format!(
-"Vox: tex: {}, shape: {:?}, isoval: {}, light: [sky {}, R {}, G {} B {}]
-Chunk: is_populated: {}", vox.tex_id, vox.shape_id, vox.isovalue(), light.sky(), light.red(), light.green(), light.blue(), chunk.is_populated);
+"Vox: tex: {}, shape: {:?}, isoval: {}, light: [{}]
+Chunk: is_populated: {}", vox.tex_id, vox.shape_id, vox.isovalue(), vox.light, chunk.is_populated);
         }
 
         str_world = format!(

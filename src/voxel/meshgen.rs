@@ -17,10 +17,10 @@ pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
             for lx in 0..Chunk::LEN {
                 let lp = IVec3::new(lx, ly, lz);
 
-                let vox: &Vox = chunk.at_voxel(lp);
+                let vox = chunk.at_voxel(lp);
 
                 if vox.tex_id != 0 && vox.shape_id == VoxShape::Cube {
-                    put_cube(vbuf, lp, chunk, vox.tex_id, chunk.at_lights(lp).red());
+                    put_cube(vbuf, lp, chunk, vox.tex_id, vox.light.red());
                 }
             }
         }
@@ -210,9 +210,7 @@ mod sn {
                                 if !c.is_isoval_empty() && c.isovalue() < nearest_val {
                                     nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
-                                    if Chunk::is_localpos(p + vert) {
-                                        nearest_lit = chunk.at_lights(p + vert).red();
-                                    }
+                                    nearest_lit = c.light.red();
                                     // assert(!c.is_tex_empty());  the nearest_tex shouldn't be Nil
                                 }
                             }

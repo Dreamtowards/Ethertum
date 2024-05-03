@@ -8,10 +8,10 @@ use bevy::{
     tasks::AsyncComputeTaskPool,
     utils::{HashMap, HashSet},
 };
-use bevy_xpbd_3d::plugins::{
+use bevy_xpbd_3d::{plugins::{
     collision::Collider,
     spatial_query::{SpatialQuery, SpatialQueryFilter},
-};
+}, PhysicsSet};
 use leafwing_input_manager::action_state::ActionState;
 
 use super::{meshgen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
@@ -47,15 +47,16 @@ impl Plugin for ClientVoxelPlugin {
         app.insert_resource(HitResult::default());
         app.register_type::<HitResult>();
 
-        app.add_systems(PreUpdate, raycast);
+        // app.add_systems(PreUpdate, raycast.run_if(condition::in_world));
 
         app.add_systems(
             Update,
             (
+                raycast,
                 chunks_detect_load_and_unload,
                 chunks_remesh_enqueue,
                 draw_gizmos,
-                draw_crosshair_cube,
+                draw_crosshair_cube.after(PhysicsSet::Sync),
             )
             .chain()
             .run_if(condition::in_world),

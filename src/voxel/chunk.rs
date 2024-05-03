@@ -35,6 +35,8 @@ pub struct Vox {
 
     pub shape_id: VoxShape,
 
+    pub light: VoxLight,
+
     /// SDF value, used for Isosurface Extraction.
     /// 0 -> surface, +0 positive -> void, -0 negative -> solid.
     pub isoval: u8,
@@ -48,6 +50,7 @@ impl Default for Vox {
         Vox {
             shape_id: VoxShape::Isosurface,
             tex_id: 0,
+            light: VoxLight::default(),
             isoval: isoval_f32_u8(0.0),
             // cached_fp: Vec3::INFINITY,
             // cached_norm: Vec3::INFINITY,
@@ -201,7 +204,6 @@ pub mod VoxTex {
 pub struct Chunk {
     // shoud Box?
     voxel: [Vox; Self::LEN3],
-    light: [VoxLight; Self::LEN3],
 
     pub chunkpos: IVec3,
 
@@ -224,7 +226,6 @@ impl Chunk {
     pub fn new(chunkpos: IVec3) -> Self {
         Self {
             voxel: [Vox::default(); Self::LEN3],
-            light: [VoxLight::default(); Self::LEN3],
             chunkpos,
             is_populated: false,
             neighbor_chunks: Default::default(),
@@ -388,23 +389,23 @@ impl Chunk {
 
     // Voxel Light
 
-    pub fn at_lights(&self, localpos: IVec3) -> &VoxLight {
-        &self.light[Chunk::local_idx(localpos)]
-    }
-    pub fn at_lights_mut(&self, localpos: IVec3) -> &mut VoxLight {
-        as_mut(self.at_lights(localpos))
-    }
+    // pub fn at_lights(&self, localpos: IVec3) -> &VoxLight {
+    //     &self.light[Chunk::local_idx(localpos)]
+    // }
+    // pub fn at_lights_mut(&self, localpos: IVec3) -> &mut VoxLight {
+    //     as_mut(self.at_lights(localpos))
+    // }
 
-    pub fn reset_lights(&mut self) {
-        self.light = [VoxLight::default(); Self::LEN3];
-    }
+    // pub fn reset_lights(&mut self) {
+    //     self.light = [VoxLight::default(); Self::LEN3];
+    // }
 
     pub fn compute_voxel_light(chunk: &mut Chunk) {
 
         fn try_spread_light(chunk: &mut Chunk, lp: IVec3, lightlevel: u16, queue: &mut Vec<(u16, VoxLight)>) {
             if !Chunk::is_localpos(lp) { return; }
 
-            let light = chunk.at_lights_mut(lp);
+            let light = &mut chunk.at_voxel_mut(lp).light;
 
             if  light.red() < lightlevel-1 {
                 light.set_red(lightlevel-1);
@@ -417,7 +418,6 @@ impl Chunk {
 
         let mut bfs: Vec<(u16, VoxLight)> = Vec::new();
 
-        chunk.reset_lights();
         for i in 0..Chunk::LEN3 {
             if chunk.ax_voxel(i).tex_id == VoxTex::Log {
                 bfs.push((i as u16, VoxLight::new(0, 15, 0, 0)))
