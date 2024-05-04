@@ -308,10 +308,10 @@ fn chunks_remesh_enqueue(
 #[derive(Resource, Reflect)]
 #[reflect(Resource)]
 pub struct VoxelBrush {
-    pub size: f32,
-    pub strength: f32,
     pub shape: VoxShape,
     pub tex: u16,
+    pub size: f32,
+    pub strength: f32,
 }
 impl Default for VoxelBrush {
     fn default() -> Self {

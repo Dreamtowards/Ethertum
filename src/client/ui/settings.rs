@@ -21,6 +21,26 @@ pub enum SettingsPanel {
     // Credits,
 }
 
+
+pub fn ui_setting_line(ui: &mut Ui, text: impl Into<egui::RichText>, widget: impl Widget) {
+    ui.horizontal(|ui| {
+        ui.add_space(20.);
+        ui.colored_label(Color32::WHITE, text);
+        let end_width = 150.;
+        let end_margin = 8.;
+        let line_margin = 10.;
+
+        let p = ui.cursor().left_center() + egui::Vec2::new(line_margin, 0.);
+        let p2 = egui::pos2(p.x + ui.available_width() - end_width - line_margin * 2. - end_margin, p.y);
+        ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
+
+        ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.add_space(end_margin);
+            ui.add_sized([end_width, 22.], widget);
+        });
+    });
+}
+
 pub fn ui_settings(
     mut ctx: EguiContexts,
     mut settings_panel: Local<SettingsPanel>,
@@ -63,25 +83,6 @@ pub fn ui_settings(
                 ui.style_mut().spacing.item_spacing.y = 12.;
 
                 ui.add_space(16.);
-
-                fn ui_setting_line(ui: &mut Ui, text: impl Into<egui::RichText>, widget: impl Widget) {
-                    ui.horizontal(|ui| {
-                        ui.add_space(20.);
-                        ui.colored_label(Color32::WHITE, text);
-                        let end_width = 150.;
-                        let end_margin = 8.;
-                        let line_margin = 10.;
-
-                        let p = ui.cursor().left_center() + egui::Vec2::new(line_margin, 0.);
-                        let p2 = egui::pos2(p.x + ui.available_width() - end_width - line_margin * 2. - end_margin, p.y);
-                        ui.painter().line_segment([p, p2], ui.visuals().widgets.noninteractive.bg_stroke);
-
-                        ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                            ui.add_space(end_margin);
-                            ui.add_sized([end_width, 22.], widget);
-                        });
-                    });
-                }
 
                 match curr_settings_panel {
                     SettingsPanel::General => {

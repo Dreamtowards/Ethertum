@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{client::client_world::ClientPlayerInfo, prelude::*};
+use crate::{client::client_world::ClientPlayerInfo, prelude::*, voxel::{ChunkSystem, ClientChunkSystem, VoxShape, VoxelBrush}};
 
 use bevy_egui::{
     egui::{text::CCursorRange, Align, Frame, Id, Layout, TextEdit, Vec2},
@@ -13,6 +13,8 @@ use crate::{
     client::prelude::*,
     net::{CPacket, RenetClientHelper},
 };
+
+use super::{new_egui_window, settings::ui_setting_line};
 
 // todo: Res是什么原理？每次sys调用会deep拷贝吗？还是传递指针？如果deep clone这么多消息记录 估计会很浪费性能。
 
@@ -186,7 +188,28 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: ResMut<ClientPlayerInfo>) {
+pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: ResMut<ClientPlayerInfo>,
+    mut voxbrush: ResMut<VoxelBrush>,
+    // chunk_sys: Res<ClientChunkSystem>,
+) {
+
+    new_egui_window("VoxBrush")
+        .anchor(Align2::LEFT_BOTTOM, [cfg.hud_padding, -cfg.hud_padding])
+        .frame(Frame::default().fill(Color32::from_black_alpha(30)))
+        .show(ctx.ctx_mut(), |ui| {
+
+            ui_setting_line(ui, "Size", egui::Slider::new(&mut voxbrush.size, 0.0..=25.0));
+            ui_setting_line(ui, "Intensity", egui::Slider::new(&mut voxbrush.size, 0.0..=1.0));
+            ui_setting_line(ui, "Tex", egui::Slider::new(&mut voxbrush.tex, 0..=28));
+
+            // ui.painter().image(ctx.add_image(chunk_sys.mtl_terrain), rect, uv, tint)
+
+            if ui.btn("Cube").clicked() {
+                voxbrush.size = 1.;
+                voxbrush.shape = VoxShape::Cube;
+            }
+        });
+
     egui::Window::new("HUD Hotbar")
         .title_bar(false)
         .resizable(false)

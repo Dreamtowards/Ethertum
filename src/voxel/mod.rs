@@ -1,5 +1,5 @@
 mod chunk;
-mod meshgen;
+pub mod meshgen;
 mod voxel_client;
 mod voxel_server;
 pub mod worldgen;

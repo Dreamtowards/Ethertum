@@ -8,9 +8,13 @@ use bevy::{
 use super::chunk::*;
 use crate::util::{iter, vtx::VertexBuffer};
 
+pub static mut DBG_FORCE_BLOCKY: bool = false;
 
 pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    if unsafe{!DBG_FORCE_BLOCKY} {
+
     sn::sn_contouring(vbuf, chunk);
+    }
 
     for ly in 0..Chunk::LEN {
         for lz in 0..Chunk::LEN {
@@ -19,8 +23,8 @@ pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
                 let vox = chunk.at_voxel(lp);
 
-                if vox.tex_id != 0 && vox.shape_id == VoxShape::Cube {
-                    put_cube(vbuf, lp, chunk, vox.tex_id, vox.light.red());
+                if !vox.is_nil() && (vox.shape_id == VoxShape::Cube || unsafe{DBG_FORCE_BLOCKY} ) {
+                    put_cube(vbuf, lp, chunk, vox.tex_id);
                 }
             }
         }
@@ -257,12 +261,13 @@ static CUBE_NORM: [f32; 6 * 6 * 3] = [
 // static CUBE_IDX: [u32;6*6] = [
 // ];
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16, light: u16) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
     for face_i in 0..6 {
-        let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]); // 18: 3 scalar * 3 vertex * 2 triangle
+        let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]).as_ivec3(); // 18: 3 scalar * 3 vertex * 2 triangle
 
         // skip the face if there's Obaque
-        if chunk.get_voxel_rel(lp + face_dir.as_ivec3()).is_obaque_cube() {
+        let neib = chunk.get_voxel_rel(lp + face_dir);
+        if  neib.is_nil() { //.is_obaque_cube() {
             continue;
         }
 
@@ -271,7 +276,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16, ligh
 
             vbuf.push_vertex(
                 Vec3::from_slice(&CUBE_POS[face_i * 18 + vert_i * 3..]) + lp.as_vec3(),
-                Vec2::new(tex_id as f32, light as f32),
+                Vec2::new(tex_id as f32, neib.light.red() as f32),
                 Vec3::from_slice(&CUBE_NORM[face_i * 18 + vert_i * 3..]),
             );
         }
