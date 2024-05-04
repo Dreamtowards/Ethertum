@@ -13,7 +13,7 @@ use crate::{
     client::prelude::*,
     ui::{color32_of, CurrentUI, UiExtra},
     util::{as_mut, AsMutRef},
-    voxel::{worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult, Vox, VoxShape},
+    voxel::{lighting::VoxLightQueue, worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult, Vox, VoxLight, VoxShape},
 };
 
 pub fn ui_menu_panel(
@@ -147,6 +147,7 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("Voxel", |ui| {
+                            let campos = query_cam.single().translation.as_ivec3();
                             let cli = cl.data();
                             // ui.label("Gizmos:");
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Gizmo Loaded Chunks");
@@ -157,9 +158,18 @@ pub fn ui_menu_panel(
 
                             if let Some(mut chunk_sys) = chunk_sys {
                                 if ui.button("Compute Voxel Light").clicked() {
-                                    for chunk in chunk_sys.get_chunks().values() {
-                                        Chunk::compute_voxel_light(chunk.as_mut());
-                                    }
+                                    // for chunk in chunk_sys.get_chunks().values() {
+                                    //     Chunk::compute_voxel_light(chunk.as_mut());
+                                    // }
+                                    let mut queue = VoxLightQueue::new();
+
+                                    queue.push((
+                                        chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().clone(), 
+                                        Chunk::local_idx(Chunk::as_localpos(campos)) as u16,
+                                        VoxLight::new(0, 15, 3, 4),
+                                    ));
+
+                                    crate::voxel::lighting::compute_voxel_light(&mut queue);
                                 }
                                 if ui.button("ReMesh All Chunks").clicked() {
                                     // let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
@@ -168,13 +178,11 @@ pub fn ui_menu_panel(
                                     }
                                 }
                                 if ui.button("Gen Tree").clicked() {
-                                    let p = query_cam.single().translation.as_ivec3();
-                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(p)).unwrap().as_mut();
+                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_mut();
 
-                                    worldgen::gen_tree(chunk, Chunk::as_localpos(p), 0.8);
+                                    worldgen::gen_tree(chunk, Chunk::as_localpos(campos), 0.8);
                                 }
                                 if ui.button("Gen Floor").clicked() {
-                                    let campos = query_cam.single().translation.as_ivec3();
 
                                     // crate::util::iter::iter_center_spread(10, 1, |p| {
                                     // });

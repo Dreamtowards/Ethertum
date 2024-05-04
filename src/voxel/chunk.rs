@@ -49,9 +49,9 @@ impl Default for Vox {
     fn default() -> Self {
         Vox {
             shape_id: VoxShape::Isosurface,
-            tex_id: 0,
+            tex_id: VoxTex::Nil,
             light: VoxLight::default(),
-            isoval: isoval_f32_u8(0.0),
+            isoval: isoval_u8(0.0),
             // cached_fp: Vec3::INFINITY,
             // cached_norm: Vec3::INFINITY,
         }
@@ -60,11 +60,11 @@ impl Default for Vox {
 
 // todo: bugfix 自从压缩成u8后，地下有一些小碎片三角形 可能是由于精度误差 -0.01 变成 0.01 之类的了。要
 // 修复这种bug 应该是把接近0的数值扩大 再转成u8.
-fn isoval_f32_u8(f: f32) -> u8 {
+fn isoval_u8(f: f32) -> u8 {
     ((f.clamp(-1.0, 1.0) + 1.0) / 2.0 * 255.0) as u8
 }
 
-fn isoval_u8_f32(u: u8) -> f32 {
+fn isoval_ndc(u: u8) -> f32 {
     u as f32 / 255.0 * 2.0 - 1.0
 }
 
@@ -73,7 +73,7 @@ impl Vox {
         Self {
             tex_id,
             shape_id,
-            isoval: isoval_f32_u8(isovalue),
+            isoval: isoval_u8(isovalue),
             ..default()
         }
     }
@@ -82,10 +82,10 @@ impl Vox {
         if self.shape_id != VoxShape::Isosurface {
             return 0.0;
         }
-        isoval_u8_f32(self.isoval)
+        isoval_ndc(self.isoval)
     }
     pub fn set_isovalue(&mut self, val: f32) {
-        self.isoval = isoval_f32_u8(val);
+        self.isoval = isoval_u8(val);
     }
 
     pub fn is_tex_empty(&self) -> bool {
@@ -213,9 +213,12 @@ pub struct Chunk {
     pub mesh_handle: Handle<Mesh>, // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
 
-    // cached neighbor chunks (if they are not empty even if they are loaded)
-    // for Quick Access neighbor voxel, without global find neighbor chunk by chunkpos
+    // cached neighbor chunks that loaded to the ChunkSystem.
+    // for Quick Access without global find neighbor chunk by chunkpos
     pub neighbor_chunks: [Option<Weak<Chunk>>; Self::NEIGHBOR_DIR.len()],
+
+    // Self Arc. for export self Arc in get_chunk_neib().  assigned by ChunkSystem::spawn_chunk()
+    pub chunkptr_weak: Weak<Chunk>,  
 }
 
 impl Chunk {
@@ -229,6 +232,7 @@ impl Chunk {
             chunkpos,
             is_populated: false,
             neighbor_chunks: Default::default(),
+            chunkptr_weak: Weak::default(),
             entity: Entity::PLACEHOLDER,
             mesh_handle: Handle::default(),
             mesh_handle_foliage: Handle::default(),
@@ -253,7 +257,7 @@ impl Chunk {
         if Chunk::is_localpos(relpos) {
             Some(*self.at_voxel(relpos))
         } else {
-            if let Some(neib_chunkptr) = self.get_chunk_neib(Chunk::neighbor_idx(relpos)?) {
+            if let Some(neib_chunkptr) = self.get_chunk_rel(relpos) {
                 let neib_chunk = neib_chunkptr.as_ref();
 
                 return Some(*neib_chunk.at_voxel(Chunk::as_localpos(relpos)));
@@ -261,8 +265,33 @@ impl Chunk {
             None
         }
     }
+    pub fn get_voxel_rel(&self, relpos: IVec3) -> Vox {
+        self.get_voxel_neib(relpos).unwrap_or(Vox::default())
+    }
+
+
+
+    // pub fn get_voxel_neib_chunk(&self, relpos: IVec3) -> Option<(&Vox, ChunkPtr)> {
+    //     if let Some(chunkptr) = self.get_chunk_neib_pos(relpos) {
+    //         return Some((
+    //             chunkptr.as_mut().at_voxel(Chunk::as_localpos(relpos)), 
+    //             chunkptr.clone(),
+    //         ));
+    //     }
+    //     None
+    // }
+
+    pub fn get_chunk_rel(&self, relpos: IVec3) -> Option<ChunkPtr> {
+        if Chunk::is_localpos(relpos) {
+            return Some(self.chunkptr_weak.upgrade()?);
+        }
+        self.get_chunk_neib(Chunk::neighbor_idx(relpos)?)
+    }
 
     pub fn get_chunk_neib(&self, neib_idx: usize) -> Option<ChunkPtr> {
+        // if neib_idx == usize::MAX {
+        //     return Some(self.chunkptr_weak.upgrade()?);
+        // }
         if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
             // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::LEN, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
             return Some(neib_weak.upgrade()?);
@@ -270,9 +299,7 @@ impl Chunk {
         None
     }
 
-    pub fn get_voxel_rel(&self, relpos: IVec3) -> Vox {
-        self.get_voxel_neib(relpos).unwrap_or(Vox::default())
-    }
+
 
     pub fn is_neighbors_complete(&self) -> bool {
         !self.neighbor_chunks.iter().any(|e| e.is_none())
@@ -372,6 +399,9 @@ impl Chunk {
 
     fn neighbor_idx(relpos: IVec3) -> Option<usize> {
         assert!(!Chunk::is_localpos(relpos));
+        // if Chunk::is_localpos(relpos) {
+        //     return Some(usize::MAX);
+        // }
         (0..Chunk::NEIGHBOR_DIR.len()).find(|&i| Chunk::is_localpos(relpos - (Chunk::NEIGHBOR_DIR[i] * Chunk::LEN as i32)))
     }
 
@@ -400,46 +430,6 @@ impl Chunk {
     //     self.light = [VoxLight::default(); Self::LEN3];
     // }
 
-    pub fn compute_voxel_light(chunk: &mut Chunk) {
-
-        fn try_spread_light(chunk: &mut Chunk, lp: IVec3, lightlevel: u16, queue: &mut Vec<(u16, VoxLight)>) {
-            if !Chunk::is_localpos(lp) { return; }
-
-            let light = &mut chunk.at_voxel_mut(lp).light;
-
-            if  light.red() < lightlevel-1 {
-                light.set_red(lightlevel-1);
-
-                if !chunk.at_voxel(lp).is_obaque_cube() {
-                    queue.push((Chunk::local_idx(lp) as u16, *light));
-                }
-            }
-        }
-
-        let mut bfs: Vec<(u16, VoxLight)> = Vec::new();
-
-        for i in 0..Chunk::LEN3 {
-            if chunk.ax_voxel(i).tex_id == VoxTex::Log {
-                bfs.push((i as u16, VoxLight::new(0, 15, 0, 0)))
-            }
-        }
-
-        while let Some((local_idx, light)) = bfs.pop() {
-            let lp = Chunk::local_idx_pos(local_idx as i32);
-            let x = lp.x; let y = lp.y; let z = lp.z;
-            let lightlevel = light.red();
-
-            try_spread_light(chunk, ivec3(x-1,y,z), lightlevel, &mut bfs);
-            try_spread_light(chunk, ivec3(x+1,y,z), lightlevel, &mut bfs);
-            try_spread_light(chunk, ivec3(x,y-1,z), lightlevel, &mut bfs);
-            try_spread_light(chunk, ivec3(x,y+1,z), lightlevel, &mut bfs);
-            try_spread_light(chunk, ivec3(x,y,z-1), lightlevel, &mut bfs);
-            try_spread_light(chunk, ivec3(x,y,z+1), lightlevel, &mut bfs);
-        }
-
-    }
-
-
     // pub fn at_light(&self, localpos: IVec3, chan: u8) -> u16 {
     //     self.at_lights(Chunk::local_idx(localpos)).get(chan)
     // }
@@ -450,7 +440,58 @@ impl Chunk {
 
 }
 
+pub mod lighting {
+    use super::*;
 
+    pub type VoxLightQueue = Vec<(ChunkPtr, u16, VoxLight)>;
+
+    pub fn compute_voxel_light(queue: &mut VoxLightQueue) {
+
+        fn try_spread_light(chunk: &ChunkPtr, lp: IVec3, lightlevel: u16, queue: &mut VoxLightQueue) {
+            if Chunk::is_localpos(lp) { 
+                let light = &mut chunk.at_voxel_mut(lp).light;
+
+                if  light.red() < lightlevel-1 {
+                    light.set_red(lightlevel-1);
+
+                    if !chunk.at_voxel(lp).is_obaque_cube() {
+                        queue.push((chunk.clone(), Chunk::local_idx(lp) as u16, *light));
+                    }
+                }
+            } else {
+                if let Some(chunk) = chunk.get_chunk_rel(lp) {
+                    let lp = Chunk::as_localpos(lp);
+                    let light = &mut chunk.at_voxel_mut(lp).light;
+
+                    if  light.red() < lightlevel-1 {
+                        light.set_red(lightlevel-1);
+
+                        if !chunk.at_voxel(lp).is_obaque_cube() {
+                            queue.push((chunk.clone(), Chunk::local_idx(lp) as u16, *light));
+                        }
+                    }
+                }
+            }
+
+        }
+
+        while let Some((chunkptr, local_idx, light)) = queue.pop() {
+            let lp = Chunk::local_idx_pos(local_idx as i32);
+            let x = lp.x; let y = lp.y; let z = lp.z;
+            let lightlevel = light.red();
+
+            try_spread_light(&chunkptr, ivec3(x-1,y,z), lightlevel, queue);
+            try_spread_light(&chunkptr, ivec3(x+1,y,z), lightlevel, queue);
+            try_spread_light(&chunkptr, ivec3(x,y-1,z), lightlevel, queue);
+            try_spread_light(&chunkptr, ivec3(x,y+1,z), lightlevel, queue);
+            try_spread_light(&chunkptr, ivec3(x,y,z-1), lightlevel, queue);
+            try_spread_light(&chunkptr, ivec3(x,y,z+1), lightlevel, queue);
+        }
+
+    }
+
+
+}
 
 #[cfg(test)]
 mod tests {

@@ -8,7 +8,7 @@
             "type": "lldb",
             "request": "launch",
             "name": "native_debug_fastest",
-            "program": "${workspaceFolder}/<executable file>",
+            "program": "${workspaceFolder}/target/debug/ethertia",
             "preLaunchTask": "native_debug_fastest build",
             "args": [],
             "cwd": "${workspaceFolder}"

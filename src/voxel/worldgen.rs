@@ -35,7 +35,7 @@ pub fn generate_chunk(chunk: &mut Chunk) {
                 //     val = 0.1;
                 //     tex = mtl::WATER;
                 // }
-                *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Isosurface, val);
+                *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Cube, 0.);//VoxShape::Isosurface, val);
             }
         }
     }

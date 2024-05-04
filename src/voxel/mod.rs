@@ -4,7 +4,7 @@ mod voxel_client;
 mod voxel_server;
 pub mod worldgen;
 
-pub use chunk::{Chunk, Vox, VoxShape, VoxLight, VoxTex};
+pub use chunk::{Chunk, Vox, VoxShape, VoxLight, VoxTex, lighting};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 

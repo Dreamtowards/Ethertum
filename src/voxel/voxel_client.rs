@@ -582,6 +582,7 @@ impl ClientChunkSystem {
         {
             let chunk = chunkptr.as_mut();
             chunkpos = chunk.chunkpos;
+            chunk.chunkptr_weak = Arc::downgrade(&chunkptr);
 
             // let mut neighbors_completed = Vec::new();
 
