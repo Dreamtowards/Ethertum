@@ -173,11 +173,14 @@ pub fn ui_menu_panel(
                                     
                                     for chunkpos in chunk_sys.get_chunks().keys() {
                                         if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), *chunkpos, IVec2::new(2,2)) {
+                                            let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
 
-                                            lighting::compute_skylight(chunk_sys.get_chunk(*chunkpos).unwrap(), &mut queue);
+                                            lighting::collect_chunk_lights(chunk, &mut queue);
 
+                                            // lighting::compute_skylight(chunk, &mut queue);
                                         }
                                     }
+
 
                                     lighting::compute_voxel_light(&mut queue, &mut Vec::new());
                                 }

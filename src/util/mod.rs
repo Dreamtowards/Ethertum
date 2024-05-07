@@ -101,7 +101,7 @@ pub fn hashcode<T: Hash>(t: &T) -> u64 {
 use std::sync::Arc;
 
 pub mod iter {
-    use bevy::math::IVec3;
+    use bevy::math::{ivec3, IVec3};
 
     // [min to max] yzx order
     pub fn iter_aabb(nxz: i32, ny: i32, mut func: impl FnMut(IVec3)) {
@@ -109,6 +109,17 @@ pub mod iter {
             for lz in -nxz..=nxz {
                 for lx in -nxz..=nxz {
                     func(IVec3::new(lx, ly, lz));
+                }
+            }
+        }
+    }
+
+    // Zero..Positive
+    pub fn itr_zp_zxy(n: i32, func: fn(IVec3)) {
+        for ly in 0..n {
+            for lx in 0..n {
+                for lz in 0..n {
+                    func(ivec3(lx, ly, lz));
                 }
             }
         }

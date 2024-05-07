@@ -56,7 +56,7 @@ impl Plugin for ClientVoxelPlugin {
                 chunks_detect_load_and_unload,
                 chunks_remesh_enqueue,
                 draw_gizmos,
-                draw_crosshair_cube.after(PhysicsSet::Sync),
+                draw_crosshair_cube.in_set(PhysicsSet::Sync),
             )
             .chain()
             .run_if(condition::in_world),

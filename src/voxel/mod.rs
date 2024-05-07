@@ -1,18 +1,22 @@
+mod vox;
 mod chunk;
 pub mod meshgen;
+pub mod worldgen;
+pub mod lighting;
 mod voxel_client;
 mod voxel_server;
-pub mod worldgen;
 
-pub use chunk::{Chunk, Vox, VoxShape, VoxLight, VoxTex, lighting};
+pub use chunk::Chunk;
+pub use vox::{Vox, VoxShape, VoxTex, VoxLight,};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
+
+pub type ChunkPtr = Arc<Chunk>;
 
 use crate::util::AsMutRef;
 use bevy::{prelude::*, utils::HashMap};
 use std::sync::Arc;
 
-pub type ChunkPtr = Arc<Chunk>;
 
 #[derive(Resource, Deref, Clone)]
 struct ChannelTx<T>(crate::channel_impl::Sender<T>);
@@ -23,6 +27,8 @@ struct ChannelRx<T>(crate::channel_impl::Receiver<T>);
 pub fn is_chunk_in_load_distance(mid_cp: IVec3, cp: IVec3, vd: IVec2) -> bool {
     (mid_cp.x - cp.x).abs() <= vd.x * Chunk::LEN && (mid_cp.z - cp.z).abs() <= vd.x * Chunk::LEN && (mid_cp.y - cp.y).abs() <= vd.y * Chunk::LEN
 }
+
+// can_sustain_plant()
 
 pub trait ChunkSystem {
     fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr>;

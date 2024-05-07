@@ -3,7 +3,7 @@ use std::ops::Div;
 use bevy::{math::ivec3, prelude::*};
 use noise::{Fbm, NoiseFn, Perlin};
 
-use super::chunk::*;
+use super::*;
 use crate::util::{hash, iter};
 
 pub fn generate_chunk(chunk: &mut Chunk) {
@@ -94,7 +94,7 @@ pub fn populate_chunk(chunk: &mut Chunk) {
                 for ly in 0..Chunk::LEN - 1 {
                     let lp = ivec3(lx, ly, lz);
 
-                    if chunk.at_voxel(lp).tex_id == VoxTex::Grass && chunk.at_voxel(lp + IVec3::Y).is_tex_empty() {
+                    if chunk.at_voxel(lp).tex_id == VoxTex::Grass && chunk.at_voxel(lp + IVec3::Y).is_nil() {
                         let c = chunk.at_voxel_mut(lp + IVec3::Y);
                         c.tex_id = if g > 0.94 {
                             VoxTex::Rose
@@ -116,14 +116,14 @@ pub fn populate_chunk(chunk: &mut Chunk) {
                 for ly in 0..Chunk::LEN - 1 {
                     let lp = ivec3(lx, ly, lz);
 
-                    if chunk.at_voxel(lp).is_tex_empty() && chunk.at_voxel(lp + IVec3::Y).tex_id == VoxTex::Stone {
+                    if chunk.at_voxel(lp).is_nil() && chunk.at_voxel(lp + IVec3::Y).tex_id == VoxTex::Stone {
                         for i in 0..(12.0 * hash(x ^ (z * 121))) as i32 {
                             let lp = lp + IVec3::NEG_Y * i;
                             if lp.y < 0 {
                                 break;
                             }
                             let c = chunk.at_voxel_mut(lp);
-                            if !c.is_tex_empty() {
+                            if !c.is_nil() {
                                 break;
                             }
                             c.tex_id = VoxTex::Leaves;

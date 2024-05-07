@@ -26,7 +26,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(Update, input_move.run_if(condition::in_world));
 
-        app.add_systems(PostUpdate, sync_camera.after(PhysicsSet::Sync).before(TransformSystem::TransformPropagate));
+        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
     }
 }
 
