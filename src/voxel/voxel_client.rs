@@ -17,7 +17,7 @@ use leafwing_input_manager::action_state::ActionState;
 use super::{meshgen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
 use crate::{
     client::prelude::*,
-    util::{iter, AsMutRef},
+    util::{as_mut, iter, AsMutRef},
 };
 
 pub struct ClientVoxelPlugin;
@@ -237,7 +237,7 @@ fn chunks_remesh_enqueue(
                 // let dbg_time = Instant::now() - dbg_time;
 
                 // vbuf.compute_flat_normals();
-                // _vbuf.0.compute_smooth_normals();
+                _vbuf.0.compute_smooth_normals();
 
                 // let nv = vbuf.vertices.len();
                 // vbuf.compute_indexed();  // save 70%+ vertex data space!
@@ -537,8 +537,8 @@ impl ClientChunkSystem {
         }
     }
 
-    pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
-        self.chunks_remesh.insert(chunkpos);
+    pub fn mark_chunk_remesh(&self, chunkpos: IVec3) {
+        as_mut(self).chunks_remesh.insert(chunkpos);
     }
 
     pub fn spawn_chunk(&mut self, mut chunk: Chunk, cmds: &mut Commands, meshes: &mut Assets<Mesh>) {
@@ -567,7 +567,7 @@ impl ClientChunkSystem {
                     MaterialMeshBundle {
                         mesh: chunk.mesh_handle_foliage.clone(),
                         material: self.mtl_foliage.clone(),
-                        visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash
+                        visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
                         ..default()
                     },
                     aabb,
@@ -590,8 +590,6 @@ impl ClientChunkSystem {
                 let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
                 let neib_chunkpos = chunkpos + neib_dir * Chunk::LEN;
 
-                // todo: delay remesh or only remesh full-neighbor complete chunks
-
                 // set neighbor_chunks cache
                 chunk.neighbor_chunks[neib_idx] = {
                     if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
@@ -600,13 +598,21 @@ impl ClientChunkSystem {
                         // update neighbor's `neighbor_chunk`
                         neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
 
-                        if neib_chunk.is_neighbors_complete() && !neib_chunk.is_populated {
+                        if neib_chunk.is_neighbors_all_loaded() && !neib_chunk.is_populated {
                             // neighbors_completed.push(neib_chunk.chunkpos);
                             neib_chunk.is_populated = true;
                             super::worldgen::populate_chunk(neib_chunk); // todo: ChunkGen Thread
 
-                            crate::util::as_mut(self).mark_chunk_remesh(neib_chunk.chunkpos);
+                            self.mark_chunk_remesh(neib_chunk.chunkpos);
+
+                            // fixed: chunk border mesh outdated issue due to population update.
+                            for (idx, nneib) in neib_chunk.neighbor_chunks.iter().enumerate() {
+                                if nneib.is_some() {
+                                    self.mark_chunk_remesh(neib_chunk.chunkpos + Chunk::NEIGHBOR_DIR[idx] * Chunk::LEN);
+                                }
+                            }
                         }
+                        
                         Some(Arc::downgrade(neib_chunkptr))
                     } else {
                         None

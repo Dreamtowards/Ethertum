@@ -28,7 +28,7 @@ impl CellData {
         let mut data = Vec::new();
         for i in 0..Chunk::LEN3 {
             let c = chunk.at_voxel(Chunk::local_idx_pos(i as i32));
-            if !c.is_tex_empty() {
+            if !c.is_nil() {
                 // FIXED: Dont use {isovalue() > -0.5} as condition, because Non-Isosurface voxels e.g. Leaves should always be transmit regardless it's isovalue
                 // dens: ((c.value + 0.5).clamp(0.0, 1.0) * 255.0) as u8
                 data.push(CellData::from_cell(i as u16, c));

@@ -47,11 +47,12 @@ pub fn populate_chunk(chunk: &mut Chunk) {
 
     for lx in 0..Chunk::LEN {
         for lz in 0..Chunk::LEN {
+            // distance to air in top direction.
             let mut air_dist = 0;
 
             // check top air_dist. for CubicChunk system, otherwise the chunk-top will be surface/grass
             for i in 0..3 {
-                if chunk.get_voxel_neib(ivec3(lx, Chunk::LEN + i, lz)).is_some_and(|v| !v.is_nil()) {
+                if !chunk.get_voxel_rel_or_default(ivec3(lx, Chunk::LEN + i, lz)).is_nil() {
                     air_dist += 1;
                 }
             }
@@ -160,12 +161,17 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
             return;
         }
         let lp = lp + IVec3::Y * trunk_height + rp;
-        if !Chunk::is_localpos(lp) {
-            return;
-        }
-        let c = chunk.at_voxel_mut(lp);
-        c.tex_id = VoxTex::Leaves;
-        c.shape_id = VoxShape::Leaves;
+
+        // if let Some(chunkptr) = chunk.get_chunk_rel(lp) {
+        //     let vox = chunkptr.at_voxel_mut(Chunk::as_localpos(lp));
+        //     vox .tex_id =VoxTex::Leaves;
+        //     vox.shape_id = VoxShape::Leaves;
+        // }
+
+        chunk.set_voxel_rel(lp, |vox| {
+            vox.tex_id =VoxTex::Leaves;
+            vox.shape_id = VoxShape::Leaves;
+        });
     });
 
     // Trunk

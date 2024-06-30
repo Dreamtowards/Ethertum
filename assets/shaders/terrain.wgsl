@@ -127,13 +127,13 @@ fn fragment(
     // blend_triplanar = max(blend_triplanar - vec3<f32>(triplanar_blend_sharpness), vec3<f32>(0.0));  // sharpen the blend [-0.2 smoother, -0.55 sharper]
     blend_triplanar /= blend_triplanar.x + blend_triplanar.y + blend_triplanar.z;  // makesure sum = 1
 
-    let vlights = in.light;// / in.bary;
-    let L = vlights * 0.9 + 0.03;//max(0.1, max(max(in.light.x, in.light.y), in.light.z));
+    //let vlights = in.light;// / in.bary;
+    //let L = vlights * 0.9 + 0.03;//max(0.1, max(max(in.light.x, in.light.y), in.light.z));
     //return vec4<f32>(L, 1.0);
-    return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar) * vec4<f32>(L, 1.0);
+    //return triplanar_sample(tex_diffuse, mtls[_vec3_max_idx(bary)], worldpos, blend_triplanar) * vec4<f32>(L, 1.0);
 
     //return vec4<f32>(worldnorm /2.0 + 0.5, 1.0);
-    /*
+    
 
 #ifdef BLEND 
 
@@ -200,5 +200,4 @@ fn fragment(
     // color = vec4<f32>(bary, 1.0); 
     // color = vec4<f32>(world_normal, 1.0); 
     return color;
-    */
 }

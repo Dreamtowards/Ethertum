@@ -1,5 +1,5 @@
 use bevy::math::ivec3;
-use std::sync::Weak;
+use std::sync::{Arc, Weak};
 
 use crate::{prelude::*, util::{as_mut, AsMutRef}};
 use super::{ChunkPtr, vox::*};
@@ -58,20 +58,29 @@ impl Chunk {
         self.at_voxel(localpos).as_mut()
     }
 
-    pub fn get_voxel_neib(&self, relpos: IVec3) -> Option<Vox> {
+    pub fn get_voxel_rel(&self, relpos: IVec3) -> Option<Vox> {
         if Chunk::is_localpos(relpos) {
             Some(*self.at_voxel(relpos))
         } else {
-            if let Some(neib_chunkptr) = self.get_chunk_rel(relpos) {
-                let neib_chunk = neib_chunkptr.as_ref();
-
-                return Some(*neib_chunk.at_voxel(Chunk::as_localpos(relpos)));
-            }
-            None
+            let neib_chunkptr = self.get_chunk_rel(relpos)?;
+            Some(*neib_chunkptr.at_voxel(Chunk::as_localpos(relpos)))
         }
     }
-    pub fn get_voxel_rel(&self, relpos: IVec3) -> Vox {
-        self.get_voxel_neib(relpos).unwrap_or(Vox::default())
+
+    pub fn set_voxel_rel(&self, relpos: IVec3, mut visitor: impl FnMut(&mut Vox)) -> Option<Vox> {
+        let vox;
+        let neib_chunkptr;
+        if Chunk::is_localpos(relpos) {
+            vox = self.at_voxel(relpos);
+        } else {
+            neib_chunkptr = self.get_chunk_rel(relpos)?;
+            vox = neib_chunkptr.at_voxel(Chunk::as_localpos(relpos));
+        }
+        visitor(vox.as_mut());
+        Some(*vox)
+    }
+    pub fn get_voxel_rel_or_default(&self, relpos: IVec3) -> Vox {
+        self.get_voxel_rel(relpos).unwrap_or(Vox::default())
     }
 
     pub fn for_voxels(&self, mut visitor: impl FnMut(&Vox, usize)) {
@@ -89,19 +98,9 @@ impl Chunk {
         });
     }
 
-    // pub fn get_voxel_neib_chunk(&self, relpos: IVec3) -> Option<(&Vox, ChunkPtr)> {
-    //     if let Some(chunkptr) = self.get_chunk_neib_pos(relpos) {
-    //         return Some((
-    //             chunkptr.as_mut().at_voxel(Chunk::as_localpos(relpos)), 
-    //             chunkptr.clone(),
-    //         ));
-    //     }
-    //     None
-    // }
-
     pub fn get_chunk_rel(&self, relpos: IVec3) -> Option<ChunkPtr> {
         if Chunk::is_localpos(relpos) {
-            return Some(self.chunkptr_weak.upgrade()?);
+            return self.chunkptr_weak.upgrade();
         }
         self.get_chunk_neib(Chunk::neighbor_idx(relpos)?)
     }
@@ -206,7 +205,7 @@ impl Chunk {
         ivec3(-1, 1, -1),
     ];
 
-    pub fn is_neighbors_complete(&self) -> bool {
+    pub fn is_neighbors_all_loaded(&self) -> bool {
         !self.neighbor_chunks.iter().any(|e| e.is_none())
     }
 

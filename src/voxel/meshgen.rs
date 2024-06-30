@@ -132,8 +132,8 @@ mod sn {
             let edge = EDGE[edge_i];
             let v0 = VERT[edge[0]];
             let v1 = VERT[edge[1]];
-            let c0 = chunk.get_voxel_rel(lp + v0);
-            let c1 = chunk.get_voxel_rel(lp + v1);
+            let c0 = chunk.get_voxel_rel_or_default(lp + v0);
+            let c1 = chunk.get_voxel_rel_or_default(lp + v1);
 
             if sn_signchanged(&c0, &c1) {
                 if let Some(t) = inverse_lerp(c0.isovalue()..=c1.isovalue(), 0.0) {
@@ -164,11 +164,11 @@ mod sn {
     // via Approxiate Differental Gradient
     fn sn_grad(lp: IVec3, chunk: &Chunk) -> Vec3 {
         // let E = 1;  // Epsilon
-        let val = chunk.get_voxel_rel(lp).isovalue();
+        let val = chunk.get_voxel_rel_or_default(lp).isovalue();
         vec3(
-            chunk.get_voxel_rel(lp + IVec3::X).isovalue() - val,
-            chunk.get_voxel_rel(lp + IVec3::Y).isovalue() - val,
-            chunk.get_voxel_rel(lp + IVec3::Z).isovalue() - val,
+            chunk.get_voxel_rel_or_default(lp + IVec3::X).isovalue() - val,
+            chunk.get_voxel_rel_or_default(lp + IVec3::Y).isovalue() - val,
+            chunk.get_voxel_rel_or_default(lp + IVec3::Z).isovalue() - val,
             // chunk.get_cell_rel(lp + IVec3::X).value - chunk.get_cell_rel(lp - IVec3::X).value,
             // chunk.get_cell_rel(lp + IVec3::Y).value - chunk.get_cell_rel(lp - IVec3::Y).value,
             // chunk.get_cell_rel(lp + IVec3::Z).value - chunk.get_cell_rel(lp - IVec3::Z).value,
@@ -187,7 +187,7 @@ mod sn {
 
                     // for 3 axes edges, if sign-changed, connect adjacent 4 cells' vertices
                     for axis_i in 0..3 {
-                        let c1 = match chunk.get_voxel_neib(lp + AXES[axis_i]) {
+                        let c1 = match chunk.get_voxel_rel(lp + AXES[axis_i]) {
                             None => continue, // do not generate face if it's a Nil Cell (non-loaded)
                             Some(c1) => c1,
                         };
@@ -201,7 +201,7 @@ mod sn {
                             let winded_vi = if winding_flip { 5 - quadvert_i } else { quadvert_i };
 
                             let p = lp + ADJACENT[axis_i][winded_vi];
-                            let c = chunk.get_voxel_rel(p);
+                            let c = chunk.get_voxel_rel_or_default(p);
 
                             let fp = sn_featurepoint(p, chunk);
                             let norm = -sn_grad(p, chunk);
@@ -210,7 +210,7 @@ mod sn {
                             let mut nearest_tex = c.tex_id;
                             let mut nearest_lit = 0;
                             for vert in VERT {
-                                let c = chunk.get_voxel_rel(p + vert);
+                                let c = chunk.get_voxel_rel_or_default(p + vert);
                                 if !c.is_isoval_empty() && c.isovalue() < nearest_val {
                                     nearest_val = c.isovalue();
                                     nearest_tex = c.tex_id;
@@ -266,7 +266,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]).as_ivec3(); // 18: 3 scalar * 3 vertex * 2 triangle
 
         // skip the face if there's Obaque Cube
-        let neib = chunk.get_voxel_rel(lp + face_dir);
+        let neib = chunk.get_voxel_rel_or_default(lp + face_dir);
         if  neib.is_obaque_cube() {
             continue;
         }

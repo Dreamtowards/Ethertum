@@ -4,8 +4,8 @@ use bevy::{ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap,
 use bevy_renet::renet::RenetClient;
 use bevy_xpbd_3d::prelude::*;
 
-// #[cfg(feature = "target_native_os")]
-// use bevy_atmosphere::prelude::*;
+#[cfg(feature = "target_native_os")]
+use bevy_atmosphere::prelude::*;
 
 use crate::client::prelude::*;
 use crate::item::ItemPlugin;
@@ -23,8 +23,8 @@ impl Plugin for ClientGamePlugin {
             // Atmosphere
             #[cfg(feature = "target_native_os")]
             {
-                // app.add_plugins(AtmospherePlugin);
-                // app.insert_resource(AtmosphereModel::default());
+                app.add_plugins(AtmospherePlugin);
+                app.insert_resource(AtmosphereModel::default());
             }
 
             // Billiboard
