@@ -111,11 +111,11 @@ fn debug_draw_gizmo(
 
     // World Basis Axes
     let n = 5;
-    gizmo.line(Vec3::ZERO, Vec3::X * 2. * n as f32, Color::RED);
-    gizmo.line(Vec3::ZERO, Vec3::Y * 2. * n as f32, Color::GREEN);
-    gizmo.line(Vec3::ZERO, Vec3::Z * 2. * n as f32, Color::BLUE);
+    gizmo.line(Vec3::ZERO, Vec3::X * 2. * n as f32, Srgba::RED);
+    gizmo.line(Vec3::ZERO, Vec3::Y * 2. * n as f32, Srgba::GREEN);
+    gizmo.line(Vec3::ZERO, Vec3::Z * 2. * n as f32, Srgba::BLUE);
 
-    let color = Color::GRAY;
+    let color = Srgba::gray(0.4);
     for x in -n..=n {
         gizmo.ray(vec3(x as f32, 0., -n as f32), Vec3::Z * n as f32 * 2., color);
     }
@@ -130,9 +130,9 @@ fn debug_draw_gizmo(
         let rot = cam_trans.rotation;
         let n = 0.03;
         let offset = vec3(0., 0., -0.5);
-        gizmo.ray(p + rot * offset, Vec3::X * n, Color::RED);
-        gizmo.ray(p + rot * offset, Vec3::Y * n, Color::GREEN);
-        gizmo.ray(p + rot * offset, Vec3::Z * n, Color::BLUE);
+        gizmo.ray(p + rot * offset, Vec3::X * n, Srgba::RED);
+        gizmo.ray(p + rot * offset, Vec3::Y * n, Srgba::GREEN);
+        gizmo.ray(p + rot * offset, Vec3::Z * n, Srgba::BLUE);
     }
 }
 
@@ -185,11 +185,11 @@ impl Default for ClientInfo {
             dbg_gizmo_curr_chunk: false,
             dbg_gizmo_all_loaded_chunks: false,
 
-            sky_fog_color: Color::rgba(0.0, 0.666, 1.0, 1.0),
+            sky_fog_color: Color::srgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0, // 280 for ExpSq, 1200 for Atmo
             sky_fog_is_atomspheric: true,
-            sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0), // bevy demo: Color::rgb(0.7, 0.844, 1.0),
-            sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
+            sky_inscattering_color: Color::srgb(110.0 / 255.0, 230.0 / 255.0, 1.0), // bevy demo: Color::rgb(0.7, 0.844, 1.0),
+            sky_extinction_color: Color::srgb(0.35, 0.5, 0.66),
 
             skylight_shadow: false,
             skylight_illuminance: 20.,
