@@ -15,7 +15,7 @@ pub fn init(app: &mut App) {
     app.insert_resource(ClientPlayerInfo::default());
     app.register_type::<ClientPlayerInfo>();
 
-    app.add_systems(Update, reinterpret_skybox_cubemap);
+    // app.add_systems(Update, reinterpret_skybox_cubemap);
 
     // World Setup/Cleanup, Tick
     app.add_systems(First, on_world_init.run_if(condition::load_world)); // Camera, Player, Sun
@@ -120,11 +120,11 @@ fn on_world_init(
     //     true,
     //     &cli.cfg.username, &asset_server, &mut meshes, &mut materials);
 
-    let skybox_image = asset_server.load("table_mountain_2_puresky_4k_cubemap.jpg");
-    cmds.insert_resource(SkyboxCubemap {
-        is_loaded: false,
-        image_handle: skybox_image.clone()
-    });
+    // let skybox_image = asset_server.load("table_mountain_2_puresky_4k_cubemap.jpg");
+    // cmds.insert_resource(SkyboxCubemap {
+    //     is_loaded: false,
+    //     image_handle: skybox_image.clone()
+    // });
 
     // Camera
     cmds.spawn((
@@ -133,22 +133,22 @@ fn on_world_init(
             // camera: Camera { hdr: true, ..default() },
             ..default()
         },
-        // #[cfg(feature = "target_native_os")]
-        // bevy_atmosphere::plugin::AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+        #[cfg(feature = "target_native_os")]
+        bevy_atmosphere::plugin::AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
         FogSettings {
             // color, falloff shoud be set in ClientInfo.sky_fog_visibility, etc. due to dynamic debug reason.
             // falloff: FogFalloff::Atmospheric { extinction: Vec3::ZERO, inscattering:  Vec3::ZERO },  // mark as Atmospheric. value will be re-set by ClientInfo.sky_fog...
             ..default()
         },
-        Skybox {
-            image: skybox_image.clone(),
-            brightness: 1000.0
-        },
-        EnvironmentMapLight {
-            diffuse_map: skybox_image.clone(),
-            specular_map: skybox_image.clone(),
-            intensity: 1000.0,
-        },
+        // Skybox {
+        //     image: skybox_image.clone(),
+        //     brightness: 1000.0
+        // },
+        // EnvironmentMapLight {
+        //     diffuse_map: skybox_image.clone(),
+        //     specular_map: skybox_image.clone(),
+        //     intensity: 1000.0,
+        // },
         CharacterControllerCamera,
         Name::new("Camera"),
         DespawnOnWorldUnload,

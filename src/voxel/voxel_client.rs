@@ -237,7 +237,7 @@ fn chunks_remesh_enqueue(
                 // let dbg_time = Instant::now() - dbg_time;
 
                 // vbuf.compute_flat_normals();
-                _vbuf.0.compute_smooth_normals();
+                // _vbuf.0.compute_smooth_normals();
 
                 // let nv = vbuf.vertices.len();
                 // vbuf.compute_indexed();  // save 70%+ vertex data space!
