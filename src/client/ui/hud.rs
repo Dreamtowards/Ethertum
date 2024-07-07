@@ -193,22 +193,22 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
     // chunk_sys: Res<ClientChunkSystem>,
 ) {
 
-    new_egui_window("VoxBrush")
-        .anchor(Align2::LEFT_BOTTOM, [cfg.hud_padding, -cfg.hud_padding])
-        .frame(Frame::default().fill(Color32::from_black_alpha(30)))
-        .show(ctx.ctx_mut(), |ui| {
+    // new_egui_window("VoxBrush")
+    //     .anchor(Align2::LEFT_BOTTOM, [cfg.hud_padding, -cfg.hud_padding])
+    //     .frame(Frame::default().fill(Color32::from_black_alpha(30)))
+    //     .show(ctx.ctx_mut(), |ui| {
 
-            ui_setting_line(ui, "Size", egui::Slider::new(&mut voxbrush.size, 0.0..=25.0));
-            ui_setting_line(ui, "Intensity", egui::Slider::new(&mut voxbrush.size, 0.0..=1.0));
-            ui_setting_line(ui, "Tex", egui::Slider::new(&mut voxbrush.tex, 0..=28));
+    //         ui_setting_line(ui, "Size", egui::Slider::new(&mut voxbrush.size, 0.0..=25.0));
+    //         ui_setting_line(ui, "Intensity", egui::Slider::new(&mut voxbrush.size, 0.0..=1.0));
+    //         ui_setting_line(ui, "Tex", egui::Slider::new(&mut voxbrush.tex, 0..=28));
 
-            // ui.painter().image(ctx.add_image(chunk_sys.mtl_terrain), rect, uv, tint)
+    //         // ui.painter().image(ctx.add_image(chunk_sys.mtl_terrain), rect, uv, tint)
 
-            if ui.btn("Cube").clicked() {
-                voxbrush.size = 1.;
-                voxbrush.shape = VoxShape::Cube;
-            }
-        });
+    //         if ui.btn("Cube").clicked() {
+    //             voxbrush.size = 1.;
+    //             voxbrush.shape = VoxShape::Cube;
+    //         }
+    //     });
 
     egui::Window::new("HUD Hotbar")
         .title_bar(false)

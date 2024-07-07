@@ -152,7 +152,8 @@ fn fragment(
     let vi_mtl = vi_height_max;
 
     let dram = select(select(vDRAM[2], vDRAM[1], vi_mtl==1), vDRAM[0], vi_mtl==0);  // vDRAM[vi_mtl]
-    let roughness = dram.g;//pow(dram.y, 50.);
+    var roughness = dram.g;
+    roughness = pow(roughness, 0.3);
     let metallic  = dram.a;
     let occlusion = dram.b;
 // #endif
@@ -181,14 +182,16 @@ fn fragment(
     vert_out.world_normal = world_normal;
     // vert_out.world_normal = normalize(world_normal + in.world_normal);
     vert_out.instance_index = in.instance_index;
-    var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
 
-    pbr_in.material.base_color = base_color; 
+    var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
+    pbr_in.material.base_color = base_color;
     pbr_in.material.perceptual_roughness = roughness;
     pbr_in.material.reflectance = 1.0 - roughness;
+    pbr_in.material.specular_transmission = 1.0 - roughness;
     // pbr_in.material.ior = 0.99;
-    pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);
-    // pbr_in.occlusion = vec3<f32>(occlusion);
+    // pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);
+    pbr_in.diffuse_occlusion = vec3<f32>(pow(occlusion, 0.4));
+    pbr_in.specular_occlusion = occlusion;
     
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
 
@@ -198,6 +201,8 @@ fn fragment(
     // var color = base_color;
     // color = vec4<f32>(vec3<f32>(select(0.0, 1.0, round(mtls[vi_mtl]) == 10.)), 1.0); 
     // color = vec4<f32>(bary, 1.0); 
-    // color = vec4<f32>(world_normal, 1.0); 
+    // color = vec4<f32>((world_normal+1.0)/2.0, 1.0); 
+    // color = vec4<f32>(vec3<f32>(occlusion), 1.0); 
+    // color.a = 1.0;
     return color;
 }
