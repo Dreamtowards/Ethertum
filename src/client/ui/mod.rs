@@ -203,8 +203,8 @@ fn play_bgm(asset_server: Res<AssetServer>, mut cmds: Commands, mut limbo_played
         let ls = [
             "sounds/music/limbo.ogg",
             "sounds/music/dead_voxel.ogg",
-            "sounds/music/milky_way_wishes.ogg",
-            "sounds/music/gion.ogg",
+            // "sounds/music/milky_way_wishes.ogg",
+            // "sounds/music/gion.ogg",
             "sounds/music/radiance.ogg",
         ];
 

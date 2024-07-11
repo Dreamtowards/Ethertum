@@ -11,7 +11,7 @@
 // }
 // impl Eq for HashVec3 {}
 
-use std::hash::Hash;
+use std::{fmt::Error, hash::Hash};
 use std::ops::Mul;
 
 use bevy::{prelude::*, render::mesh::Indices, utils::HashMap};
@@ -202,5 +202,31 @@ impl VertexBuffer {
         if self.is_indexed() {
             mesh.insert_indices(Indices::U32(self.indices.clone()));
         }
+    }
+
+    pub fn export_obj(&self) -> Result<String, Error> {
+        use std::fmt::Write;
+        let mut buf = String::new();
+        let num_verts = self.vertex_count() as u32;
+
+        for i in 0..num_verts {
+            let v = self.vert(i);
+            writeln!(buf, "v {} {} {}", v.pos.x, v.pos.y, v.pos.z)?;
+        }
+        for i in 0..num_verts {
+            let v = self.vert(i);
+            writeln!(&mut buf, "vt {} {}", v.uv.x, v.uv.y)?;
+        }
+        for i in 0..num_verts {
+            let v = self.vert(i);
+            writeln!(&mut buf, "vn {} {} {}", v.norm.x, v.norm.y, v.norm.z)?;
+        }
+
+        for _ti in 0..num_verts/3 {
+            let i = _ti*3 + 1; // global index offset 1, obj spec.
+            writeln!(&mut buf, "f {}/{}/{} {}/{}/{} {}/{}/{}", i,i,i,i+1,i+1,i+1,i+2,i+2,i+2)?;
+        }
+
+        Ok(buf)
     }
 }

@@ -191,7 +191,7 @@ impl Default for ClientInfo {
             sky_inscattering_color: Color::rgb(110.0 / 255.0, 230.0 / 255.0, 1.0), // bevy demo: Color::rgb(0.7, 0.844, 1.0),
             sky_extinction_color: Color::rgb(0.35, 0.5, 0.66),
 
-            skylight_shadow: false,
+            skylight_shadow: true,
             skylight_illuminance: 20.,
 
             enable_cursor_look: true,

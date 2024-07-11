@@ -27,6 +27,8 @@ impl Plugin for ClientVoxelPlugin {
         // Render Shader.
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
         app.register_asset_reflect::<TerrainMaterial>(); // debug
+        app.add_plugins(MaterialPlugin::<FoliageMaterial>::default());
+        app.register_asset_reflect::<FoliageMaterial>(); // debug
 
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
@@ -71,7 +73,7 @@ fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
-    mut std_mtls: ResMut<Assets<StandardMaterial>>,
+    mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
 ) {
     info!("Init ClientChunkSystem");
     let mut chunk_sys = ClientChunkSystem::new();
@@ -83,13 +85,17 @@ fn on_world_init(
         ..default()
     });
 
-    chunk_sys.mtl_foliage = std_mtls.add(StandardMaterial {
-        base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
-        // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
-        double_sided: true,
-        alpha_mode: AlphaMode::Mask(0.5),
-        cull_mode: None,
-        unlit: true,
+    // chunk_sys.mtl_foliage = std_mtls.add(StandardMaterial {
+    //     base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
+    //     // normal_map_texture: if has_norm {Some(asset_server.load(format!("models/{name}/norm.png")))} else {None},
+    //     double_sided: true,
+    //     alpha_mode: AlphaMode::Mask(0.5),
+    //     cull_mode: None,
+    //     unlit: true,
+    //     ..default()
+    // });
+    chunk_sys.mtl_foliage = foliage_mtls.add(FoliageMaterial {
+        texture_diffuse: Some(asset_server.load("baked/atlas_diff_foli.png")),
         ..default()
     });
 
@@ -190,7 +196,12 @@ fn chunks_remesh_enqueue(
 
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
+
+    mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
+    time: Res<Time>,
 ) {
+    foliage_mtls.get_mut(chunk_sys.mtl_foliage.clone()).unwrap().time = time.elapsed_seconds();
+
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
     // Sort by Distance from the Camera.
@@ -502,7 +513,7 @@ pub struct ClientChunkSystem {
     pub chunks_remesh: HashSet<IVec3>,
 
     pub mtl_terrain: Handle<TerrainMaterial>,
-    pub mtl_foliage: Handle<StandardMaterial>,
+    pub mtl_foliage: Handle<FoliageMaterial>,
     pub entity: Entity,
 
     pub max_concurrent_meshing: usize,
@@ -689,7 +700,7 @@ impl Default for TerrainMaterial {
             texture_normal: None,
             texture_dram: None,
 
-            wasm0: Vec4::new(1.0, 1.0, 4.5, 0.48),
+            wasm0: Vec4::new(1.5, 1.0, 4.5, 0.48),
             // sample_scale: 1.0,
             // normal_intensity: 1.0,s
             // triplanar_blend_pow: 4.5,
@@ -719,17 +730,17 @@ pub struct FoliageMaterial {
     #[sampler(0)]
     #[texture(1)]
     pub texture_diffuse: Option<Handle<Image>>,
-    // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
-    // #[uniform(4)]
-    // pub wasm0: Vec4,
-    // pub sample_scale: f32,
-    // #[uniform(5)]
-    // pub normal_intensity: f32,
+    
+    #[uniform(2)]
+    pub time: f32,
 }
 
 impl Default for FoliageMaterial {
     fn default() -> Self {
-        Self { texture_diffuse: None }
+        Self { 
+            texture_diffuse: None ,
+            time: 0.,
+        }
     }
 }
 
@@ -742,6 +753,18 @@ impl Material for FoliageMaterial {
     }
 
     fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Opaque
+        AlphaMode::Mask(0.5)
+    }
+
+    fn specialize(
+            _pipeline: &bevy::pbr::MaterialPipeline<Self>,
+            descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
+            _layout: &bevy::render::mesh::MeshVertexBufferLayout,
+            _key: bevy::pbr::MaterialPipelineKey<Self>,
+        ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
+        
+
+        descriptor.primitive.cull_mode = None;
+        Ok(())
     }
 }

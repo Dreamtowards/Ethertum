@@ -284,7 +284,7 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
 }
 
 // put a -X face in middle of pos. for foliages.
-fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: Vec2) {
+pub fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: Vec2) {
     // -X Face
     for i in 0..6 {
         // 6 verts
@@ -303,17 +303,17 @@ fn put_face(vbuf: &mut VertexBuffer, tex_id: u16, pos: Vec3, rot: Quat, scale: V
     }
 }
 
-fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
-    let deg45 = PI / 4.;
+pub fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
+    let deg45 = PI / 4.0;
     let siz = 1.4;
 
     put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4, 1.0) * siz);
-    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, -deg45), vec2(1.4, 1.0) * siz);
-    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, deg45), vec2(1.0, 1.4) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45*3.0), vec2(1.4, 1.0) * siz);
     put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, -deg45), vec2(1.0, 1.4) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, -deg45*3.0), vec2(1.0, 1.4) * siz);
 }
 
-fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
+pub fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let ang = PI / 3.0;
     let siz = 1.4;
 
