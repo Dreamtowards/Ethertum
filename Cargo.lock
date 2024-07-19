@@ -1130,7 +1130,6 @@ dependencies = [
  "bevy_tasks 0.13.2",
  "bevy_utils 0.13.2",
  "bytemuck",
- "serde",
 ]
 
 [[package]]
@@ -1144,6 +1143,7 @@ dependencies = [
  "bevy_reflect 0.14.0",
  "bevy_tasks 0.14.0",
  "bevy_utils 0.14.0",
+ "serde",
  "uuid",
 ]
 
@@ -1528,22 +1528,6 @@ dependencies = [
 
 [[package]]
 name = "bevy_gilrs"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d133c65ab756f130c65cf00f37dc293fb9a9336c891802baf006c63e300d0e2"
-dependencies = [
- "bevy_app 0.13.2",
- "bevy_ecs 0.13.2",
- "bevy_input 0.13.2",
- "bevy_log 0.13.2",
- "bevy_time 0.13.2",
- "bevy_utils 0.13.2",
- "gilrs",
- "thiserror",
-]
-
-[[package]]
-name = "bevy_gilrs"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbad8e59470c3d5cf25aa8c48462c4cf6f0c6314538c68ab2f5cf393146f0fc2"
@@ -1775,7 +1759,6 @@ dependencies = [
  "bevy_math 0.13.2",
  "bevy_reflect 0.13.2",
  "bevy_utils 0.13.2",
- "serde",
  "smol_str",
  "thiserror",
 ]
@@ -1791,6 +1774,7 @@ dependencies = [
  "bevy_math 0.14.0",
  "bevy_reflect 0.14.0",
  "bevy_utils 0.14.0",
+ "serde",
  "smol_str",
  "thiserror",
 ]
@@ -1848,7 +1832,6 @@ dependencies = [
  "bevy_derive 0.13.2",
  "bevy_diagnostic 0.13.2",
  "bevy_ecs 0.13.2",
- "bevy_gilrs 0.13.2",
  "bevy_gizmos 0.13.2",
  "bevy_hierarchy 0.13.2",
  "bevy_input 0.13.2",
@@ -2027,6 +2010,7 @@ dependencies = [
  "bevy_reflect 0.14.0",
  "glam 0.27.0",
  "rand",
+ "serde",
  "smallvec",
  "thiserror",
 ]
@@ -2060,11 +2044,11 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_billboard"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70fc73f4c2714b93b4f602236320d20c5b21a622b1cef082152fbabdd40709a1"
+checksum = "e7fcf796f109d285725c5cbb4c38f6f93b809c7dbea14bc19c5b94ce01ad59de"
 dependencies = [
- "bevy 0.13.2",
+ "bevy 0.14.0",
  "bitflags 2.5.0",
  "smallvec",
 ]
@@ -2466,11 +2450,10 @@ dependencies = [
 
 [[package]]
 name = "bevy_renet"
-version = "0.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0fc70a7997a4dd9398fee95578465a667d096658f9829969f8a28eaa75d5a05"
+version = "0.0.12"
+source = "git+https://github.com/raffaeleragni/renet.git#f36762ca7cf338300159be6206c191928a019f41"
 dependencies = [
- "bevy 0.13.2",
+ "bevy 0.14.0",
  "renet",
 ]
 
@@ -2772,7 +2755,6 @@ dependencies = [
  "bevy_reflect 0.13.2",
  "bevy_utils 0.13.2",
  "crossbeam-channel",
- "serde",
  "thiserror",
 ]
 
@@ -2787,6 +2769,7 @@ dependencies = [
  "bevy_reflect 0.14.0",
  "bevy_utils 0.14.0",
  "crossbeam-channel",
+ "serde",
  "thiserror",
 ]
 
@@ -2825,7 +2808,6 @@ dependencies = [
  "bevy_hierarchy 0.13.2",
  "bevy_math 0.13.2",
  "bevy_reflect 0.13.2",
- "serde",
  "thiserror",
 ]
 
@@ -2840,6 +2822,7 @@ dependencies = [
  "bevy_hierarchy 0.14.0",
  "bevy_math 0.14.0",
  "bevy_reflect 0.14.0",
+ "serde",
  "thiserror",
 ]
 
@@ -2897,7 +2880,6 @@ dependencies = [
  "bevy_utils 0.13.2",
  "bevy_window 0.13.2",
  "bytemuck",
- "serde",
  "taffy 0.3.18",
  "thiserror",
 ]
@@ -2927,6 +2909,7 @@ dependencies = [
  "bevy_window 0.14.0",
  "bytemuck",
  "nonmax",
+ "serde",
  "smallvec",
  "taffy 0.5.1",
  "thiserror",
@@ -3047,7 +3030,6 @@ dependencies = [
  "bevy_reflect 0.13.2",
  "bevy_utils 0.13.2",
  "raw-window-handle 0.6.0",
- "serde",
  "smol_str",
 ]
 
@@ -3064,6 +3046,7 @@ dependencies = [
  "bevy_reflect 0.14.0",
  "bevy_utils 0.14.0",
  "raw-window-handle 0.6.0",
+ "serde",
  "smol_str",
 ]
 
@@ -3140,6 +3123,7 @@ dependencies = [
  "cfg-if",
  "crossbeam-channel",
  "raw-window-handle 0.6.0",
+ "serde",
  "wasm-bindgen",
  "web-sys",
  "winit 0.30.3",
@@ -3185,11 +3169,11 @@ dependencies = [
 
 [[package]]
 name = "bit-set"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0481a0e032742109b1133a095184ee93d88f3dc9e0d28a5d033dc77a073f44f"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
 dependencies = [
- "bit-vec 0.7.0",
+ "bit-vec 0.8.0",
 ]
 
 [[package]]
@@ -3200,9 +3184,9 @@ checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
 
 [[package]]
 name = "bit-vec"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c54ff287cfc0a34f38a6b832ea1bd8e448a330b3e40a50859e6488bee07f22"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bit_field"
@@ -4002,12 +3986,6 @@ dependencies = [
 
 [[package]]
 name = "ecolor"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20930a432bbd57a6d55e07976089708d4893f3d556cf42a0d79e9e321fa73b10"
-
-[[package]]
-name = "ecolor"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e6b451ff1143f6de0f33fc7f1b68fecfd2c7de06e104de96c4514de3f5396f8"
@@ -4024,17 +4002,6 @@ checksum = "180f595432a5b615fc6b74afef3955249b86cfea72607b40740a4cd60d5297d0"
 dependencies = [
  "ahash",
  "epaint 0.26.2",
- "nohash-hasher",
-]
-
-[[package]]
-name = "egui"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "584c5d1bf9a67b25778a3323af222dbe1a1feb532190e103901187f92c7fe29a"
-dependencies = [
- "ahash",
- "epaint 0.27.2",
  "nohash-hasher",
 ]
 
@@ -4063,11 +4030,11 @@ dependencies = [
 
 [[package]]
 name = "egui-notify"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "319327faee7bb116bcdbe43af1b8cbea06dc5d9ddbb23d35e012949afbd76cde"
+checksum = "d0c6c49d9c02771e28f3b40289c16b4473308807b1ed09a878713d7f11e3dcad"
 dependencies = [
- "egui 0.27.2",
+ "egui 0.28.1",
 ]
 
 [[package]]
@@ -4107,12 +4074,6 @@ checksum = "6916301ecf80448f786cdf3eb51d9dbdd831538732229d49119e2d4312eaaf09"
 dependencies = [
  "bytemuck",
 ]
-
-[[package]]
-name = "emath"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4c3a552cfca14630702449d35f41c84a0d15963273771c6059175a803620f3f"
 
 [[package]]
 name = "emath"
@@ -4280,20 +4241,6 @@ dependencies = [
 
 [[package]]
 name = "epaint"
-version = "0.27.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b381f8b149657a4acf837095351839f32cd5c4aec1817fc4df84e18d76334176"
-dependencies = [
- "ab_glyph",
- "ahash",
- "ecolor 0.27.2",
- "emath 0.27.2",
- "nohash-hasher",
- "parking_lot",
-]
-
-[[package]]
-name = "epaint"
 version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f0dcc0a0771e7500e94cd1cb797bd13c9f23b9409bdc3c824e2cbc562b7fa01"
@@ -4364,7 +4311,7 @@ dependencies = [
  "bevy_renet",
  "bevy_touch_stick",
  "bincode",
- "bit-set 0.6.0",
+ "bit-set 0.8.0",
  "chrono",
  "crossbeam-channel",
  "egui-notify",
@@ -5307,7 +5254,6 @@ dependencies = [
  "bytemuck",
  "byteorder",
  "color_quant",
- "jpeg-decoder",
  "num-traits",
  "png",
  "tiff",
@@ -5616,13 +5562,13 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "leafwing-input-manager"
-version = "0.13.3"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "def515aa1461ed6ed5d55d53cea6c7149a3076c331cfea1d920682884bfaf839"
+checksum = "bebb7f3227809906ca7ccc981aedf7805b5edb422b4265290cc749316c0faba4"
 dependencies = [
- "bevy 0.13.2",
+ "bevy 0.14.0",
  "derive_more",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "leafwing_input_manager_macros",
  "serde",
 ]
@@ -6787,9 +6733,9 @@ dependencies = [
 
 [[package]]
 name = "octets"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a74f2cda724d43a0a63140af89836d4e7db6138ef67c9f96d3a0f0150d05000"
+checksum = "109983a091271ee8916076731ba5fdc9ee22fea871bc7c6ceab9bfd423eb1d99"
 
 [[package]]
 name = "ogg"
@@ -7399,10 +7345,9 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 [[package]]
 name = "renet"
 version = "0.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93286238bc6ca687203a4ce476360fe2690255e77305a204403c8628e49ab69a"
+source = "git+https://github.com/raffaeleragni/renet.git#f36762ca7cf338300159be6206c191928a019f41"
 dependencies = [
- "bevy_ecs 0.13.2",
+ "bevy_ecs 0.14.0",
  "bytes",
  "log",
  "octets",
@@ -7412,8 +7357,7 @@ dependencies = [
 [[package]]
 name = "renetcode"
 version = "0.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a164cf662b1d663cc8faaa199154b0134d8202beaed0b57bbf8ed7e428232a7"
+source = "git+https://github.com/raffaeleragni/renet.git#f36762ca7cf338300159be6206c191928a019f41"
 dependencies = [
  "chacha20poly1305",
  "log",
@@ -7655,19 +7599,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "sctk-adwaita"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82b2eaf3a5b264a521b988b2e73042e742df700c4f962cde845d1541adb46550"
-dependencies = [
- "ab_glyph",
- "log",
- "memmap2",
- "smithay-client-toolkit",
- "tiny-skia",
-]
 
 [[package]]
 name = "sctk-adwaita"
@@ -9567,7 +9498,6 @@ version = "0.29.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d59ad965a635657faf09c8f062badd885748428933dad8e8bdd64064d92e5ca"
 dependencies = [
- "ahash",
  "android-activity 0.5.2",
  "atomic-waker",
  "bitflags 2.5.0",
@@ -9581,7 +9511,6 @@ dependencies = [
  "js-sys",
  "libc",
  "log",
- "memmap2",
  "ndk 0.8.0",
  "ndk-sys 0.5.0+25.2.9519653",
  "objc2 0.4.1",
@@ -9591,16 +9520,10 @@ dependencies = [
  "raw-window-handle 0.6.0",
  "redox_syscall 0.3.5",
  "rustix",
- "sctk-adwaita 0.8.1",
- "smithay-client-toolkit",
  "smol_str",
  "unicode-segmentation",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wayland-backend",
- "wayland-client",
- "wayland-protocols",
- "wayland-protocols-plasma",
  "web-sys",
  "web-time 0.2.4",
  "windows-sys 0.48.0",
@@ -9642,7 +9565,7 @@ dependencies = [
  "raw-window-handle 0.6.0",
  "redox_syscall 0.4.1",
  "rustix",
- "sctk-adwaita 0.9.1",
+ "sctk-adwaita",
  "smithay-client-toolkit",
  "smol_str",
  "tracing",

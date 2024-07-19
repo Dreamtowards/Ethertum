@@ -1,17 +1,10 @@
 use bevy::{
-    asset::ReflectAsset,
-    prelude::*,
-    render::{
+    asset::ReflectAsset, color::palettes::css, prelude::*, render::{
         render_asset::RenderAssetUsages,
         render_resource::{AsBindGroup, PrimitiveTopology},
-    },
-    tasks::AsyncComputeTaskPool,
-    utils::{HashMap, HashSet},
+    }, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}
 };
-use bevy_xpbd_3d::{plugins::{
-    collision::Collider,
-    spatial_query::{SpatialQuery, SpatialQueryFilter},
-}, PhysicsSet};
+use avian3d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 use super::{meshgen, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
@@ -200,13 +193,13 @@ fn chunks_remesh_enqueue(
     mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
     time: Res<Time>,
 ) {
-    foliage_mtls.get_mut(chunk_sys.mtl_foliage.clone()).unwrap().time = time.elapsed_seconds();
+    foliage_mtls.get_mut(chunk_sys.mtl_foliage.id()).unwrap().time = time.elapsed_seconds();
 
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
     // Sort by Distance from the Camera.
     let cam_cp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());
-    chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::utils::FloatOrd(cp.distance_squared(cam_cp) as f32));
+    chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::math::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
         if chunk_sys.chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
@@ -299,9 +292,9 @@ fn chunks_remesh_enqueue(
 
     while let Ok((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
         // Update Mesh Asset
-        *meshes.get_mut(mesh_handle).unwrap() = mesh;
+        *meshes.get_mut(mesh_handle.id()).unwrap() = mesh;
 
-        *meshes.get_mut(mesh_handle_foliage).unwrap() = mesh_foliage;
+        *meshes.get_mut(mesh_handle_foliage.id()).unwrap() = mesh_foliage;
 
         // Update Phys Collider TriMesh
         if let Some(collider) = collider {
@@ -366,7 +359,7 @@ fn raycast(
 
     if let Some(hit) = spatial_query.cast_ray(
         ray_pos,
-        Direction3d::new_unchecked(ray_dir),
+        ray_dir,
         100.,
         true,
         SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
@@ -376,7 +369,7 @@ fn raycast(
         // hit_result.entity = hit.entity;
         let dist = hit.time_of_impact;
         hit_result.distance = dist;
-        hit_result.position = ray_pos + ray_dir * dist;
+        hit_result.position = ray_pos + ray_dir.as_vec3() * dist;
 
         // commands.entity(hit.entity)
 
@@ -467,7 +460,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         for cp in chunk_sys.get_chunks().keys() {
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
-                Color::DARK_GRAY,
+                Srgba::gray(0.25),
             );
         }
     }
@@ -477,7 +470,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
             let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
-                Color::GRAY,
+                Srgba::gray(0.7),
             );
         }
     }
@@ -487,7 +480,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         for cp in chunk_sys.chunks_remesh.iter() {
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
-                Color::ORANGE,
+                css::ORANGE,
             );
         }
 
@@ -495,7 +488,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         for cp in chunk_sys.chunks_meshing.iter() {
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
-                Color::RED,
+                css::RED,
             );
         }
     }
@@ -571,7 +564,7 @@ impl ClientChunkSystem {
                     ..default()
                 },
                 aabb,
-                bevy_xpbd_3d::components::RigidBody::Static,
+                avian3d::prelude::RigidBody::Static,
             ))
             .with_children(|parent| {
                 parent.spawn((
@@ -759,7 +752,7 @@ impl Material for FoliageMaterial {
     fn specialize(
             _pipeline: &bevy::pbr::MaterialPipeline<Self>,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-            _layout: &bevy::render::mesh::MeshVertexBufferLayout,
+            _layout: &bevy::render::mesh::MeshVertexBufferLayoutRef,
             _key: bevy::pbr::MaterialPipelineKey<Self>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         

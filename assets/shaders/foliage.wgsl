@@ -21,8 +21,8 @@ fn vertex(
     in: Vertex,
 ) -> VertexOutput {
 
-    let model = mesh_functions::get_model_matrix(in.instance_index);
     let inst_idx = in.instance_index;
+    let model = mesh_functions::get_world_from_local(inst_idx);
 
     var localpos = in.position;
     var wave_speed = 0.8;

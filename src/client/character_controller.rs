@@ -7,14 +7,7 @@ use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*, transform::TransformSystem,
 };
-use avian3d::{
-    components::*,
-    parry::na::ComplexField,
-    plugins::{
-        collision::Collider,
-        spatial_query::{ShapeCaster, ShapeHits},
-    },
-};
+use avian3d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 
 pub struct CharacterControllerPlugin;
@@ -51,7 +44,7 @@ impl CharacterControllerBundle {
             character_controller,
             rigid_body: RigidBody::Dynamic,
             collider,
-            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Direction3d::new_unchecked(Vec3::NEG_Y))
+            ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Dir3::NEG_Y)
                 .with_max_time_of_impact(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
@@ -268,7 +261,9 @@ fn input_move(
                 // if ctl.max_slope_angle == 0. {
                 //     true
                 // } else {
-                rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
+                // rotation.rotate(-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
+                // WTF is this mean?
+                (-hit.normal2).angle_between(Vec3::Y).abs() <= ctl.max_slope_angle
                 // }
             });
 
@@ -360,11 +355,11 @@ fn input_move(
 
         // Damping
         if ctl.is_flying {
-            linvel.0 *= 0.01.powf(dt_sec);
+            linvel.0 *= 0.01f32.powf(dt_sec);
         } else {
-            let mut damping_factor = 0.0001.powf(dt_sec);
+            let mut damping_factor = 0.0001f32.powf(dt_sec);
             if !ctl.is_grounded {
-                damping_factor = 0.07.powf(dt_sec);
+                damping_factor = 0.07f32.powf(dt_sec);
             }
 
             // We could use `LinearDamping`, but we don't want to dampen movement along the Y axis

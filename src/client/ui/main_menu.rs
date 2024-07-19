@@ -67,7 +67,7 @@ pub fn ui_main_menu(
                 cli.data().curr_ui = CurrentUI::Settings;
             }
             if ui.btn_normal("Terminate").clicked() {
-                app_exit_events.send(AppExit);
+                app_exit_events.send(AppExit::Success);
             }
         });
 

@@ -124,9 +124,8 @@ pub fn new_egui_window(title: &str) -> egui::Window {
     w
 }
 
-pub fn color32_of(c: Color) -> Color32 {
-    let c = c.as_rgba_u8();
-    Color32::from_rgba_premultiplied(c[0], c[1], c[2], c[3])
+pub fn color32_of(c: Srgba) -> Color32 {
+    Color32::from_rgba_premultiplied((c.red*255.) as u8, (c.green*255.) as u8, (c.blue*255.) as u8, (c.alpha*255.) as u8)
 }
 
 pub fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {

@@ -6,7 +6,7 @@ use bevy_renet::{
     transport::NetcodeClientPlugin,
     RenetClientPlugin,
 };
-use bevy_xpbd_3d::plugins::collision::Collider;
+use avian3d::prelude::*;
 
 use crate::{
     client::prelude::*,
@@ -240,7 +240,7 @@ pub fn spawn_player(
         }
         parent.spawn(SpotLightBundle {
             spot_light: SpotLight {
-                color: Color::YELLOW,
+                color: bevy::color::palettes::css::YELLOW.into(),
                 intensity: 3200.,
                 ..default()
             },
@@ -267,7 +267,7 @@ pub fn spawn_player(
                         ..default()
                     },
                     sprite: Sprite {
-                        color: Color::ORANGE,
+                        color: bevy::color::palettes::css::ORANGE.into(),
                         custom_size: Some(Vec2::splat(50. / f32::sqrt(2.))),
                         ..default()
                     },

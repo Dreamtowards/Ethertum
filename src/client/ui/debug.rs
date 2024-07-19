@@ -31,8 +31,8 @@ pub fn ui_menu_panel(
     // const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     // const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
     // const ORANGE: Color = Color::rgb(0.741, 0.345, 0.133);
-    const DARK_RED: Color = Color::rgb(0.525, 0.106, 0.176);
-    const DARK: Color = Color::rgba(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
+    const DARK_RED: Srgba = Srgba::rgb(0.525, 0.106, 0.176);
+    const DARK: Srgba = Srgba::new(0., 0., 0., 0.800); // 0.176, 0.176, 0.176
     let bg = if worldinfo.is_some() && worldinfo.as_ref().unwrap().is_paused {
         color32_of(DARK_RED)
     } else {
@@ -143,7 +143,7 @@ pub fn ui_menu_panel(
                             ui.button("About").clicked();
                             ui.separator();
                             if ui.button("Terminate").clicked() {
-                                app_exit_events.send(AppExit);
+                                app_exit_events.send(AppExit::Success);
                             }
                         });
                         ui.menu_button("Voxel", |ui| {

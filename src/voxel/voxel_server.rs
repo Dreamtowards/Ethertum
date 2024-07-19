@@ -4,7 +4,7 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 use bevy_renet::renet::RenetServer;
-use bevy_xpbd_3d::components::RigidBody;
+use avian3d::prelude::*;
 use std::sync::Arc;
 
 use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};

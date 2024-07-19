@@ -25,7 +25,7 @@ fn vertex(
     in: Vertex,
 ) -> MyVertexOutput {
 
-    let model = mesh_functions::get_model_matrix(in.instance_index);
+    let model = mesh_functions::get_world_from_local(in.instance_index);
     let inst_idx = in.instance_index;
 
     var out: MyVertexOutput;

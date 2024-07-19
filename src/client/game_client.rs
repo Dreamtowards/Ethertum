@@ -2,7 +2,7 @@ use std::net::ToSocketAddrs;
 
 use bevy::{ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*};
 use bevy_renet::renet::RenetClient;
-use bevy_xpbd_3d::prelude::*;
+use avian3d::prelude::*;
 
 #[cfg(feature = "target_native_os")]
 use bevy_atmosphere::prelude::*;
