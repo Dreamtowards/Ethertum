@@ -19,32 +19,32 @@ experimental_channel = []
 
 
 [dev-dependencies]
-bevy = { version = "0.13.2", features = ["dynamic_linking", "file_watcher", "trace_chrome", "jpeg"] }
+bevy = { version = "0.14", features = ["dynamic_linking", "file_watcher", "trace_chrome", "jpeg"] }
 # cargo run --features bevy/trace_tracy
 
 
 [dependencies]
-bevy = { version = "0.13.2", features = ["jpeg"] }
+bevy = { version = "0.14", features = ["jpeg"] }
 
-bevy_xpbd_3d = "0.4"
-bevy_renet = "0.0.11"
+avian3d = "0.1"
+bevy_renet = { git = "https://github.com/raffaeleragni/renet.git" }
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
 
 #bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
 #bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-bevy_egui = "0.27"
-bevy-inspector-egui = "0.24"
+bevy_egui = "0.28"
+bevy-inspector-egui = "0.25"
 bevy_editor_pls = { version = "0.8", optional = true }
 bevy_touch_stick = { version = "0.2" }
-egui_extras = { version = "0.27", default-features = false, features = [] }
-egui-notify = "0.14"
-leafwing-input-manager = { version = "0.13" }
+egui_extras = { version = "0.28", default-features = false, features = [] }
+egui-notify = "0.15"
+leafwing-input-manager = { version = "0.14" }
 
-bevy_atmosphere = { version = "0.9", optional = true }
-bevy_mod_billboard = "0.5"
-bevy_common_assets = { version = "0.10", features = ["json"] }
-bevy_obj = "0.13"
+bevy_atmosphere = { version = "0.10", optional = true }
+bevy_mod_billboard = "0.7"
+bevy_common_assets = { version = "0.11", features = ["json"] }
+bevy_obj = "0.14"
 
 noise = "0.9"
 bincode = "1.3"
@@ -70,7 +70,7 @@ rand = "0.8"
 instant = "0.1"
 crossbeam-channel = "0.5"
 shlex = "1.3"
-bit-set = "0.5"
+bit-set = "0.8"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json", "blocking", "rustls-tls"] }

@@ -7,14 +7,13 @@ use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
     prelude::*, transform::TransformSystem,
 };
-use bevy_xpbd_3d::{
+use avian3d::{
     components::*,
     parry::na::ComplexField,
     plugins::{
         collision::Collider,
         spatial_query::{ShapeCaster, ShapeHits},
     },
-    PhysicsSet,
 };
 use leafwing_input_manager::action_state::ActionState;
 
