@@ -15,8 +15,9 @@ pub struct Chunk {
     pub is_populated: bool,
 
     pub entity: Entity,
-    pub mesh_handle: Handle<Mesh>, // solid terrain
+    pub mesh_handle_terrain: Handle<Mesh>, // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
+    pub mesh_handle_liquid: Handle<Mesh>,
 
     // cached neighbor chunks that loaded to the ChunkSystem.
     // for Quick Access without global find neighbor chunk by chunkpos
@@ -39,8 +40,9 @@ impl Chunk {
             neighbor_chunks: Default::default(),
             chunkptr_weak: Weak::default(),
             entity: Entity::PLACEHOLDER,
-            mesh_handle: Handle::default(),
+            mesh_handle_terrain: Handle::default(),
             mesh_handle_foliage: Handle::default(),
+            mesh_handle_liquid: Handle::default(),
         }
     }
 

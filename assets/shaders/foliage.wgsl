@@ -1,6 +1,10 @@
 
-#import bevy_pbr::forward_io::VertexOutput
+// #import bevy_pbr::prepass_io::FragmentOutput
+// #import bevy_pbr::prepass_io::Vertex
+// #import bevy_pbr::prepass_io::VertexOutput
+
 #import bevy_pbr::forward_io::Vertex
+#import bevy_pbr::forward_io::VertexOutput
 #import bevy_pbr::mesh_functions
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
@@ -43,6 +47,7 @@ fn vertex(
 }
 
 
+
 @fragment
 fn fragment(
     in: VertexOutput,
@@ -68,6 +73,7 @@ fn fragment(
     // pbr_in.diffuse_occlusion = vec3<f32>(1.0);
     // pbr_in.specular_occlusion = 0.0;
     
+
     var color = pbr_functions::apply_pbr_lighting(pbr_in);
 
     pbr_in.material.flags |= pbr_types::STANDARD_MATERIAL_FLAGS_FOG_ENABLED_BIT;  // enable fog
@@ -77,4 +83,6 @@ fn fragment(
     // color = vec4<f32>((worldnorm+1.0)/2.0, 1.0); 
     // color = vec4<f32>(worldnorm, 1.0);
     return color;
+
+    // return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_in);
 }

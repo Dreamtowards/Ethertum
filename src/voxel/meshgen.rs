@@ -24,7 +24,7 @@ pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
                 let vox = chunk.at_voxel(lp);
 
                 if !vox.is_nil() && vox.is_cube() {
-                    put_cube(vbuf, lp, chunk, vox.tex_id);
+                    put_cube(vbuf, lp, chunk, vox);
                 }
             }
         }
@@ -41,6 +41,16 @@ pub fn generate_chunk_mesh_foliage(vbuf: &mut VertexBuffer, chunk: &Chunk) {
             } else if c.shape_id == VoxShape::Grass {
                 put_grass(vbuf, lp.as_vec3(), c.tex_id);
             }
+        }
+    });
+}
+
+pub fn generate_chunk_mesh_liquid(vbuf: &mut VertexBuffer, chunk: &Chunk) {
+    iter::iter_xzy(Chunk::LEN, |lp| {
+        let c = chunk.at_voxel(lp);
+
+        if c.tex_id == VoxTex::Water {
+            put_cube(vbuf, lp, chunk, c);
         }
     });
 }
@@ -261,7 +271,7 @@ static CUBE_NORM: [f32; 6 * 6 * 3] = [
 // static CUBE_IDX: [u32;6*6] = [
 // ];
 
-fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
+fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, vox: &Vox) {
     for face_i in 0..6 {
         let face_dir = Vec3::from_slice(&CUBE_NORM[face_i * 18..]).as_ivec3(); // 18: 3 scalar * 3 vertex * 2 triangle
 
@@ -270,13 +280,16 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, tex_id: u16) {
         if  neib.is_obaque_cube() {
             continue;
         }
+        if vox.tex_id == VoxTex::Water && neib.tex_id == VoxTex::Water {
+            continue;  // for Water2Water no face.
+        }
 
         for vert_i in 0..6 {
             // let uv = Vec2::from_slice(&CUBE_UV[face_i * 12 + vert_i * 2..]);
 
             vbuf.push_vertex(
                 Vec3::from_slice(&CUBE_POS[face_i * 18 + vert_i * 3..]) + lp.as_vec3(),
-                Vec2::new(tex_id as f32, neib.light.red() as f32),
+                Vec2::new(vox.tex_id as f32, neib.light.red() as f32),
                 Vec3::from_slice(&CUBE_NORM[face_i * 18 + vert_i * 3..]),
             );
         }

@@ -1,7 +1,7 @@
 use bevy::{
-    asset::ReflectAsset, color::palettes::css, prelude::*, render::{
+    asset::ReflectAsset, color::palettes::css, pbr::{ExtendedMaterial, MaterialExtension}, prelude::*, render::{
         render_asset::RenderAssetUsages,
-        render_resource::{AsBindGroup, PrimitiveTopology},
+        render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef}, texture::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
     }, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}
 };
 use avian3d::prelude::*;
@@ -22,6 +22,7 @@ impl Plugin for ClientVoxelPlugin {
         app.register_asset_reflect::<TerrainMaterial>(); // debug
         app.add_plugins(MaterialPlugin::<FoliageMaterial>::default());
         app.register_asset_reflect::<FoliageMaterial>(); // debug
+        app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, Water>>::default());
 
         {
             let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
@@ -67,6 +68,9 @@ fn on_world_init(
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
     mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
+    mut mtls_liquid: ResMut<Assets<ExtendedMaterial<StandardMaterial, Water>>>,
+    mut mtls_standard: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     info!("Init ClientChunkSystem");
     let mut chunk_sys = ClientChunkSystem::new();
@@ -87,8 +91,64 @@ fn on_world_init(
     //     unlit: true,
     //     ..default()
     // });
+    chunk_sys.mtl_std = mtls_standard.add(StandardMaterial {
+        ..default()
+    });
+
     chunk_sys.mtl_foliage = foliage_mtls.add(FoliageMaterial {
         texture_diffuse: Some(asset_server.load("baked/atlas_diff_foli.png")),
+        ..default()
+    });
+
+    chunk_sys.mtl_liquid = mtls_liquid.add(ExtendedMaterial {
+        base: StandardMaterial {
+            base_color: css::BLACK.into(),
+            perceptual_roughness: 0.0,
+            ..default()
+        },
+        extension: Water {
+            normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
+                "water_normals.png",
+                |settings| {
+                    settings.is_srgb = false;
+                    settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+                        address_mode_u: ImageAddressMode::Repeat,
+                        address_mode_v: ImageAddressMode::Repeat,
+                        mag_filter: ImageFilterMode::Linear,
+                        min_filter: ImageFilterMode::Linear,
+                        ..default()
+                    });
+                },
+            ),
+        },
+    });
+
+    
+    cmds.spawn(MaterialMeshBundle {
+        mesh: meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(1.0))),
+        material: mtls_liquid.add(ExtendedMaterial {
+            base: StandardMaterial {
+                base_color: css::BLACK.into(),
+                perceptual_roughness: 0.0,
+                ..default()
+            },
+            extension: Water {
+                normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
+                    "water_normals.png",
+                    |settings| {
+                        settings.is_srgb = false;
+                        settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+                            address_mode_u: ImageAddressMode::Repeat,
+                            address_mode_v: ImageAddressMode::Repeat,
+                            mag_filter: ImageFilterMode::Linear,
+                            min_filter: ImageFilterMode::Linear,
+                            ..default()
+                        });
+                    },
+                ),
+            },
+        }),
+        transform: Transform::from_scale(Vec3::splat(100.0)).with_translation(Vec3::Y * 10.),
         ..default()
     });
 
@@ -171,14 +231,14 @@ fn chunks_detect_load_and_unload(
     }
 }
 
-type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>);
+type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>, Mesh, Handle<Mesh>);
 
 use once_cell::sync::Lazy;
 use std::{cell::RefCell, sync::Arc};
 use thread_local::ThreadLocal;
 use crate::util::vtx::VertexBuffer;
 
-static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
+static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
 
 fn chunks_remesh_enqueue(
     mut commands: Commands,
@@ -218,14 +278,15 @@ fn chunks_remesh_enqueue(
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
                 let mut _vbuf = THREAD_LOCAL_VERTEX_BUFFERS
-                    .get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default())))
+                    .get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default(), VertexBuffer::default())))
                     .borrow_mut();
-                // 0: vbuf_terrain, 1: vbuf_foliage
+                // 0: vbuf_terrain, 1: vbuf_foliage, 2: vbuf_liquid
 
                 // let dbg_time = Instant::now();
                 let entity;
-                let mesh_handle;
+                let mesh_handle_terrain;
                 let mesh_handle_foliage;
+                let mesh_handle_liquid;
                 {
                     let chunk = chunkptr.as_ref();
 
@@ -234,9 +295,12 @@ fn chunks_remesh_enqueue(
 
                     meshgen::generate_chunk_mesh_foliage(&mut _vbuf.1, chunk);
 
+                    meshgen::generate_chunk_mesh_liquid(&mut _vbuf.2, chunk);
+
                     entity = chunk.entity;
-                    mesh_handle = chunk.mesh_handle.clone();
+                    mesh_handle_terrain = chunk.mesh_handle_terrain.clone();
                     mesh_handle_foliage = chunk.mesh_handle_foliage.clone();
+                    mesh_handle_liquid = chunk.mesh_handle_liquid.clone();
                 }
                 // let dbg_time = Instant::now() - dbg_time;
 
@@ -257,12 +321,15 @@ fn chunks_remesh_enqueue(
                 //     vbuf.vertex_count(), nv, vbuf.vertices.len(), (1.0 - vbuf.vertices.len() as f32/nv as f32) * 100.0);
                 // }
 
-                let mut mesh = Mesh::new(
+                let mut mesh_terrain = Mesh::new(
                     PrimitiveTopology::TriangleList,
                     RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
                 );
-                _vbuf.0.to_mesh(&mut mesh);
+                _vbuf.0.to_mesh(&mut mesh_terrain);
                 _vbuf.0.clear();
+
+                // Build Collider of TriMesh
+                let collider = Collider::trimesh_from_mesh(&mesh_terrain);
 
                 // Foliage
                 _vbuf.1.compute_indexed_naive();
@@ -274,10 +341,17 @@ fn chunks_remesh_enqueue(
                 _vbuf.1.to_mesh(&mut mesh_foliage);
                 _vbuf.1.clear();
 
-                // Build Collider of TriMesh
-                let collider = Collider::trimesh_from_mesh(&mesh);
+                // Liquid
+                _vbuf.2.compute_indexed_naive();
 
-                tx.send((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage))
+                let mut mesh_liquid = Mesh::new(
+                    PrimitiveTopology::TriangleList,
+                    RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
+                );
+                _vbuf.2.to_mesh(&mut mesh_liquid);
+                _vbuf.2.clear();
+
+                tx.send((chunkpos, entity, mesh_terrain, mesh_handle_terrain, collider, mesh_foliage, mesh_handle_foliage, mesh_liquid, mesh_handle_liquid))
                     .unwrap();
             });
             task.detach();
@@ -290,11 +364,13 @@ fn chunks_remesh_enqueue(
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    while let Ok((chunkpos, entity, mesh, mesh_handle, collider, mesh_foliage, mesh_handle_foliage)) = rx_chunks_meshing.try_recv() {
+    while let Ok((chunkpos, entity, mesh_terrain, mesh_handle_terrain, collider, mesh_foliage, mesh_handle_foliage, mesh_liquid, mesh_handle_liquid)) = rx_chunks_meshing.try_recv() {
         // Update Mesh Asset
-        *meshes.get_mut(mesh_handle.id()).unwrap() = mesh;
+        *meshes.get_mut(mesh_handle_terrain.id()).unwrap() = mesh_terrain;
 
         *meshes.get_mut(mesh_handle_foliage.id()).unwrap() = mesh_foliage;
+
+        *meshes.get_mut(mesh_handle_liquid.id()).unwrap() = mesh_liquid;
 
         // Update Phys Collider TriMesh
         if let Some(collider) = collider {
@@ -507,6 +583,8 @@ pub struct ClientChunkSystem {
 
     pub mtl_terrain: Handle<TerrainMaterial>,
     pub mtl_foliage: Handle<FoliageMaterial>,
+    pub mtl_liquid: Handle<ExtendedMaterial<StandardMaterial, Water>>,
+    pub mtl_std: Handle<StandardMaterial>,
     pub entity: Entity,
 
     pub max_concurrent_meshing: usize,
@@ -534,6 +612,8 @@ impl ClientChunkSystem {
 
             mtl_terrain: Handle::default(),
             mtl_foliage: Handle::default(),
+            mtl_liquid: Handle::default(),
+            mtl_std: Handle::default(),
             entity: Entity::PLACEHOLDER,
 
             max_concurrent_meshing: 8,
@@ -550,14 +630,15 @@ impl ClientChunkSystem {
 
         let aabb = bevy::render::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::LEN as f32));
 
-        chunk.mesh_handle = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+        chunk.mesh_handle_terrain = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
         chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+        chunk.mesh_handle_liquid  = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
 
         chunk.entity = cmds
             .spawn((
                 // ChunkComponent::new(*chunkpos),
                 MaterialMeshBundle {
-                    mesh: chunk.mesh_handle.clone(),
+                    mesh: chunk.mesh_handle_terrain.clone(),
                     material: self.mtl_terrain.clone(), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
                     transform: Transform::from_translation(chunkpos.as_vec3()),
                     visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
@@ -572,6 +653,15 @@ impl ClientChunkSystem {
                         mesh: chunk.mesh_handle_foliage.clone(),
                         material: self.mtl_foliage.clone(),
                         visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
+                        ..default()
+                    },
+                    aabb,
+                ));
+                parent.spawn((
+                    MaterialMeshBundle {
+                        mesh: chunk.mesh_handle_liquid.clone(),
+                        material: self.mtl_liquid.clone(),
+                        visibility: Visibility::Visible, 
                         ..default()
                     },
                     aabb,
@@ -738,10 +828,10 @@ impl Default for FoliageMaterial {
 }
 
 impl Material for FoliageMaterial {
-    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
-        "shaders/foliage.wgsl".into()
-    }
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    // fn vertex_shader() -> ShaderRef {
+    //     "shaders/foliage.wgsl".into()
+    // }
+    fn fragment_shader() -> ShaderRef {
         "shaders/foliage.wgsl".into()
     }
 
@@ -759,5 +849,24 @@ impl Material for FoliageMaterial {
 
         descriptor.primitive.cull_mode = None;
         Ok(())
+    }
+}
+
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+struct Water {
+    /// The normal map image.
+    ///
+    /// Note that, like all normal maps, this must not be loaded as sRGB.
+    #[texture(100)]
+    #[sampler(101)]
+    normals: Handle<Image>,
+
+    
+}
+
+impl MaterialExtension for Water {
+    fn deferred_fragment_shader() -> ShaderRef {
+        "shaders/liquid.wgsl".into()
     }
 }

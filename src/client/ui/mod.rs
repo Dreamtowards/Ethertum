@@ -196,22 +196,22 @@ static mut SFX_BTN_CLICKED: bool = false;
 static mut UI_BACK: bool = false;
 
 fn play_bgm(asset_server: Res<AssetServer>, mut cmds: Commands, mut limbo_played: Local<bool>, mut cli: ResMut<ClientInfo>) {
-    if !*limbo_played {
-        *limbo_played = true;
+    // if !*limbo_played {
+    //     *limbo_played = true;
 
-        let ls = [
-            "sounds/music/limbo.ogg",
-            "sounds/music/dead_voxel.ogg",
-            // "sounds/music/milky_way_wishes.ogg",
-            // "sounds/music/gion.ogg",
-            "sounds/music/radiance.ogg",
-        ];
+    //     let ls = [
+    //         "sounds/music/limbo.ogg",
+    //         "sounds/music/dead_voxel.ogg",
+    //         // "sounds/music/milky_way_wishes.ogg",
+    //         // "sounds/music/gion.ogg",
+    //         "sounds/music/radiance.ogg",
+    //     ];
 
-        cmds.spawn(AudioBundle {
-            source: asset_server.load(ls[rand::thread_rng().gen_range(0..ls.len())]),
-            settings: PlaybackSettings::DESPAWN,
-        });
-    }
+    //     cmds.spawn(AudioBundle {
+    //         source: asset_server.load(ls[rand::thread_rng().gen_range(0..ls.len())]),
+    //         settings: PlaybackSettings::DESPAWN,
+    //     });
+    // }
 
     unsafe {
         static mut LAST_HOVERED_ID: egui::Id = egui::Id::NULL;

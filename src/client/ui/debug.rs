@@ -147,7 +147,6 @@ pub fn ui_menu_panel(
                             }
                         });
                         ui.menu_button("Voxel", |ui| {
-                            let campos = query_cam.single().translation.as_ivec3();
                             let cli = cl.data();
                             // ui.label("Gizmos:");
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Gizmo Loaded Chunks");
@@ -157,6 +156,7 @@ pub fn ui_menu_panel(
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
+                                let campos = query_cam.single().translation.as_ivec3();
                                 if ui.button("Compute Voxel Light").clicked() {
                                     // for chunk in chunk_sys.get_chunks().values() {
                                     //     Chunk::compute_voxel_light(chunk.as_mut());

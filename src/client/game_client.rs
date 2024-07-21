@@ -27,6 +27,10 @@ impl Plugin for ClientGamePlugin {
                 app.insert_resource(AtmosphereModel::default());
             }
 
+            // for SSR
+            app.insert_resource(Msaa::Off);
+            app.insert_resource(bevy::pbr::DefaultOpaqueRendererMethod::deferred());
+
             // Billiboard
             // use bevy_mod_billboard::prelude::*;
             // app.add_plugins(BillboardPlugin);

@@ -31,10 +31,10 @@ pub fn generate_chunk(chunk: &mut Chunk) {
                 if val > 0.0 {
                     tex = VoxTex::Stone;
                 }
-                // else if p.y < 0 && val < 0. {
-                //     val = 0.1;
-                //     tex = mtl::WATER;
-                // }
+                else if p.y < 0 && val < 0. {
+                    val = -0.1;
+                    tex = VoxTex::Water;
+                }
                 *chunk.at_voxel_mut(lp) = Vox::new(tex, VoxShape::Isosurface, val);
             }
         }

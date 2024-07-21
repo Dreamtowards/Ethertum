@@ -1,6 +1,8 @@
 use std::f32::consts::PI;
 
+use bevy::core_pipeline::fxaa::Fxaa;
 use bevy::core_pipeline::Skybox;
+use bevy::pbr::ScreenSpaceReflectionsBundle;
 use bevy_renet::renet::transport::NetcodeClientTransport;
 use bevy_renet::renet::RenetClient;
 
@@ -130,7 +132,7 @@ fn on_world_init(
     cmds.spawn((
         Camera3dBundle {
             // projection: Projection::Perspective(PerspectiveProjection { fov: TAU / 4.6, ..default() }),
-            // camera: Camera { hdr: true, ..default() },
+            camera: Camera { hdr: true, ..default() },
             ..default()
         },
         #[cfg(feature = "target_native_os")]
@@ -152,7 +154,13 @@ fn on_world_init(
         CharacterControllerCamera,
         Name::new("Camera"),
         DespawnOnWorldUnload,
-    ));
+
+        // ScreenSpaceReflectionsBundle::default(),
+        // Fxaa::default(),
+    ))
+    .insert(ScreenSpaceReflectionsBundle::default())
+    .insert(Fxaa::default())
+    ;
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
     // .insert(TemporalAntiAliasBundle::default());
 
