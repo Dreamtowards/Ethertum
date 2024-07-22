@@ -200,7 +200,7 @@ fn fragment(
     // pbr_in.material.ior = 0.99;
     pbr_in.material.metallic = select(0.0, 1.0, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 10.);
     pbr_in.material.perceptual_roughness = min(pbr_in.material.perceptual_roughness, 1.0 - pbr_in.material.metallic);
-    pbr_in.diffuse_occlusion = vec3<f32>(pow(occlusion, 0.4));
+    pbr_in.diffuse_occlusion = vec3<f32>(pow(occlusion, 0.25));
     pbr_in.specular_occlusion = occlusion;
     
     
