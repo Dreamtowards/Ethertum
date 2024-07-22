@@ -1,8 +1,10 @@
 use std::f32::consts::PI;
 
+use bevy::core_pipeline::bloom::BloomSettings;
 use bevy::core_pipeline::fxaa::Fxaa;
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::core_pipeline::Skybox;
-use bevy::pbr::ScreenSpaceReflectionsBundle;
+use bevy::pbr::{ScreenSpaceReflectionsBundle, VolumetricFogSettings, VolumetricLight};
 use bevy_renet::renet::transport::NetcodeClientTransport;
 use bevy_renet::renet::RenetClient;
 
@@ -160,6 +162,13 @@ fn on_world_init(
     ))
     .insert(ScreenSpaceReflectionsBundle::default())
     .insert(Fxaa::default())
+    .insert(Tonemapping::TonyMcMapface)
+    .insert(BloomSettings::default())
+    .insert(VolumetricFogSettings {
+        ambient_intensity: 0.,
+        density: 0.01,
+        ..default()
+    })
     ;
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
     // .insert(TemporalAntiAliasBundle::default());
@@ -170,6 +179,7 @@ fn on_world_init(
             directional_light: DirectionalLight { ..default() },
             ..default()
         },
+        VolumetricLight,
         Sun, // Marks the light as Sun
         Name::new("Sun"),
         DespawnOnWorldUnload,

@@ -36,7 +36,7 @@ impl Plugin for ClientGamePlugin {
             // app.add_plugins(BillboardPlugin);
 
             // ShadowMap sizes
-            app.insert_resource(DirectionalLightShadowMap { size: 512 });
+            app.insert_resource(DirectionalLightShadowMap { size: 1024 });
 
             // SSAO
             // app.add_plugins(TemporalAntiAliasPlugin);
