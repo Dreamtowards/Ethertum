@@ -1,10 +1,10 @@
 
-// #import bevy_pbr::prepass_io::FragmentOutput
-// #import bevy_pbr::prepass_io::Vertex
-// #import bevy_pbr::prepass_io::VertexOutput
+#import bevy_pbr::prepass_io::Vertex
+#import bevy_pbr::prepass_io::VertexOutput
+#import bevy_pbr::prepass_io::FragmentOutput
 
-#import bevy_pbr::forward_io::Vertex
-#import bevy_pbr::forward_io::VertexOutput
+// #import bevy_pbr::forward_io::Vertex
+// #import bevy_pbr::forward_io::VertexOutput
 #import bevy_pbr::mesh_functions
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
@@ -14,10 +14,10 @@
 // @group(0) @binding(1) var<uniform> globals: Globals;
 // let time = globals.time;
 
-@group(2) @binding(0) var _sampler: sampler;
-@group(2) @binding(1) var tex_diffuse: texture_2d<f32>;
+// @group(2) @binding(0) var _sampler: sampler;
+// @group(2) @binding(1) var tex_diffuse: texture_2d<f32>;
 
-@group(2) @binding(2) var<uniform> time: f32;
+// @group(2) @binding(2) var<uniform> time: f32;
 
 
 @vertex
@@ -28,6 +28,7 @@ fn vertex(
     let inst_idx = in.instance_index;
     let model = mesh_functions::get_world_from_local(inst_idx);
 
+    var time = 0.0;
     var localpos = in.position;
     var wave_speed = 0.8;
     var wave_span = 1000.0;
@@ -52,18 +53,19 @@ fn vertex(
 fn fragment(
     in: VertexOutput,
     @builtin(front_facing) is_front: bool,
-) -> @location(0) vec4<f32> {
-    let worldpos  = in.world_position.xyz;
-    var worldnorm = in.world_normal;//select(-in.world_normal, in.world_normal, is_front);
+) -> FragmentOutput {
+    // let worldpos  = in.world_position.xyz;
+    // var worldnorm = in.world_normal;//select(-in.world_normal, in.world_normal, is_front);
     // worldnorm = normalize(worldnorm + vec3<f32>(0, 20.1, 0));
 
-    let base_color = textureSample(tex_diffuse, _sampler, in.uv);
+    let base_color = textureSample(bevy_pbr::pbr_bindings::base_color_texture, bevy_pbr::pbr_bindings::base_color_sampler, in.uv);
 
     if base_color.a < 0.5 {
         discard;
     }
 
-    var pbr_in = pbr_fragment::pbr_input_from_vertex_output(in, /*is_front*/is_front, /*double_sided*/false);
+    var pbr_in = pbr_fragment::pbr_input_from_vertex_output(in, /*is_front*/is_front, /*double_sided*/true);
+    pbr_in.N = vec3<f32>(0, 1, 0);
     pbr_in.material.base_color = base_color;
     pbr_in.material.perceptual_roughness = 1.0;
     pbr_in.material.reflectance = 0.0;
@@ -72,17 +74,13 @@ fn fragment(
     // pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);
     // pbr_in.diffuse_occlusion = vec3<f32>(1.0);
     // pbr_in.specular_occlusion = 0.0;
-    
 
-    var color = pbr_functions::apply_pbr_lighting(pbr_in);
+    // var color = pbr_functions::apply_pbr_lighting(pbr_in);
+    // pbr_in.material.flags |= pbr_types::STANDARD_MATERIAL_FLAGS_FOG_ENABLED_BIT;  // enable fog
+    // color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
+    // // color = vec4<f32>((worldnorm+1.0)/2.0, 1.0); 
+    // // color = vec4<f32>(worldnorm, 1.0);
+    // return color;
 
-    pbr_in.material.flags |= pbr_types::STANDARD_MATERIAL_FLAGS_FOG_ENABLED_BIT;  // enable fog
-    color = pbr_functions::main_pass_post_lighting_processing(pbr_in, color);
-
-
-    // color = vec4<f32>((worldnorm+1.0)/2.0, 1.0); 
-    // color = vec4<f32>(worldnorm, 1.0);
-    return color;
-
-    // return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_in);
+    return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_in);
 }

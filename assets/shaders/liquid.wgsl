@@ -3,11 +3,9 @@
 //
 // This is used in the `ssr` example. It only supports deferred rendering.
 
-#import bevy_pbr::{
-    pbr_deferred_functions::deferred_output,
-    pbr_fragment::pbr_input_from_standard_material,
-    prepass_io::{VertexOutput, FragmentOutput},
-}
+#import bevy_pbr::prepass_io::VertexOutput
+#import bevy_pbr::prepass_io::FragmentOutput
+#import bevy_pbr::pbr_fragment
 #import bevy_render::globals::Globals
 
 // // Parameters to the water shader.
@@ -58,9 +56,11 @@ fn sample_noise(uv: vec2<f32>, time: f32) -> vec3<f32> {
 @fragment
 fn fragment(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
     // Create the PBR input.
-    var pbr_input = pbr_input_from_standard_material(in, is_front);
+    var pbr_input = pbr_fragment::pbr_input_from_standard_material(in, is_front);
     // Bump the normal.
-    pbr_input.N = sample_noise(in.uv, globals.time);
+    // var uv = in.uv;
+    var uv = in.world_position.xz / 100.0;
+    pbr_input.N = sample_noise(uv, globals.time);
     // Send the rest to the deferred shader.
-    return deferred_output(in, pbr_input);
+    return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_input);
 }

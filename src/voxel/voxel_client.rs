@@ -20,8 +20,8 @@ impl Plugin for ClientVoxelPlugin {
         // Render Shader.
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
         app.register_asset_reflect::<TerrainMaterial>(); // debug
-        app.add_plugins(MaterialPlugin::<FoliageMaterial>::default());
-        app.register_asset_reflect::<FoliageMaterial>(); // debug
+        app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, FoliageMaterial>>::default());
+        app.register_asset_reflect::<ExtendedMaterial<StandardMaterial, FoliageMaterial>>(); // debug
         app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, Water>>::default());
 
         {
@@ -67,7 +67,7 @@ fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
-    mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
+    mut foliage_mtls: ResMut<Assets<ExtendedMaterial<StandardMaterial, FoliageMaterial>>>,
     mut mtls_liquid: ResMut<Assets<ExtendedMaterial<StandardMaterial, Water>>>,
     mut mtls_standard: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -95,9 +95,16 @@ fn on_world_init(
         ..default()
     });
 
-    chunk_sys.mtl_foliage = foliage_mtls.add(FoliageMaterial {
-        texture_diffuse: Some(asset_server.load("baked/atlas_diff_foli.png")),
-        ..default()
+    chunk_sys.mtl_foliage = foliage_mtls.add(ExtendedMaterial {
+        base: StandardMaterial {
+            base_color: css::BLACK.into(),
+            base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
+            perceptual_roughness: 0.0,
+            ..default()
+        },
+        extension: FoliageMaterial {
+            ..default()
+        }
     });
 
     chunk_sys.mtl_liquid = mtls_liquid.add(ExtendedMaterial {
@@ -124,33 +131,33 @@ fn on_world_init(
     });
 
     
-    cmds.spawn(MaterialMeshBundle {
-        mesh: meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(1.0))),
-        material: mtls_liquid.add(ExtendedMaterial {
-            base: StandardMaterial {
-                base_color: css::BLACK.into(),
-                perceptual_roughness: 0.0,
-                ..default()
-            },
-            extension: Water {
-                normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
-                    "water_normals.png",
-                    |settings| {
-                        settings.is_srgb = false;
-                        settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-                            address_mode_u: ImageAddressMode::Repeat,
-                            address_mode_v: ImageAddressMode::Repeat,
-                            mag_filter: ImageFilterMode::Linear,
-                            min_filter: ImageFilterMode::Linear,
-                            ..default()
-                        });
-                    },
-                ),
-            },
-        }),
-        transform: Transform::from_scale(Vec3::splat(100.0)).with_translation(Vec3::Y * 10.),
-        ..default()
-    });
+    // cmds.spawn(MaterialMeshBundle {
+    //     mesh: meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(1.0))),
+    //     material: mtls_liquid.add(ExtendedMaterial {
+    //         base: StandardMaterial {
+    //             base_color: css::BLACK.into(),
+    //             perceptual_roughness: 0.0,
+    //             ..default()
+    //         },
+    //         extension: Water {
+    //             normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
+    //                 "water_normals.png",
+    //                 |settings| {
+    //                     settings.is_srgb = false;
+    //                     settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+    //                         address_mode_u: ImageAddressMode::Repeat,
+    //                         address_mode_v: ImageAddressMode::Repeat,
+    //                         mag_filter: ImageFilterMode::Linear,
+    //                         min_filter: ImageFilterMode::Linear,
+    //                         ..default()
+    //                     });
+    //                 },
+    //             ),
+    //         },
+    //     }),
+    //     transform: Transform::from_scale(Vec3::splat(100.0)).with_translation(Vec3::Y * 10.),
+    //     ..default()
+    // });
 
     // ChunkSystem entity. all chunk entities will be spawn as children. (for almost no reason. just for editor hierarchy)
     chunk_sys.entity = cmds
@@ -250,10 +257,10 @@ fn chunks_remesh_enqueue(
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
 
-    mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
-    time: Res<Time>,
+    // mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
+    // time: Res<Time>,
 ) {
-    foliage_mtls.get_mut(chunk_sys.mtl_foliage.id()).unwrap().time = time.elapsed_seconds();
+    // foliage_mtls.get_mut(chunk_sys.mtl_foliage.id()).unwrap().time = time.elapsed_seconds();
 
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
@@ -582,7 +589,7 @@ pub struct ClientChunkSystem {
     pub chunks_remesh: HashSet<IVec3>,
 
     pub mtl_terrain: Handle<TerrainMaterial>,
-    pub mtl_foliage: Handle<FoliageMaterial>,
+    pub mtl_foliage: Handle<ExtendedMaterial<StandardMaterial, FoliageMaterial>>,
     pub mtl_liquid: Handle<ExtendedMaterial<StandardMaterial, Water>>,
     pub mtl_std: Handle<StandardMaterial>,
     pub entity: Entity,
@@ -793,10 +800,10 @@ impl Default for TerrainMaterial {
 }
 
 impl Material for TerrainMaterial {
-    fn vertex_shader() -> bevy::render::render_resource::ShaderRef {
+    fn vertex_shader() -> ShaderRef {
         "shaders/terrain.wgsl".into()
     }
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> ShaderRef {
         "shaders/terrain.wgsl".into()
     }
 
@@ -810,43 +817,34 @@ impl Material for TerrainMaterial {
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
 #[reflect(Asset)]
 pub struct FoliageMaterial {
-    #[sampler(0)]
-    #[texture(1)]
-    pub texture_diffuse: Option<Handle<Image>>,
     
-    #[uniform(2)]
-    pub time: f32,
 }
 
 impl Default for FoliageMaterial {
     fn default() -> Self {
         Self { 
-            texture_diffuse: None ,
-            time: 0.,
         }
     }
 }
 
-impl Material for FoliageMaterial {
+impl MaterialExtension for FoliageMaterial {
     // fn vertex_shader() -> ShaderRef {
     //     "shaders/foliage.wgsl".into()
     // }
-    fn fragment_shader() -> ShaderRef {
+    // fn fragment_shader() -> ShaderRef {
+    //     "shaders/foliage.wgsl".into()
+    // }
+    fn deferred_fragment_shader() -> ShaderRef {
         "shaders/foliage.wgsl".into()
     }
 
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Mask(0.5)
-    }
-
     fn specialize(
-            _pipeline: &bevy::pbr::MaterialPipeline<Self>,
+            _pipeline: &bevy::pbr::MaterialExtensionPipeline,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
             _layout: &bevy::render::mesh::MeshVertexBufferLayoutRef,
-            _key: bevy::pbr::MaterialPipelineKey<Self>,
+            _key: bevy::pbr::MaterialExtensionKey<Self>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         
-
         descriptor.primitive.cull_mode = None;
         Ok(())
     }
