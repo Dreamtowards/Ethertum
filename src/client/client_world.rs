@@ -167,6 +167,7 @@ fn on_world_init(
     .insert(VolumetricFogSettings {
         ambient_intensity: 0.,
         density: 0.01,
+        light_tint: Color::linear_rgb(0.916, 0.941, 1.000),
         ..default()
     })
     ;

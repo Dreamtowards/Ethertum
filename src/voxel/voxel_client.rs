@@ -411,7 +411,7 @@ impl Default for VoxelBrush {
             size: 4.,
             strength: 0.8,
             shape: VoxShape::Isosurface,
-            tex: 21,
+            tex: 10,
         }
     }
 }

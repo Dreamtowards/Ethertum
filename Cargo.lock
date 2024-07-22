@@ -4296,7 +4296,7 @@ checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 
 [[package]]
 name = "ethertia"
-version = "0.2.6"
+version = "0.2.8"
 dependencies = [
  "anyhow",
  "avian3d",

@@ -132,15 +132,18 @@ pub fn ui_settings(
                         // ui_setting_line(ui, "Shape", egui::Slider::new(&mut vox_brush.shape, 0..=5));
 
                         ui_setting_line(ui, "Tex", egui::Slider::new(&mut vox_brush.tex, 0..=25));
-                    }
-                    SettingsPanel::CurrentWorld => {
+
+
                         if let Some(worldinfo) = &mut worldinfo {
+                            
+                            ui.label("World:");
+                            
                             ui_setting_line(ui, "Day Time", egui::Slider::new(&mut worldinfo.daytime, 0.0..=1.0));
 
                             ui_setting_line(ui, "Day Time Length", egui::Slider::new(&mut worldinfo.daytime_length, 0.0..=60.0 * 24.0));
+
                         }
-                    }
-                    SettingsPanel::Graphics => {
+                        
                         ui.label("Video:");
 
                         ui_setting_line(ui, "FOV", egui::Slider::new(&mut cfg.fov, 10.0..=170.0));
@@ -156,15 +159,21 @@ pub fn ui_settings(
                         ui_setting_line(ui, "UI Scale", egui::Slider::new(&mut egui_settings.scale_factor, 0.5..=2.5));
 
                         ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cfg.hud_padding, 0.0..=48.0));
+                        
+                        ui.label("Controls");
+                        if let Ok(mut ctl) = query_char.get_single_mut() {
+                            ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, ""));
+                        }
+                    }
+                    SettingsPanel::CurrentWorld => {
+                    }
+                    SettingsPanel::Graphics => {
                     }
                     SettingsPanel::Audio => {
 
                         // ui_setting_line(ui, "Global Volume", egui::Slider::new(&mut global_volume.volume as &mut f32, 0.0..=1.0));
                     }
                     SettingsPanel::Controls => {
-                        if let Ok(mut ctl) = query_char.get_single_mut() {
-                            ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, ""));
-                        }
                     }
                     SettingsPanel::Language => {}
                     SettingsPanel::Mods => {}
