@@ -18,8 +18,8 @@ pub struct ClientVoxelPlugin;
 impl Plugin for ClientVoxelPlugin {
     fn build(&self, app: &mut App) {
         // Render Shader.
-        app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
-        app.register_asset_reflect::<TerrainMaterial>(); // debug
+        app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, TerrainMaterial>>::default());
+        app.register_asset_reflect::<ExtendedMaterial<StandardMaterial, TerrainMaterial>>(); // debug
         app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, FoliageMaterial>>::default());
         app.register_asset_reflect::<ExtendedMaterial<StandardMaterial, FoliageMaterial>>(); // debug
         app.add_plugins(MaterialPlugin::<ExtendedMaterial<StandardMaterial, Water>>::default());
@@ -66,20 +66,25 @@ impl Plugin for ClientVoxelPlugin {
 fn on_world_init(
     mut cmds: Commands,
     asset_server: Res<AssetServer>,
-    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
-    mut foliage_mtls: ResMut<Assets<ExtendedMaterial<StandardMaterial, FoliageMaterial>>>,
+    mut mtls_terrain: ResMut<Assets<ExtendedMaterial<StandardMaterial, TerrainMaterial>>>,
+    mut mtls_foliage: ResMut<Assets<ExtendedMaterial<StandardMaterial, FoliageMaterial>>>,
     mut mtls_liquid: ResMut<Assets<ExtendedMaterial<StandardMaterial, Water>>>,
-    mut mtls_standard: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
 ) {
     info!("Init ClientChunkSystem");
     let mut chunk_sys = ClientChunkSystem::new();
 
-    chunk_sys.mtl_terrain = terrain_materials.add(TerrainMaterial {
-        texture_diffuse: Some(asset_server.load("baked/atlas_diff.png")),
-        texture_normal: Some(asset_server.load("baked/atlas_norm.png")),
-        texture_dram: Some(asset_server.load("baked/atlas_dram.png")),
-        ..default()
+    chunk_sys.mtl_terrain = mtls_terrain.add(ExtendedMaterial {
+        base: StandardMaterial {
+            base_color_texture: Some(asset_server.load("baked/atlas_diff.png")),
+            normal_map_texture: Some(asset_server.load("baked/atlas_norm.png")),
+            alpha_mode: AlphaMode::Opaque,
+            ..default()
+        },
+        extension: TerrainMaterial {
+            dram_texture: Some(asset_server.load("baked/atlas_dram.png")),
+            ..default()
+        }
     });
 
     // chunk_sys.mtl_foliage = std_mtls.add(StandardMaterial {
@@ -91,11 +96,11 @@ fn on_world_init(
     //     unlit: true,
     //     ..default()
     // });
-    chunk_sys.mtl_std = mtls_standard.add(StandardMaterial {
-        ..default()
-    });
+    // chunk_sys.mtl_std = mtls_standard.add(StandardMaterial {
+    //     ..default()
+    // });
 
-    chunk_sys.mtl_foliage = foliage_mtls.add(ExtendedMaterial {
+    chunk_sys.mtl_foliage = mtls_foliage.add(ExtendedMaterial {
         base: StandardMaterial {
             base_color: css::BLACK.into(),
             base_color_texture: Some(asset_server.load("baked/atlas_diff_foli.png")),
@@ -588,10 +593,10 @@ pub struct ClientChunkSystem {
     // mark to ReMesh
     pub chunks_remesh: HashSet<IVec3>,
 
-    pub mtl_terrain: Handle<TerrainMaterial>,
+    pub mtl_terrain: Handle<ExtendedMaterial<StandardMaterial, TerrainMaterial>>,
     pub mtl_foliage: Handle<ExtendedMaterial<StandardMaterial, FoliageMaterial>>,
     pub mtl_liquid: Handle<ExtendedMaterial<StandardMaterial, Water>>,
-    pub mtl_std: Handle<StandardMaterial>,
+    // pub mtl_std: Handle<StandardMaterial>,
     pub entity: Entity,
 
     pub max_concurrent_meshing: usize,
@@ -620,7 +625,7 @@ impl ClientChunkSystem {
             mtl_terrain: Handle::default(),
             mtl_foliage: Handle::default(),
             mtl_liquid: Handle::default(),
-            mtl_std: Handle::default(),
+            // mtl_std: Handle::default(),
             entity: Entity::PLACEHOLDER,
 
             max_concurrent_meshing: 8,
@@ -763,17 +768,24 @@ impl ClientChunkSystem {
 #[reflect(Asset)]
 // #[uuid = "8014bf20-d959-11ed-afa1-0242ac120001"]
 pub struct TerrainMaterial {
-    #[sampler(0)]
-    #[texture(1)]
-    pub texture_diffuse: Option<Handle<Image>>,
-    #[texture(2)]
-    pub texture_normal: Option<Handle<Image>>,
-    #[texture(3)]
-    pub texture_dram: Option<Handle<Image>>,
+    #[texture(100)]
+    pub dram_texture: Option<Handle<Image>>,
+    
+    #[uniform(101)]
+    pub sample_scale: f32,
+    // #[uniform(2)]
+    // pub triplanar_blend_pow: f32,
+    // #[uniform(3)]
+    // pub heightmap_blend_pow: f32, // littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
 
+    // #[sampler(0)]
+    // #[texture(1)]
+    // pub texture_diffuse: Option<Handle<Image>>,
+    // #[texture(2)]
+    // pub texture_normal: Option<Handle<Image>>,
     // Web requires 16x bytes data. (As the device does not support `DownlevelFlags::BUFFER_BINDINGS_NOT_16_BYTE_ALIGNED`)
-    #[uniform(4)]
-    pub wasm0: Vec4,
+    // #[uniform(4)]
+    // pub wasm0: Vec4,
     // pub sample_scale: f32,
     // #[uniform(5)]
     // pub normal_intensity: f32,
@@ -786,29 +798,25 @@ pub struct TerrainMaterial {
 impl Default for TerrainMaterial {
     fn default() -> Self {
         Self {
-            texture_diffuse: None,
-            texture_normal: None,
-            texture_dram: None,
+            dram_texture: None,
 
-            wasm0: Vec4::new(1.5, 1.0, 4.5, 0.48),
-            // sample_scale: 1.0,
-            // normal_intensity: 1.0,s
+            sample_scale: 1.5,
             // triplanar_blend_pow: 4.5,
             // heightmap_blend_pow: 0.48,
+            // texture_diffuse: None,
+            // texture_normal: None,
+            // wasm0: Vec4::new(1.5, 1.0, 4.5, 0.48),
+            // normal_intensity: 1.0,
         }
     }
 }
 
-impl Material for TerrainMaterial {
-    fn vertex_shader() -> ShaderRef {
+impl MaterialExtension for TerrainMaterial {
+    fn deferred_vertex_shader() -> ShaderRef {
         "shaders/terrain.wgsl".into()
     }
-    fn fragment_shader() -> ShaderRef {
+    fn deferred_fragment_shader() -> ShaderRef {
         "shaders/terrain.wgsl".into()
-    }
-
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Opaque
     }
 }
 
