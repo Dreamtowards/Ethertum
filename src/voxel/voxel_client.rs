@@ -834,6 +834,9 @@ impl MaterialExtension for FoliageMaterial {
     // fn fragment_shader() -> ShaderRef {
     //     "shaders/foliage.wgsl".into()
     // }
+    fn deferred_vertex_shader() -> ShaderRef {
+        "shaders/foliage.wgsl".into()
+    }
     fn deferred_fragment_shader() -> ShaderRef {
         "shaders/foliage.wgsl".into()
     }

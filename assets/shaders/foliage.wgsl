@@ -2,13 +2,16 @@
 #import bevy_pbr::prepass_io::Vertex
 #import bevy_pbr::prepass_io::VertexOutput
 #import bevy_pbr::prepass_io::FragmentOutput
-
 // #import bevy_pbr::forward_io::Vertex
 // #import bevy_pbr::forward_io::VertexOutput
+
 #import bevy_pbr::mesh_functions
 #import bevy_pbr::pbr_types
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::pbr_fragment
+
+#import bevy_render::globals::Globals
+@group(0) @binding(1) var<uniform> globals: Globals;
 
 // #import bevy_render::globals::Globals
 // @group(0) @binding(1) var<uniform> globals: Globals;
@@ -28,7 +31,7 @@ fn vertex(
     let inst_idx = in.instance_index;
     let model = mesh_functions::get_world_from_local(inst_idx);
 
-    var time = 0.0;
+    var time = globals.time;
     var localpos = in.position;
     var wave_speed = 0.8;
     var wave_span = 1000.0;
