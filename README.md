@@ -52,11 +52,12 @@ Any advice / code-review / PR is quite welcome.
 
 Preview video: [[0.2.5@YouTube]](https://www.youtube.com/watch?v=GLMZ7c2XN4w) [[0.2.5@bilibili]](https://www.bilibili.com/video/BV1a4421w7DS)
 
+![](https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.2.8-2024.07c/screenshot-20240723-015254.jpg)
+![](https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.2.8-2024.07c/screenshot-20240723-015422.jpg)
 ![](https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218102806.jpg)
-![](https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218100444.jpg)
 
-<img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218002527.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218005036.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218094516.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217174639.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217160739.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217004724.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240120001806.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240119013301.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230310-1.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs221130.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/_figures/23u07.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230401.png" alt="Ethertia"> <img style="height: 80px;" src="https://raw.githubusercontent.com/Dreamtowards/Ethertia/main/run/screenshots/qs230402.png" alt="Ethertia">
-
+<img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218002527.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.2.8-2024.07c/screenshot-20240723-015027.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240218094516.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.2.8-2024.07c/screenshot-20240723-015336.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217160739.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertia-0.2.5-2024.02d/screenshot-20240217004724.jpg"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240120001806.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.1.4-2023.01d/screenshot-20240119013301.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230310-1.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs221130.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/_figures/23u07.png"> <img style="height: 80px;" src="https://github.com/Dreamtowards/Ethertia/raw/main/run/screenshots/qs230401.png" alt="Ethertia"> <img style="height: 80px;" src="https://raw.githubusercontent.com/Dreamtowards/Ethertia/main/run/screenshots/qs230402.png" alt="Ethertia"> <img style="height: 80px;" src="
+https://github.com/Dreamtowards/Ethertum/releases/download/ethertum-0.2.8-2024.07c/screenshot-20240723-015500.jpg">
 
 ## Getting Started
 
@@ -70,6 +71,19 @@ cd Ethertum
 cargo run --release
 # or
 source build/client_debug.sh
+```
+
+#### Hotkeys:
+```
+Double Space: Fly/Unfly
+Double W: Sprint
+F3: Debug Info
+F4: Settings
+Esc: Pause Menu
+F9: Inspector
+F12: Debug Menu
+Alt+Scroll: Zoom In/Out
+Shift: Sneak
 ```
 
 ## Useful links
