@@ -1,8 +1,7 @@
-use bevy::math::ivec3;
-use std::sync::{Arc, Weak};
 
-use crate::{prelude::*, util::{as_mut, AsMutRef}};
-use super::{ChunkPtr, vox::*};
+use std::sync::Weak;
+
+use crate::prelude::*;
 
 
 // Chunk is "Heavy" type (big size, stored a lot voxels). thus copy/clone are not allowed.

@@ -6,6 +6,8 @@ pub mod lighting;
 mod voxel_client;
 mod voxel_server;
 
+mod render;
+
 pub use chunk::Chunk;
 pub use vox::{Vox, VoxShape, VoxTex, VoxLight,};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};

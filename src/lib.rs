@@ -19,5 +19,8 @@ pub static VERSION_NAME: &str = concat!(std::env!("CARGO_PKG_VERSION"), " 2024.0
 
 pub mod prelude {
     pub use bevy::prelude::*;
+    pub use bevy::math::{ivec3, vec3};
     pub use serde::{Deserialize, Serialize};
+    pub use crate::util::AsMutRef;
+    pub use crate::voxel::*;
 }
