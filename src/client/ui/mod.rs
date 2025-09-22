@@ -22,7 +22,7 @@ use bevy_egui::{
     egui::{
         self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
     },
-    EguiContexts, EguiPlugin,
+    EguiContextSettings, EguiContexts, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet,
 };
 use egui_extras::{Size, StripBuilder};
 use rand::Rng;
@@ -31,17 +31,67 @@ use crate::client::prelude::*;
 
 pub struct UiPlugin;
 
+#[derive(Default, Resource)]
+struct UiState {
+    is_window_open: bool,
+}
+
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        if !app.is_plugin_added::<EguiPlugin>() {
-            app.add_plugins(EguiPlugin);
+        app.init_resource::<UiState>();
+        app.insert_resource(hud::ChatHistory::default());
+        if !app.is_plugin_added::<EguiPlugin>() || true {
+            app.add_plugins(EguiPlugin::default());
         }
-
-        // Setup Egui Style
-        app.add_systems(Startup, setup_egui_style);
+        
+        {
+            app
+            .add_systems(
+                PreStartup,
+                setup_camera_system.before(EguiStartupSet::InitContexts),
+            )
+            .add_systems(
+                Startup,
+                (configure_visuals_system, configure_ui_state_system),
+            )
+            .add_systems(
+                EguiPrimaryContextPass,
+                (
+                    /* test */
+                    (ui_example_system, update_ui_scale_factor_system),
+                    /* debug */
+                    debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar),
+                    debug::hud_debug_text
+                        .run_if(|cli: Res<ClientInfo>| cli.dbg_text)
+                        .before(debug::ui_menu_panel),
+                    /* hud */
+                    (hud::hud_hotbar, hud::hud_chat, hud::hud_playerlist.run_if(condition::manipulating)).run_if(condition::in_world),
+                    items::draw_ui_holding_item,
+                    /* menu */
+                    (
+                        settings::ui_settings.run_if(condition::in_ui(CurrentUI::Settings)),
+                        main_menu::ui_pause_menu.run_if(condition::in_ui(CurrentUI::PauseMenu)),
+                        // Menus
+                        main_menu::ui_main_menu.run_if(condition::in_ui(CurrentUI::MainMenu)),
+                        serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalWorldList)),
+                        serverlist::ui_create_world.run_if(condition::in_ui(CurrentUI::LocalWorldNew)),
+                        serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::ServerList)),
+                        serverlist::ui_connecting_server.run_if(condition::in_ui(CurrentUI::ConnectingServer)),
+                        serverlist::ui_disconnected_reason.run_if(condition::in_ui(CurrentUI::DisconnectedReason)),
+                    )
+                ),
+            );
+        }
 
         app.add_systems(First, play_bgm);
 
+        app.add_plugins((
+            FrameTimeDiagnosticsPlugin::default(),
+            EntityCountDiagnosticsPlugin,
+            // SystemInformationDiagnosticsPlugin,
+        ));
+
+        /*
         // Debug UI
         {
             app.add_systems(Update, debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar)); // Debug MenuBar. before CentralPanel
@@ -53,7 +103,7 @@ impl Plugin for UiPlugin {
             );
 
             app.add_plugins((
-                FrameTimeDiagnosticsPlugin,
+                FrameTimeDiagnosticsPlugin::default(),
                 EntityCountDiagnosticsPlugin,
                 // SystemInformationDiagnosticsPlugin,
             ));
@@ -85,6 +135,7 @@ impl Plugin for UiPlugin {
             ), //.chain()
                //.before(debug::ui_menu_panel)
         );
+        */
     }
 }
 
@@ -134,11 +185,16 @@ pub fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {
     Color32::from_rgba_premultiplied(g, g, g, a)
 }
 
-fn setup_egui_style(mut ctx: EguiContexts) {
-    ctx.ctx_mut().style_mut(|style| {
+fn setup_camera_system(mut commands: Commands) {
+    commands.spawn(Camera2d);
+}
+
+fn configure_visuals_system(mut contexts: EguiContexts) -> Result {
+    /*
+    contexts.ctx_mut()?.style_mut(|style| {
         let visuals = &mut style.visuals;
         let round = Rounding::from(2.);
-
+        
         visuals.window_rounding = round;
         visuals.widgets.noninteractive.rounding = round;
         visuals.widgets.inactive.rounding = round;
@@ -166,26 +222,63 @@ fn setup_egui_style(mut ctx: EguiContexts) {
 
         visuals.window_fill = color32_gray_alpha(0.1, 0.99);
         visuals.window_shadow = egui::epaint::Shadow {
-            blur: 8.,
+            blur: 204,
             color: Color32::from_black_alpha(45),
             ..default()
         };
         visuals.popup_shadow = visuals.window_shadow;
     });
+    */
 
     let mut fonts = FontDefinitions::default();
     fonts.font_data.insert(
         "my_font".to_owned(),
-        FontData::from_static(include_bytes!("../../../assets/fonts/menlo.ttf")),
+        std::sync::Arc::new(
+            FontData::from_static(include_bytes!("../../../assets/fonts/menlo.ttf")),
+        ),
     );
 
     // Put my font first (highest priority):
-    fonts.families.get_mut(&FontFamily::Proportional).unwrap().insert(0, "my_font".to_owned());
+    fonts.families.get_mut(&FontFamily::Proportional).ok_or(crate::err_opt_is_none!())?.insert(0, "my_font".to_owned());
 
     // Put my font as last fallback for monospace:
-    fonts.families.get_mut(&FontFamily::Monospace).unwrap().push("my_font".to_owned());
+    fonts.families.get_mut(&FontFamily::Monospace).ok_or(crate::err_opt_is_none!())?.push("my_font".to_owned());
 
-    ctx.ctx_mut().set_fonts(fonts);
+    contexts.ctx_mut()?.set_fonts(fonts);
+    Ok(())
+}
+
+fn configure_ui_state_system(mut ui_state: ResMut<UiState>) {
+    ui_state.is_window_open = true;
+}
+
+fn update_ui_scale_factor_system(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut toggle_scale_factor: Local<Option<bool>>,
+    egui_context: Single<(&mut EguiContextSettings, &Camera)>,
+) {
+    let (mut egui_settings, camera) = egui_context.into_inner();
+    if keyboard_input.just_pressed(KeyCode::Slash) || toggle_scale_factor.is_none() {
+        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
+
+        let scale_factor = if toggle_scale_factor.unwrap() {
+            1.0
+        } else {
+            1.0 / camera.target_scaling_factor().unwrap_or(1.0)
+        };
+        egui_settings.scale_factor = scale_factor;
+    }
+}
+
+fn ui_example_system(
+    mut ui_state: ResMut<UiState>,
+    mut is_initialized: Local<bool>,
+    mut contexts: EguiContexts,
+) -> Result {
+    if !*is_initialized {
+        *is_initialized = true;
+    }
+    Ok(())
 }
 
 // for SFX
@@ -216,19 +309,19 @@ fn play_bgm(asset_server: Res<AssetServer>, mut cmds: Commands, mut limbo_played
     unsafe {
         static mut LAST_HOVERED_ID: egui::Id = egui::Id::NULL;
         if SFX_BTN_HOVERED_ID != egui::Id::NULL && SFX_BTN_HOVERED_ID != LAST_HOVERED_ID {
-            cmds.spawn(AudioBundle {
-                source: asset_server.load("sounds/ui/button.ogg"),
-                settings: PlaybackSettings::DESPAWN,
-            });
+            cmds.spawn(
+                AudioPlayer::<AudioSource>(asset_server.load("sounds/ui/button.ogg"))
+                //.with_settings(PlaybackSettings::DESPAWN),
+            );
         }
         LAST_HOVERED_ID = SFX_BTN_HOVERED_ID;
         SFX_BTN_HOVERED_ID = egui::Id::NULL;
 
         if SFX_BTN_CLICKED {
-            cmds.spawn(AudioBundle {
-                source: asset_server.load("sounds/ui/button_large.ogg"),
-                settings: PlaybackSettings::DESPAWN,
-            });
+            cmds.spawn(
+                AudioPlayer::<AudioSource>(asset_server.load("sounds/ui/button_large.ogg"))
+                //.with_settings(PlaybackSettings::DESPAWN),
+            );
         }
         SFX_BTN_CLICKED = false;
 

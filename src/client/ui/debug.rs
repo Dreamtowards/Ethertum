@@ -7,7 +7,8 @@ use bevy_egui::{
     egui::{self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget},
     EguiContexts,
 };
-use bevy_renet::renet::{transport::NetcodeClientTransport, RenetClient};
+use bevy_renet::renet::{RenetClient};
+use bevy_renet::{netcode::NetcodeClientTransport};
 
 use crate::{
     client::prelude::*,
@@ -44,7 +45,7 @@ pub fn ui_menu_panel(
         .frame(Frame::default().fill(bg))
         .show_separator_line(false)
         // .height_range(Rangef::new(16., 16.))  // 24
-        .show(ctx.ctx_mut(), |ui| {
+        .show(ctx.ctx_mut().unwrap(), |ui| {
             // ui.painter().text([0., 48.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
 
             egui::menu::bar(ui, |ui| {
@@ -156,7 +157,7 @@ pub fn ui_menu_panel(
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
-                                let campos = query_cam.single().translation.as_ivec3();
+                                let campos = query_cam.single().unwrap().translation.as_ivec3();
                                 if ui.button("Compute Voxel Light").clicked() {
                                     // for chunk in chunk_sys.get_chunks().values() {
                                     //     Chunk::compute_voxel_light(chunk.as_mut());
@@ -259,7 +260,7 @@ pub fn hud_debug_text(
         use crate::util::TimeIntervals;
 
         if time.at_interval(2.0) {
-            sys.refresh_cpu();
+            sys.refresh_cpu_all();
             sys.refresh_memory();
         }
         // "HOMEPATH", "\\Users\\Dreamtowards",
@@ -279,9 +280,10 @@ pub fn hud_debug_text(
         let os_lang = std::env::var("LANG").unwrap_or("?lang".into()); // "en_US.UTF-8"
                                                                        //let user_name = std::env::var("USERNAME").unwrap();  // "Dreamtowards"
 
-        let cpu_cores = sys.physical_core_count().unwrap_or_default();
-        let cpu_name = sys.global_cpu_info().brand().trim().to_string();
-        let cpu_usage = sys.global_cpu_info().cpu_usage();
+        let cpu = sys.cpus().first().unwrap();
+        let cpu_cores = sysinfo::System::physical_core_count().unwrap_or_default();
+        let cpu_name = cpu.brand().trim().to_string();
+        let cpu_usage = cpu.cpu_usage();
 
         let mem_used = sys.used_memory() as f64 * BYTES_TO_GIB;
         let mem_total = sys.total_memory() as f64 * BYTES_TO_GIB;
@@ -320,9 +322,9 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         let chunk_sys = chunk_sys.unwrap();
         let worldinfo = worldinfo.unwrap();
 
-        let (cam_trans, cam_visible_entities) = query_cam.single();
+        let (cam_trans, cam_visible_entities) = query_cam.single().unwrap();
         let cam_pos = cam_trans.translation;
-        let cam_pos_spd = (cam_pos - *last_cam_pos).length() / time.delta_seconds();
+        let cam_pos_spd = (cam_pos - *last_cam_pos).length() / time.delta_secs();
         *last_cam_pos = cam_pos;
         cam_visible_entities_num = cam_visible_entities.entities.len();
 
@@ -371,7 +373,7 @@ ChunkSys: {} loaded, {num_chunks_loading} loading, {num_chunks_remesh} remesh, {
 
     let frame_time = diagnostics
         .get(&FrameTimeDiagnosticsPlugin::FRAME_TIME)
-        .map_or(time.delta_seconds_f64(), |d| d.smoothed().unwrap_or_default());
+        .map_or(time.delta_secs_f64(), |d| d.smoothed().unwrap_or_default());
 
     let fps = diagnostics
         .get(&FrameTimeDiagnosticsPlugin::FPS)
@@ -389,7 +391,7 @@ entity: vis {cam_visible_entities_num} / all {num_entity}
 "
     );
 
-    ctx.ctx_mut().layer_painter(LayerId::new(egui::Order::Middle, Id::NULL)).text(
+    ctx.ctx_mut().unwrap().layer_painter(LayerId::new(egui::Order::Middle, Id::NULL)).text(
         [0., 48.].into(),
         Align2::LEFT_TOP,
         str,

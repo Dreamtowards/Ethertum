@@ -1,8 +1,9 @@
 use bevy::{
     color::palettes::css, pbr::{ExtendedMaterial, MaterialExtension}, prelude::*, render::{
         render_asset::RenderAssetUsages,
-        render_resource::PrimitiveTopology, texture::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
-    }, tasks::AsyncComputeTaskPool, utils::{HashMap, HashSet}
+        render_resource::PrimitiveTopology,
+    }, tasks::AsyncComputeTaskPool, platform::collections::{HashMap, HashSet},
+    image::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
 };
 use avian3d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -151,7 +152,7 @@ fn chunks_detect_load_and_unload(
     tx_chunk_load: Res<ChannelTx<ChunkLoadingData>>,
     rx_chunk_load: Res<ChannelRx<ChunkLoadingData>>,
 ) {
-    let vp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3()); // viewer pos
+    let vp = Chunk::as_chunkpos(query_cam.single().unwrap().translation.as_ivec3()); // viewer pos
     let vd = cfg.chunks_load_distance;
 
     // Chunks Detect Load/Gen
@@ -224,7 +225,7 @@ fn chunks_remesh_enqueue(
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
     // Sort by Distance from the Camera.
-    let cam_cp = Chunk::as_chunkpos(query_cam.single().translation.as_ivec3());
+    let cam_cp = Chunk::as_chunkpos(query_cam.single().unwrap().translation.as_ivec3());
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::math::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
@@ -340,7 +341,7 @@ fn chunks_remesh_enqueue(
 
         // Update Phys Collider TriMesh
         if let Some(collider) = collider {
-            if let Some(mut cmds) = commands.get_entity(entity) {
+            if let Ok(mut cmds) = commands.get_entity(entity) {
                 // note: use try_insert cuz the entity may already been unloaded when executing the cmds (?)
                 cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
             }
@@ -393,7 +394,7 @@ fn raycast(
     cli: Res<ClientInfo>,
     vox_brush: Res<VoxelBrush>,
 ) {
-    let cam_trans = query_cam.single();
+    let cam_trans = query_cam.single().unwrap();
     let ray_pos = cam_trans.translation();
     let ray_dir = cam_trans.forward();
 
@@ -404,12 +405,12 @@ fn raycast(
         ray_dir,
         100.,
         true,
-        SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
+        &SpatialQueryFilter::default().with_excluded_entities(vec![player_entity]),
     ) {
         hit_result.is_hit = true;
         hit_result.normal = hit.normal;
         // hit_result.entity = hit.entity;
-        let dist = hit.time_of_impact;
+        let dist = hit.distance;
         hit_result.distance = dist;
         hit_result.position = ray_pos + ray_dir.as_vec3() * dist;
 
@@ -427,7 +428,7 @@ fn raycast(
         return;
     }
 
-    let action_state = query_input.single();
+    let action_state = query_input.single().unwrap();
     let do_break = action_state.just_pressed(&InputAction::Attack);
     let do_place = action_state.just_pressed(&InputAction::UseItem);
 
@@ -479,7 +480,8 @@ fn raycast(
 fn draw_crosshair_cube(mut gizmos: Gizmos, hit_result: Res<HitResult>, vbrush: Res<VoxelBrush>) {
     if hit_result.is_hit {
         if vbrush.shape == VoxShape::Isosurface {
-            gizmos.sphere(hit_result.position, Quat::IDENTITY, vbrush.size, Color::BLACK);
+            //gizmos.sphere(hit_result.position, Quat::IDENTITY, vbrush.size, Color::BLACK);
+            gizmos.sphere(Isometry3d::IDENTITY, vbrush.size, Color::BLACK);
         } else {
             let trans = Transform::from_translation(hit_result.voxel_pos.as_vec3() + 0.5).with_scale(Vec3::ONE * vbrush.size.floor());
 
@@ -603,33 +605,28 @@ impl ClientChunkSystem {
         chunk.entity = cmds
             .spawn((
                 // ChunkComponent::new(*chunkpos),
-                MaterialMeshBundle {
-                    mesh: chunk.mesh_handle_terrain.clone(),
-                    material: self.mtl_terrain.clone(), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
-                    transform: Transform::from_translation(chunkpos.as_vec3()),
-                    visibility: Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
-                    ..default()
-                },
+                (
+                    Mesh3d(chunk.mesh_handle_terrain.clone()),
+                    MeshMaterial3d(self.mtl_terrain.clone()), //materials.add(Color::rgb(0.8, 0.7, 0.6)),
+                    Transform::from_translation(chunkpos.as_vec3()),
+                    Visibility::Hidden, // Hidden is required since Mesh is empty. or WGPU will crash. even if use default Inherite
+                ),
                 aabb,
                 avian3d::prelude::RigidBody::Static,
             ))
             .with_children(|parent| {
-                parent.spawn((
-                    MaterialMeshBundle {
-                        mesh: chunk.mesh_handle_foliage.clone(),
-                        material: self.mtl_foliage.clone(),
-                        visibility: Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
-                        ..default()
-                    },
+                parent.spawn(((
+                        Mesh3d(chunk.mesh_handle_foliage.clone()),
+                        MeshMaterial3d(self.mtl_foliage.clone()),
+                        Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
+                    ),
                     aabb,
                 ));
-                parent.spawn((
-                    MaterialMeshBundle {
-                        mesh: chunk.mesh_handle_liquid.clone(),
-                        material: self.mtl_liquid.clone(),
-                        visibility: Visibility::Visible, 
-                        ..default()
-                    },
+                parent.spawn(((
+                        Mesh3d(chunk.mesh_handle_liquid.clone()),
+                        MeshMaterial3d(self.mtl_liquid.clone()),
+                        Visibility::Visible,
+                    ),
                     aabb,
                 ));
             })

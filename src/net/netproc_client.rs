@@ -1,9 +1,9 @@
 //! Client Networking Handler
 
-use bevy::{ecs::system::EntityCommands, prelude::*, utils::HashMap};
+use bevy::{ecs::system::EntityCommands, prelude::*, platform::collections::HashMap};
 use bevy_renet::{
     renet::{DefaultChannel, DisconnectReason, RenetClient},
-    transport::NetcodeClientPlugin,
+    netcode::NetcodeClientPlugin,
     RenetClientPlugin,
 };
 use avian3d::prelude::*;
@@ -13,6 +13,7 @@ use crate::{
     client::ui::CurrentUI,
     util::{current_timestamp_millis, AsMutRef},
     voxel::{Chunk, ChunkSystem, ClientChunkSystem},
+    util::BevyEcsCommandsExt,
 };
 
 use super::{packet::CellData, SPacket};
@@ -209,16 +210,14 @@ pub fn spawn_player(
     // });
     // let mut ec = cmds.get_or_spawn(entity);
 
-    ec.insert((
-        PbrBundle {
-            mesh: meshes.add(Capsule3d {
+    ec.insert(((
+            Mesh3d(meshes.add(Capsule3d {
                 radius: 0.3,
                 half_length: 0.9,
-            }),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            ..default()
-        },
+            })),
+            MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+            Transform::from_xyz(0.0, 0.0, 0.0),
+        ),
         DespawnOnWorldUnload,
     ))
     .with_children(|parent| {
@@ -238,15 +237,14 @@ pub fn spawn_player(
             //     ..default()
             // });
         }
-        parent.spawn(SpotLightBundle {
-            spot_light: SpotLight {
+        parent.spawn((
+            SpotLight {
                 color: bevy::color::palettes::css::YELLOW.into(),
                 intensity: 3200.,
                 ..default()
             },
-            transform: Transform::from_xyz(0., 0.3, 0.3),
-            ..default()
-        });
+            Transform::from_xyz(0., 0.3, 0.3),
+        ));
     });
 
     if is_theplayer {
@@ -260,19 +258,18 @@ pub fn spawn_player(
         ),))
             .with_children(|parent| {
                 // pointy "nose" for player
-                parent.spawn(SpriteBundle {
-                    transform: Transform {
+                parent.spawn((
+                    Transform {
                         translation: Vec3::new(15., 0., 0.),
                         rotation: Quat::from_rotation_z(std::f32::consts::PI / 4.),
                         ..default()
                     },
-                    sprite: Sprite {
+                    Sprite {
                         color: bevy::color::palettes::css::ORANGE.into(),
                         custom_size: Some(Vec2::splat(50. / f32::sqrt(2.))),
                         ..default()
                     },
-                    ..default()
-                });
+                ));
             });
     }
 }

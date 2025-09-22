@@ -21,7 +21,7 @@ pub fn ui_main_menu(
     // }
     // let img = ctx.add_image(asset_server.load("proto.png"));
 
-    egui::CentralPanel::default().show(ctx.ctx_mut(), |ui| {
+    egui::CentralPanel::default().show(ctx.ctx_mut().unwrap(), |ui| {
         let h = ui.available_height();
 
         // ui.painter().image(
@@ -113,13 +113,13 @@ pub fn ui_pause_menu(
     mut player: ResMut<ClientPlayerInfo>,
     // mut net_client: ResMut<RenetClient>,
 ) {
-    egui::Window::new("Inventory").show(ctx.ctx_mut(), |ui| {
+    egui::Window::new("Inventory").show(ctx.ctx_mut().unwrap(), |ui| {
         ui_inventory(ui, &mut player.inventory);
     });
 
     super::new_egui_window("Pause")
         .anchor(Align2::CENTER_TOP, [0., 32.])
-        .show(ctx.ctx_mut(), |ui| {
+        .show(ctx.ctx_mut().unwrap(), |ui| {
             ui.horizontal(|ui| {
                 ui.toggle_value(&mut false, "Map");
                 ui.toggle_value(&mut false, "Inventory");

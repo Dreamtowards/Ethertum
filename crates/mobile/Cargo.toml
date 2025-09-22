@@ -9,7 +9,7 @@ name = "mobile"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-bevy = { version = "0.12" }
+bevy = { version = "0.16" }
 ethertia = { path = "../..", default-features = false }
 
 [package.metadata.android]
@@ -26,7 +26,7 @@ keystore_password = "android"
 
 [package.metadata.android.sdk]
 min_sdk_version = 24
-target_sdk_version = 33
+target_sdk_version = 36
 #max_sdk_version = 33
 
 [[package.metadata.android.uses_permission]]

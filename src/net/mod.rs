@@ -6,8 +6,10 @@ use std::{
 
 use bevy::prelude::*;
 use bevy_renet::renet::{
-    transport::{ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES},
     ChannelConfig, ClientId, DefaultChannel, RenetClient, RenetServer, SendType,
+};
+use bevy_renet::netcode::{
+    ClientAuthentication, NetcodeClientTransport, NetcodeServerTransport, ServerAuthentication, ServerConfig, NETCODE_USER_DATA_BYTES,
 };
 
 pub mod netproc_client;

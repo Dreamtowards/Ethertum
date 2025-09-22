@@ -64,7 +64,7 @@ pub trait TimeIntervals {
 }
 impl TimeIntervals for bevy::time::Time {
     fn intervals(&self, u: f32) -> usize {
-        Self::_intervals(self.elapsed_seconds(), self.delta_seconds(), u)
+        Self::_intervals(self.elapsed_secs(), self.delta_secs(), u)
     }
 }
 
@@ -159,6 +159,19 @@ pub mod iter {
 use bevy::prelude::*;
 use serde::de::DeserializeOwned;
 
+pub trait BevyEcsCommandsExt {
+    fn get_or_spawn(&mut self, entity: Entity) -> EntityCommands<'_>;
+}
+
+impl<'w, 's> BevyEcsCommandsExt for Commands<'w, 's> {
+    fn get_or_spawn(&mut self, entity: Entity) -> EntityCommands<'_> {
+        if self.get_entity(entity).is_ok() {
+            self.entity(entity)
+        } else {
+            self.spawn_empty()
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct SmoothValue {

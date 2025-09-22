@@ -16,7 +16,7 @@ pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};
 pub type ChunkPtr = Arc<Chunk>;
 
 use crate::util::AsMutRef;
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, platform::collections::HashMap};
 use std::sync::Arc;
 
 

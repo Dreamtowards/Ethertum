@@ -1,7 +1,7 @@
 use bevy::{
     prelude::*,
     tasks::AsyncComputeTaskPool,
-    utils::{HashMap, HashSet},
+    platform::collections::{HashMap, HashSet},
 };
 use bevy_renet::renet::RenetServer;
 use avian3d::prelude::*;

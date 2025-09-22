@@ -45,7 +45,7 @@ impl CharacterControllerBundle {
             rigid_body: RigidBody::Dynamic,
             collider,
             ground_caster: ShapeCaster::new(caster_shape, Vec3::ZERO, Quat::default(), Dir3::NEG_Y)
-                .with_max_time_of_impact(0.2),
+                .with_max_distance(0.2),
             sleeping_disabled: SleepingDisabled,
             locked_axes: LockedAxes::ROTATION_LOCKED,
             gravity_scale: GravityScale(2.),
@@ -157,9 +157,9 @@ fn input_move(
 ) {
     let mouse_delta = mouse_motion_events.read().fold(Vec2::ZERO, |acc, v| acc + v.delta);
     let wheel_delta = mouse_wheel_events.read().fold(0.0, |acc, v| acc + v.x + v.y);
-    let dt_sec = time.delta_seconds();
+    let dt_sec = time.delta_secs();
 
-    let action_state = query_input.single();
+    let action_state = query_input.single().unwrap();
 
     for (mut trans, mut ctl, mut linvel, mut gravity_scale, hits, rotation) in query.iter_mut() {
         // A Local-Space Movement.  Speed/Acceleration/Delta will applied later on this.
@@ -188,7 +188,7 @@ fn input_move(
 
             // TouchStickUi / Gamepad: Look
             if action_state.pressed(&InputAction::Look) {
-                let axis_value = action_state.clamped_axis_pair(&InputAction::Look).unwrap().xy();
+                let axis_value = action_state.clamped_axis_pair(&InputAction::Look).xy();
 
                 let look_sensitivity = look_sensitivity * 10.;
                 ctl.pitch += look_sensitivity * axis_value.y;
@@ -198,7 +198,7 @@ fn input_move(
             let mut is_move_forward = false;
             // TouchStickUi / Gamepad: Move
             if action_state.pressed(&InputAction::Move) {
-                let axis_value = action_state.clamped_axis_pair(&InputAction::Move).unwrap().xy();
+                let axis_value = action_state.clamped_axis_pair(&InputAction::Move).xy();
                 if axis_value.y > 0. {
                     is_move_forward = true;
                 }
@@ -228,7 +228,7 @@ fn input_move(
                 }
                 cam_dist_smoothed.target = cam_dist_smoothed.target.clamp(0., 1_000.);
 
-                cam_dist_smoothed.update(time.delta_seconds() * 18.);
+                cam_dist_smoothed.update(time.delta_secs() * 18.);
                 ctl.cam_distance = cam_dist_smoothed.current;
             }
 
@@ -277,7 +277,7 @@ fn input_move(
                 }
             }
             // Fly Toggle: Double Space
-            let time_now = time.elapsed_seconds();
+            let time_now = time.elapsed_secs();
             if is_jump_just_pressed {
                 unsafe {
                     static mut LAST_FLY_JUMP: f32 = 0.;
@@ -401,7 +401,7 @@ fn sync_camera(
             } else {
                 cfg.fov
             };
-            fov_val.update(time.delta_seconds() * 16.);
+            fov_val.update(time.delta_secs() * 16.);
 
             if let Projection::Perspective(pp) = proj.as_mut() {
                 pp.fov = fov_val.current.to_radians();
