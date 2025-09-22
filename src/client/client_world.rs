@@ -1,11 +1,11 @@
 use std::f32::consts::PI;
 
-use bevy::core_pipeline::bloom::BloomSettings;
+use bevy::core_pipeline::bloom::Bloom;
 use bevy::core_pipeline::fxaa::Fxaa;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::core_pipeline::Skybox;
-use bevy::pbr::{ScreenSpaceReflectionsBundle, VolumetricFogSettings, VolumetricLight};
-use bevy_renet::renet::transport::NetcodeClientTransport;
+use bevy::pbr::{ScreenSpaceReflections, VolumetricFog, VolumetricLight};
+use bevy_renet::netcode::NetcodeClientTransport;
 use bevy_renet::renet::RenetClient;
 
 use crate::client::prelude::*;
@@ -93,7 +93,7 @@ impl Default for WorldInfo {
             time_created: 0,
             time_modified: 0,
 
-            tick_timer: Timer::new(bevy::utils::Duration::from_secs_f32(1. / 20.), TimerMode::Repeating),
+            tick_timer: Timer::new(std::time::Duration::from_secs_f32(1. / 20.), TimerMode::Repeating),
 
             is_paused: false,
             paused_steps: 0,
@@ -132,26 +132,37 @@ fn on_world_init(
 
     // Camera
     cmds.spawn((
-        Camera3dBundle {
-            // projection: Projection::Perspective(PerspectiveProjection { fov: TAU / 4.6, ..default() }),
-            camera: Camera { hdr: true, ..default() },
-            ..default()
+        Camera3d::default(),
+        Camera { hdr: true, ..default() },
+        /*
+        bevy::pbr::Atmosphere::EARTH,
+        bevy::pbr::AtmosphereSettings {
+            aerial_view_lut_max_distance: 3.2e5,
+            scene_units_to_m: 1e+4,
+            ..Default::default()
         },
+        bevy::camera::Exposure::SUNLIGHT,
+        bevy::core_pipeline::tonemapping::Tonemapping::AcesFitted,
+        bevy::post_process::bloom::Bloom::NATURAL,
+        bevy::light::AtmosphereEnvironmentMapLight::default(),
+        */
         // #[cfg(feature = "target_native_os")]
         // bevy_atmosphere::plugin::AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
-        FogSettings {
+        DistanceFog {
             // color, falloff shoud be set in ClientInfo.sky_fog_visibility, etc. due to dynamic debug reason.
             // falloff: FogFalloff::Atmospheric { extinction: Vec3::ZERO, inscattering:  Vec3::ZERO },  // mark as Atmospheric. value will be re-set by ClientInfo.sky_fog...
             ..default()
         },
         Skybox {
             image: skybox_image.clone(),
-            brightness: 1000.0
+            brightness: 1000.0,
+            ..Default::default()
         },
         EnvironmentMapLight {
             diffuse_map: skybox_image.clone(),
             specular_map: skybox_image.clone(),
             intensity: 1000.0,
+            ..Default::default()
         },
         CharacterControllerCamera,
         Name::new("Camera"),
@@ -160,14 +171,14 @@ fn on_world_init(
         // ScreenSpaceReflectionsBundle::default(),
         // Fxaa::default(),
     ))
-    .insert(ScreenSpaceReflectionsBundle::default())
+    .insert(ScreenSpaceReflections::default())
     .insert(Fxaa::default())
     .insert(Tonemapping::TonyMcMapface)
-    .insert(BloomSettings::default())
-    .insert(VolumetricFogSettings {
+    .insert(Bloom::default())
+    .insert(VolumetricFog {
         ambient_intensity: 0.,
-        density: 0.01,
-        light_tint: Color::linear_rgb(0.916, 0.941, 1.000),
+        //density: 0.01,
+        //light_tint: Color::linear_rgb(0.916, 0.941, 1.000),
         ..default()
     })
     ;
@@ -176,10 +187,7 @@ fn on_world_init(
 
     // Sun
     cmds.spawn((
-        DirectionalLightBundle {
-            directional_light: DirectionalLight { ..default() },
-            ..default()
-        },
+        DirectionalLight::default(),
         VolumetricLight,
         Sun, // Marks the light as Sun
         Name::new("Sun"),
@@ -215,22 +223,26 @@ fn reinterpret_skybox_cubemap(
        return; 
     }
     let mut cubemap = cubemap.unwrap();
-    if !cubemap.is_loaded && asset_server.get_load_state(&cubemap.image_handle) == Some(bevy::asset::LoadState::Loaded) {
-        let image = images.get_mut(&cubemap.image_handle).unwrap();
-        // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
-        // so they appear as one texture. The following code reconfigures the texture as necessary.
-        if image.texture_descriptor.array_layer_count() == 1 {
-            info!("Reinterpret 2D image into Cubemap");
-            image.reinterpret_stacked_2d_as_array(
-                image.texture_descriptor.size.height / image.texture_descriptor.size.width,
-            );
-            image.texture_view_descriptor = Some(bevy::render::render_resource::TextureViewDescriptor {
-                dimension: Some(bevy::render::render_resource::TextureViewDimension::Cube),
-                ..default()
-            });
-        }
+    if !cubemap.is_loaded {
+        if let Some(load_state) = asset_server.get_load_state(&cubemap.image_handle) {
+            if load_state.is_loaded() {
+                let image = images.get_mut(&cubemap.image_handle).unwrap();
+                // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
+                // so they appear as one texture. The following code reconfigures the texture as necessary.
+                if image.texture_descriptor.array_layer_count() == 1 {
+                    info!("Reinterpret 2D image into Cubemap");
+                    image.reinterpret_stacked_2d_as_array(
+                        image.texture_descriptor.size.height / image.texture_descriptor.size.width,
+                    );
+                    image.texture_view_descriptor = Some(bevy::render::render_resource::TextureViewDescriptor {
+                        dimension: Some(bevy::render::render_resource::TextureViewDimension::Cube),
+                        ..default()
+                    });
+                }
 
-        cubemap.is_loaded = true;
+                cubemap.is_loaded = true;
+            }
+        }
     }
 }
 
@@ -244,7 +256,7 @@ fn tick_world(
     mut net_client: ResMut<RenetClient>,
     mut last_player_pos: Local<Vec3>,
 
-    mut query_fog: Query<&mut FogSettings>,
+    mut query_fog: Query<&mut DistanceFog>,
     cli: Res<ClientInfo>,
 ) {
     // worldinfo.tick_timer.tick(time.delta());
@@ -261,7 +273,7 @@ fn tick_world(
     //         return;
     //     }
     // }
-    let dt_sec = time.delta_seconds();
+    let dt_sec = time.delta_secs();
 
     worldinfo.time_inhabited += dt_sec;
 
@@ -293,7 +305,7 @@ fn tick_world(
     }
 
     // Fog
-    let mut fog = query_fog.single_mut();
+    let mut fog = query_fog.single_mut().unwrap();
     fog.color = cli.sky_fog_color;
     if cli.sky_fog_is_atomspheric {
         // let FogFalloff::Atmospheric { .. } = fog.falloff {
@@ -311,7 +323,7 @@ fn tick_world(
     // #[cfg(feature = "target_native_os")]
     // atmosphere.sun_position = Vec3::new(sun_angle.cos(), sun_angle.sin(), 0.);
 
-    if let Some((mut light_trans, mut directional)) = query_sun.single_mut().into() {
+    if let Some((mut light_trans, mut directional)) = query_sun.single_mut().unwrap().into() {
         directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * cli.skylight_illuminance * 1000.0;
         directional.shadows_enabled = cli.skylight_shadow;
 

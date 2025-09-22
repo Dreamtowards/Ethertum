@@ -56,7 +56,7 @@ pub fn hud_chat(
     }
 
     // Hide ChatUi when long time no new message.
-    let curr_time = time.elapsed_seconds();
+    let curr_time = time.elapsed_secs();
     if has_new_chat {
         *last_time_new_chat = curr_time;
     }
@@ -71,7 +71,7 @@ pub fn hud_chat(
         .collapsible(false)
         .anchor(Align2::LEFT_BOTTOM, [0., -100.])
         // .frame(Frame::default().fill(Color32::from_black_alpha(140)))
-        .show(ctx.ctx_mut(), |ui| {
+        .show(ctx.ctx_mut().unwrap(), |ui| {
             ui.vertical(|ui| {
                 let scroll_height = ui.available_height() - 38.0;
 
@@ -215,14 +215,14 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
         .resizable(false)
         .anchor(Align2::CENTER_BOTTOM, [0., -cfg.hud_padding])
         .frame(Frame::default().fill(Color32::from_black_alpha(0)))
-        .show(ctx.ctx_mut(), |ui| {
+        .show(ctx.ctx_mut().unwrap(), |ui| {
             // Health bar
             {
                 let health_bar_size = Vec2::new(250., 4.);
                 let mut rect = ui.min_rect();
                 rect.set_height(health_bar_size.y);
                 rect.set_width(health_bar_size.x);
-                let rounding = ui.style().visuals.widgets.inactive.rounding;
+                let rounding = ui.style().visuals.widgets.inactive.rounding();
 
                 // bar bg
                 ui.painter().rect_filled(rect, rounding, Color32::from_black_alpha(200));
@@ -266,7 +266,7 @@ pub fn hud_playerlist(
         .title_bar(false)
         .resizable(false)
         .anchor(Align2::CENTER_TOP, [0., cfg.hud_padding])
-        .show(ctx.ctx_mut(), |ui| {
+        .show(ctx.ctx_mut().unwrap(), |ui| {
             for player in &cli.playerlist {
                 ui.horizontal(|ui| {
                     ui.set_width(280.);

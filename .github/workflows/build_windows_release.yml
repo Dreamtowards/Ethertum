@@ -20,14 +20,7 @@ jobs:
       
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: rustfmt, rust-src, clippy
+        uses: actions/checkout@v5
 
       - name: Install Dependencies
         run: |
@@ -41,7 +34,7 @@ jobs:
         run: Compress-Archive -Path ./target/x86_64-pc-windows-msvc/release/*.exe -Destination windows-x86_64.zip
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: |

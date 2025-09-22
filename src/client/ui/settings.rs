@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{
     egui::{self, Color32, Layout, Ui, Widget},
-    EguiContexts, EguiSettings,
+    EguiContexts,
 };
 
 use super::{new_egui_window, sfx_play, ui_lr_panel};
@@ -48,7 +48,7 @@ pub fn ui_settings(
     mut cli: ResMut<ClientInfo>,
     mut cfg: ResMut<ClientSettings>,
     mut worldinfo: Option<ResMut<WorldInfo>>,
-    mut egui_settings: ResMut<EguiSettings>,
+    //mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
     // chunk_sys: Option<ResMut<ClientChunkSystem>>,
     mut vox_brush: ResMut<crate::voxel::VoxelBrush>,
@@ -59,7 +59,7 @@ pub fn ui_settings(
     // mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let is_world_loaded = worldinfo.is_some();
-    new_egui_window("Settings").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Settings").show(ctx.ctx_mut().unwrap(), |ui| {
         let curr_settings_panel = *settings_panel;
 
         ui_lr_panel(
@@ -156,7 +156,7 @@ pub fn ui_settings(
 
                         ui.label("UI");
 
-                        ui_setting_line(ui, "UI Scale", egui::Slider::new(&mut egui_settings.scale_factor, 0.5..=2.5));
+                        //ui_setting_line(ui, "UI Scale", egui::Slider::new(&mut egui_settings.scale_factor, 0.5..=2.5));
 
                         ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cfg.hud_padding, 0.0..=48.0));
                         

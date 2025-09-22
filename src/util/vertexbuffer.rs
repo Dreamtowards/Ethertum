@@ -14,7 +14,7 @@
 use std::{fmt::Error, hash::Hash};
 use std::ops::Mul;
 
-use bevy::{prelude::*, render::mesh::Indices, utils::HashMap};
+use bevy::{prelude::*, render::mesh::Indices, platform::collections::HashMap};
 
 #[derive(Clone, Copy)]
 pub struct Vertex {

@@ -18,7 +18,7 @@ use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 use super::new_egui_window;
 
 pub fn ui_connecting_server(mut ctx: EguiContexts, mut cli: EthertiaClient, net_client: Option<ResMut<RenetClient>>) {
-    new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Server List").show(ctx.ctx_mut().unwrap(), |ui| {
         let h = ui.available_height();
 
         ui.vertical_centered(|ui| {
@@ -45,7 +45,7 @@ pub fn ui_disconnected_reason(
     mut ctx: EguiContexts,
     mut cli: ResMut<ClientInfo>, // readonly. mut only for curr_ui.
 ) {
-    new_egui_window("Disconnected Reason").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Disconnected Reason").show(ctx.ctx_mut().unwrap(), |ui| {
         let h = ui.available_height();
 
         ui.vertical_centered(|ui| {
@@ -80,7 +80,7 @@ pub fn ui_serverlist(
     mut cli: EthertiaClient,
     // mut refreshing_indices: Local<HashMap<usize, (Task<anyhow::Result<Motd>>, u64)>>,
 ) {
-    new_egui_window("Server List").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Server List").show(ctx.ctx_mut().unwrap(), |ui| {
         let serverlist = &mut cli.cfg.serverlist;
 
         // all access defer to one closure.
@@ -251,7 +251,7 @@ pub fn ui_serverlist(
 }
 
 pub fn ui_localsaves(mut ctx: EguiContexts, mut cli: EthertiaClient, mut idx_editing: Local<Option<usize>>, serv_cfg: Res<ServerSettings>) {
-    new_egui_window("Local Worlds").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("Local Worlds").show(ctx.ctx_mut().unwrap(), |ui| {
         ui_lr_panel(
             ui,
             false,
@@ -328,7 +328,7 @@ pub fn ui_create_world(
     mut tx_world_seed: Local<String>,
     mut _difficulty: Local<Difficulty>,
 ) {
-    new_egui_window("New World").show(ctx.ctx_mut(), |ui| {
+    new_egui_window("New World").show(ctx.ctx_mut().unwrap(), |ui| {
         // ui_lr_panel(ui, true, |ui| {
         //     if sfx_play(ui.selectable_label(true, "General")).clicked() {
 

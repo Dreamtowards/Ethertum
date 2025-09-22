@@ -20,14 +20,7 @@ jobs:
       
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-          components: rustfmt, rust-src, clippy
+        uses: actions/checkout@v5
 
       - name: Install Dependencies
         run: |
@@ -47,7 +40,7 @@ jobs:
           zip --recurse-paths ethertia-wasm.zip ./build/wasm/
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: artifacts
           path: |

@@ -28,7 +28,7 @@ impl Plugin for ClientGamePlugin {
             }
 
             // for SSR
-            app.insert_resource(Msaa::Off);
+            //app.insert_resource(Msaa::Off);
             app.insert_resource(bevy::pbr::DefaultOpaqueRendererMethod::deferred());
 
             // Billiboard
@@ -44,7 +44,7 @@ impl Plugin for ClientGamePlugin {
         }
         // .obj model loader.
         app.add_plugins(bevy_obj::ObjPlugin);
-        app.insert_resource(GlobalVolume::new(1.0)); // Audio GlobalVolume
+        app.insert_resource(GlobalVolume::new(bevy::audio::Volume::Linear(1.0))); // Audio GlobalVolume
 
         // Physics
         app.add_plugins(PhysicsPlugins::default());
@@ -95,8 +95,8 @@ pub mod condition {
     pub fn load_world(res: Option<Res<WorldInfo>>) -> bool {
         res.is_some_and(|r| r.is_added())
     }
-    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>) -> bool + Clone {
-        resource_removed::<WorldInfo>()
+    pub fn unload_world() -> impl FnMut(Option<Res<WorldInfo>>, bevy::prelude::Local<bool>) -> bool + Clone {
+        resource_removed::<WorldInfo>
     }
     pub fn manipulating(cli: Res<ClientInfo>) -> bool {
         cli.curr_ui == CurrentUI::None

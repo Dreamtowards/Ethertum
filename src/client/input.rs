@@ -1,9 +1,9 @@
 use bevy::window::*;
+use leafwing_input_manager::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
-use leafwing_input_manager::axislike::DualAxis;
-use leafwing_input_manager::axislike::VirtualDPad;
+use leafwing_input_manager::user_input::gamepad::GamepadStick;
 use leafwing_input_manager::input_map::InputMap;
-use leafwing_input_manager::InputManagerBundle;
+use leafwing_input_manager::plugin::InputManagerPlugin;
 
 use crate::client::prelude::*;
 use crate::client::ui::*;
@@ -56,13 +56,14 @@ impl InputAction {
         let mut input_map = InputMap::default();
 
         // Default gamepad input bindings
-        input_map.insert(Self::Move, DualAxis::left_stick());
-        input_map.insert(Self::Look, DualAxis::right_stick());
+        input_map.insert_dual_axis(Self::Move, GamepadStick::LEFT);
+        input_map.insert_dual_axis(Self::Look, GamepadStick::RIGHT);
 
         // Default kbm input bindings
-        input_map.insert(Self::Move, VirtualDPad::wasd());
-        input_map.insert(Self::Move, VirtualDPad::arrow_keys());
+        input_map.insert_dual_axis(Self::Move, VirtualDPad::wasd());
+        input_map.insert_dual_axis(Self::Move, VirtualDPad::arrow_keys());
         // input_map.insert(Self::Look, VirtualDPad::mouse_motion());  // Don't use MouseMotion for Look, the experimence is quite bad.
+
         input_map.insert(Self::Jump, KeyCode::Space);
         input_map.insert(Self::Sprint, KeyCode::ControlLeft);
         input_map.insert(Self::Sneak, KeyCode::ShiftLeft);
@@ -95,9 +96,8 @@ pub fn input_handle(
     mut cli: ResMut<ClientInfo>,
     cfg: Res<ClientSettings>,
 ) {
-    let action_state = query_input.single();
-
-    let mut window = query_window.single_mut();
+    let action_state = query_input.single().unwrap();
+    let mut window = query_window.single_mut().unwrap();
 
     // ESC
     if action_state.just_pressed(&InputAction::ESC) {
@@ -116,8 +116,8 @@ pub fn input_handle(
 
     // Apply Cursor Grab
     let cursor_grab = curr_manipulating && cli.enable_cursor_look;
-    window.cursor.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
-    window.cursor.visible = !cursor_grab;
+    window.cursor_options.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
+    window.cursor_options.visible = !cursor_grab;
 
     // Enable Character Controlling
     if let Ok(ctr) = &mut query_controller.get_single_mut() {
@@ -159,10 +159,10 @@ pub fn input_handle(
 
     // Toggle Fullscreen
     if action_state.just_pressed(&InputAction::Fullscreen) || (key.pressed(KeyCode::AltLeft) && key.just_pressed(KeyCode::Enter)) {
-        window.mode = if window.mode != WindowMode::Fullscreen {
-            WindowMode::Fullscreen
-        } else {
+        window.mode = if window.mode != WindowMode::Windowed {
             WindowMode::Windowed
+        } else {
+            WindowMode::Fullscreen(MonitorSelection::Current, VideoModeSelection::Current)
         };
     }
     // Vsync

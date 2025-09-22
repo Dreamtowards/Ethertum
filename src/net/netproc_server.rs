@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, utils::HashSet};
+use bevy::{prelude::*, platform::collections::HashSet};
 use bevy_renet::{
-    renet::{transport::NetcodeServerTransport, ConnectionConfig, DefaultChannel, RenetServer, ServerEvent},
-    transport::NetcodeServerPlugin,
+    renet::{ConnectionConfig, DefaultChannel, RenetServer, ServerEvent},
+    netcode::{NetcodeServerTransport, NetcodeServerPlugin},
     RenetServerPlugin,
 };
 
@@ -53,7 +53,7 @@ pub fn server_sys(
             ServerEvent::ClientConnected { client_id } => {
                 let result_string: String = transport
                     .user_data(*client_id)
-                    .unwrap_or([0; bevy_renet::renet::transport::NETCODE_USER_DATA_BYTES])
+                    .unwrap_or([0; bevy_renet::netcode::NETCODE_USER_DATA_BYTES])
                     .iter()
                     .map(|&byte| byte as char)
                     .collect();
@@ -111,7 +111,7 @@ pub fn server_sys(
                     // 模拟登录验证
                     std::thread::sleep(Duration::from_millis(800));
 
-                    let entity_id = EntityId::from_server(cmds.spawn(TransformBundle::default()).id());
+                    let entity_id = EntityId::from_server(cmds.spawn(Transform::default()).id());
 
                     // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess { player_entity: entity_id });

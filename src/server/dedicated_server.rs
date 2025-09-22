@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    utils::{HashMap, HashSet},
+    platform::collections::{HashMap, HashSet},
 };
 use bevy_renet::renet::ClientId;
 
