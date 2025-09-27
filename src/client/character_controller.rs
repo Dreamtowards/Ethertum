@@ -187,7 +187,7 @@ fn input_move(
             }
 
             // TouchStickUi / Gamepad: Look
-            if action_state.pressed(&InputAction::Look) {
+            {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Look).xy();
 
                 let look_sensitivity = look_sensitivity * 10.;
@@ -197,7 +197,7 @@ fn input_move(
 
             let mut is_move_forward = false;
             // TouchStickUi / Gamepad: Move
-            if action_state.pressed(&InputAction::Move) {
+            {
                 let axis_value = action_state.clamped_axis_pair(&InputAction::Move).xy();
                 if axis_value.y > 0. {
                     is_move_forward = true;

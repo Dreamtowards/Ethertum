@@ -25,7 +25,9 @@ pub enum InputStickId {
 
 #[derive(leafwing_input_manager::Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 pub enum InputAction {
+    #[actionlike(DualAxis)]
     Move,
+    #[actionlike(DualAxis)]
     Look,
 
     Jump,

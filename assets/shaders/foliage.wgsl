@@ -71,7 +71,7 @@ fn fragment(
     pbr_in.N = vec3<f32>(0, 1, 0);
     pbr_in.material.base_color = base_color;
     pbr_in.material.perceptual_roughness = 1.0;
-    pbr_in.material.reflectance = 0.0;
+    pbr_in.material.reflectance = vec3<f32>(0.0);
     pbr_in.material.specular_transmission = 0.0;
     // pbr_in.material.ior = 0.0;
     // pbr_in.material.metallic = select(0.0, 0.9, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 8.);

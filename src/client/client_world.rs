@@ -124,6 +124,8 @@ fn on_world_init(
     //     true,
     //     &cli.cfg.username, &asset_server, &mut meshes, &mut materials);
 
+    // NOTE: Camera init has moved into UI Init. since Egui now requires Camera to render and we should only have 1 camera
+    /*  
     let skybox_image = asset_server.load("table_mountain_2_puresky_4k_cubemap.jpg");
     cmds.insert_resource(SkyboxCubemap {
         is_loaded: false,
@@ -184,6 +186,7 @@ fn on_world_init(
     ;
     // .insert(ScreenSpaceAmbientOcclusionBundle::default())
     // .insert(TemporalAntiAliasBundle::default());
+    */
 
     // Sun
     cmds.spawn((
@@ -209,9 +212,9 @@ fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOn
 
 
 #[derive(Resource)]
-struct SkyboxCubemap {
-    is_loaded: bool,
-    image_handle: Handle<Image>,
+pub struct SkyboxCubemap {
+    pub is_loaded: bool,
+    pub image_handle: Handle<Image>,
 }
 
 fn reinterpret_skybox_cubemap(

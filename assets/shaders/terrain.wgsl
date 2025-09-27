@@ -195,7 +195,7 @@ fn fragment(
     var pbr_in = pbr_fragment::pbr_input_from_vertex_output(vert_out, is_front, false);
     pbr_in.material.base_color = base_color;
     pbr_in.material.perceptual_roughness = roughness;
-    pbr_in.material.reflectance = 1.0 - roughness;
+    pbr_in.material.reflectance = vec3<f32>(1.0f - roughness);
     pbr_in.material.specular_transmission = 1.0 - roughness;
     // pbr_in.material.ior = 0.99;
     pbr_in.material.metallic = select(0.0, 1.0, (mtls[vi_mtl]) == 9. || (mtls[vi_mtl]) == 10.);

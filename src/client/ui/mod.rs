@@ -18,12 +18,14 @@ use bevy::{
     diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_egui::{
-    egui::{
-        self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
-    },
-    EguiContextSettings, EguiContexts, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet,
-};
+use bevy::core_pipeline::bloom::Bloom;
+use bevy::core_pipeline::fxaa::Fxaa;
+use bevy::core_pipeline::Skybox;
+use bevy::core_pipeline::tonemapping::Tonemapping;
+use bevy::pbr::{ScreenSpaceReflections, VolumetricFog};
+use bevy_egui::{egui::{
+    self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
+}, EguiContextSettings, EguiContexts, EguiGlobalSettings, EguiMultipassSchedule, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet, PrimaryEguiContext};
 use egui_extras::{Size, StripBuilder};
 use rand::Rng;
 
@@ -185,8 +187,84 @@ pub fn color32_gray_alpha(gray: f32, alpha: f32) -> Color32 {
     Color32::from_rgba_premultiplied(g, g, g, a)
 }
 
-fn setup_camera_system(mut commands: Commands) {
-    commands.spawn(Camera2d);
+fn setup_camera_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    // WARNING: 不应该产生多个Camera 否则SSR不支持 很多东西也会非预期的绘制多次如gizmos
+    // commands.spawn((
+    //     Camera2d::default(),
+    //     Camera {
+    //         order: 10,
+    //         hdr: true,  // Sync with Camera3d!
+    //         ..default()
+    //     }
+    // ));
+
+    // NOTE: 也许应该放在通用系统里初始化camera而不是ui里, 但毕竟依赖egui的初始化时序 先暂时放这吧
+    let skybox_image = asset_server.load("table_mountain_2_puresky_4k_cubemap.jpg");
+    commands.insert_resource(crate::client::client_world::SkyboxCubemap {
+        is_loaded: false,
+        image_handle: skybox_image.clone()
+    });
+
+    // Camera
+    commands.spawn((
+        Camera3d::default(),
+        Camera {
+            hdr: true,  // WARNING: Camera3d 和 ui的Camera2d 必须都开启hdr或者都不开启 否则只会渲染order大的那个
+            order: 0,
+            ..default()
+        },
+        /*
+        bevy::pbr::Atmosphere::EARTH,
+        bevy::pbr::AtmosphereSettings {
+            aerial_view_lut_max_distance: 3.2e5,
+            scene_units_to_m: 1e+4,
+            ..Default::default()
+        },
+        bevy::camera::Exposure::SUNLIGHT,
+        bevy::core_pipeline::tonemapping::Tonemapping::AcesFitted,
+        bevy::post_process::bloom::Bloom::NATURAL,
+        bevy::light::AtmosphereEnvironmentMapLight::default(),
+        */
+        // #[cfg(feature = "target_native_os")]
+        // bevy_atmosphere::plugin::AtmosphereCamera::default(), // Marks camera as having a skybox, by default it doesn't specify the render layers the skybox can be seen on
+        DistanceFog {
+            // color, falloff shoud be set in ClientInfo.sky_fog_visibility, etc. due to dynamic debug reason.
+            // falloff: FogFalloff::Atmospheric { extinction: Vec3::ZERO, inscattering:  Vec3::ZERO },  // mark as Atmospheric. value will be re-set by ClientInfo.sky_fog...
+            ..default()
+        },
+        Skybox {
+            image: skybox_image.clone(),
+            brightness: 1000.0,
+            ..Default::default()
+        },
+        EnvironmentMapLight {
+            diffuse_map: skybox_image.clone(),
+            specular_map: skybox_image.clone(),
+            intensity: 1000.0,
+            ..Default::default()
+        },
+        CharacterControllerCamera,
+        Name::new("Camera"),
+        DespawnOnWorldUnload,
+
+        Msaa::Off,  // Optional 保持原本的设置, 之前关闭Msaa好像是为了SSR?
+        // ScreenSpaceReflectionsBundle::default(),
+        // Fxaa::default(),
+    ))
+        .insert(ScreenSpaceReflections::default())  // 会导致渲染异常 3d不渲染 历史没clear UB
+        .insert(Fxaa::default())
+        .insert(Tonemapping::TonyMcMapface)
+        .insert(Bloom::default())
+        .insert(VolumetricFog {
+            ambient_intensity: 0.,
+            //density: 0.01,
+            //light_tint: Color::linear_rgb(0.916, 0.941, 1.000),
+            ..default()
+        })
+    ;
 }
 
 fn configure_visuals_system(mut contexts: EguiContexts) -> Result {
