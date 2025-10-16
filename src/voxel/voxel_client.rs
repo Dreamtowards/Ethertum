@@ -1,8 +1,8 @@
 use bevy::{
     color::palettes::css, pbr::{ExtendedMaterial, MaterialExtension}, prelude::*, render::{
-        render_asset::RenderAssetUsages,
         render_resource::PrimitiveTopology,
     }, tasks::AsyncComputeTaskPool, platform::collections::{HashMap, HashSet},
+    asset::{RenderAssetUsages},
     image::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
 };
 use avian3d::prelude::*;
@@ -49,7 +49,7 @@ impl Plugin for ClientVoxelPlugin {
                 chunks_detect_load_and_unload,
                 chunks_remesh_enqueue,
                 draw_gizmos,
-                draw_crosshair_cube.in_set(PhysicsSet::Sync),
+                draw_crosshair_cube.in_set(PhysicsSet::Writeback),
             )
             .chain()
             .run_if(condition::in_world),
@@ -398,7 +398,7 @@ fn raycast(
     let ray_pos = cam_trans.translation();
     let ray_dir = cam_trans.forward();
 
-    let player_entity = query_player.get_single().unwrap_or(Entity::PLACEHOLDER);
+    let player_entity = query_player.single().unwrap_or(Entity::PLACEHOLDER);
 
     if let Some(hit) = spatial_query.cast_ray(
         ray_pos,
@@ -510,7 +510,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
     }
 
     if cli.dbg_gizmo_curr_chunk {
-        if let Ok(trans) = query_cam.get_single() {
+        if let Ok(trans) = query_cam.single() {
             let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
             gizmos.cuboid(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
@@ -596,7 +596,7 @@ impl ClientChunkSystem {
     pub fn spawn_chunk(&mut self, mut chunk: Chunk, cmds: &mut Commands, meshes: &mut Assets<Mesh>) {
         let chunkpos = chunk.chunkpos;
 
-        let aabb = bevy::render::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::LEN as f32));
+        let aabb = bevy::camera::primitives::Aabb::from_min_max(Vec3::ZERO, Vec3::ONE * (Chunk::LEN as f32));
 
         chunk.mesh_handle_terrain = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
         chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
@@ -630,7 +630,7 @@ impl ClientChunkSystem {
                     aabb,
                 ));
             })
-            .set_parent(self.entity)
+            .set_parent_in_place(self.entity)
             .id();
 
         let chunkptr = Arc::new(chunk);
@@ -705,7 +705,7 @@ impl ClientChunkSystem {
             }
         }
 
-        cmds.entity(chunk.entity).despawn_recursive();
+        cmds.entity(chunk.entity).despawn();
 
         Some(chunk)
     }

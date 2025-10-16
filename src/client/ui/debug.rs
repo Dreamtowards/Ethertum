@@ -144,7 +144,7 @@ pub fn ui_menu_panel(
                             ui.button("About").clicked();
                             ui.separator();
                             if ui.button("Terminate").clicked() {
-                                app_exit_events.send(AppExit::Success);
+                                app_exit_events.write(AppExit::Success);
                             }
                         });
                         ui.menu_button("Voxel", |ui| {
@@ -251,7 +251,7 @@ pub fn hud_debug_text(
     worldinfo: Option<Res<WorldInfo>>,
     chunk_sys: Option<Res<ClientChunkSystem>>,
     hit_result: Res<HitResult>,
-    query_cam: Query<(&Transform, &bevy::render::view::VisibleEntities), With<CharacterControllerCamera>>,
+    query_cam: Query<(&Transform, &bevy::camera::visibility::VisibleEntities), With<CharacterControllerCamera>>,
     mut last_cam_pos: Local<Vec3>,
 ) {
     let mut str_sys = String::default();

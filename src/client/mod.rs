@@ -1,3 +1,6 @@
+#[cfg(feature = "ddgi")]
+mod ddgi;
+
 pub mod character_controller;
 pub mod game_client;
 pub mod ui;
@@ -8,6 +11,10 @@ mod settings;
 
 pub mod prelude {
     use super::*;
+
+    #[cfg(feature = "ddgi")]
+    pub use ddgi::*;
+
     pub use character_controller::{CharacterController, CharacterControllerBundle, CharacterControllerCamera, CharacterControllerPlugin};
     pub use client_world::{ClientPlayerInfo, DespawnOnWorldUnload, WorldInfo};
     pub use game_client::{condition, ClientGamePlugin, ClientInfo, EthertiaClient};

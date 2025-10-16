@@ -116,7 +116,7 @@ fn chunks_load(
         if !any_desire {
             let chunkptr = chunk_sys.despawn_chunk(chunkpos);
             let entity = chunkptr.unwrap().as_ref().entity;
-            cmds.entity(entity).despawn_recursive();
+            cmds.entity(entity).despawn();
 
             net_server.broadcast_packet(&SPacket::ChunkDel { chunkpos });
 

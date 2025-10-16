@@ -142,7 +142,7 @@ pub fn client_sys(
             SPacket::EntityDel { entity_id } => {
                 info!("DeSpawn EntityDel {}", entity_id.raw());
 
-                cmds.get_entity(entity_id.client_entity()).unwrap().despawn_recursive();
+                cmds.get_entity(entity_id.client_entity()).unwrap().despawn();
             }
             SPacket::PlayerList { playerlist } => {
                 cli.playerlist.clone_from(playerlist); // should move?

@@ -93,7 +93,7 @@ impl EntityId {
     }
 
     pub fn client_entity(&self) -> Entity {
-        Entity::from_raw(10_000 + self.0)
+        Entity::from_raw_u32(10_000 + self.0).unwrap()
     }
 
     pub fn raw(&self) -> u32 {

@@ -82,7 +82,7 @@ impl InputAction {
 }
 
 pub fn input_setup(mut cmds: Commands) {
-    cmds.spawn(InputManagerBundle::<InputAction>::with_map(InputAction::default_input_map()));
+    cmds.spawn(InputAction::default_input_map());
 }
 
 pub fn input_handle(
@@ -91,6 +91,7 @@ pub fn input_handle(
 
     mut mouse_wheel_events: EventReader<bevy::input::mouse::MouseWheel>,
     mut query_window: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
+    mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
     mut query_controller: Query<&mut CharacterController>,
 
     worldinfo: Option<ResMut<WorldInfo>>,
@@ -118,11 +119,11 @@ pub fn input_handle(
 
     // Apply Cursor Grab
     let cursor_grab = curr_manipulating && cli.enable_cursor_look;
-    window.cursor_options.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
-    window.cursor_options.visible = !cursor_grab;
+    primary_cursor_options.grab_mode = if cursor_grab { CursorGrabMode::Locked } else { CursorGrabMode::None };
+    primary_cursor_options.visible = !cursor_grab;
 
     // Enable Character Controlling
-    if let Ok(ctr) = &mut query_controller.get_single_mut() {
+    if let Ok(ctr) = &mut query_controller.single_mut() {
         ctr.enable_input = curr_manipulating;
         ctr.enable_input_cursor_look = cursor_grab;
     }
@@ -142,6 +143,10 @@ pub fn input_handle(
     // Temporary F4 Debug Settings
     if key.just_pressed(KeyCode::F4) {
         cli.curr_ui = CurrentUI::Settings;
+    }
+
+    if key.just_pressed(KeyCode::F6) {
+        cli.dbg_tex = !cli.dbg_tex;
     }
 
     // Temporary Toggle F9 Debug Inspector

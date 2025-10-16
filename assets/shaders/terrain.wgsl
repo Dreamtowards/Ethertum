@@ -10,6 +10,79 @@
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::pbr_fragment
 
+#if 0
+struct DDGI1Uniforms {
+    grid_origin: vec3<f32>,
+    grid_size: vec3<i32>,
+    probe_spacing: f32,
+    ddgi_irradiance_resolution: u32,
+    ddgi_distance_resolution: u32,
+}
+
+@group(#{MATERIAL_BIND_GROUP}) @binding(102) var<uniform> ddgi_uniforms: DDGI1Uniforms;
+@group(#{MATERIAL_BIND_GROUP}) @binding(103) var ddgi_irradiance_texture: texture_2d_array<f32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(104) var ddgi_distance_texture: texture_2d_array<f32>;
+
+fn sample_ddgi_irradiance(
+    world_position: vec3<f32>,
+    world_normal: vec3<f32>,
+) -> vec3<f32> {
+    let grid_coord_f = (world_position - ddgi_uniforms.grid_origin) / ddgi_uniforms.probe_spacing;
+    let grid_coord = vec3<i32>(floor(grid_coord_f));
+    if (any(grid_coord < vec3<i32>(0)) || any(grid_coord >= ddgi_uniforms.grid_size)) {
+        return vec3<f32>(0.0);
+    }
+
+    var irradiance = vec3<f32>(0.0);
+    let alpha = fract(grid_coord_f);
+    for (var i = 0; i < 8; i++) {
+        let offset = vec3<i32>(i & 1, (i >> 1) & 1, (i >> 2) & 1);
+        let probe_coord = grid_coord + offset;
+        if (any(probe_coord >= ddgi_uniforms.grid_size)) {
+            continue;
+        }
+
+        let weight = mix(
+            mix(1.0 - alpha.x, alpha.x, f32(offset.x)),
+            mix(1.0 - alpha.y, alpha.y, f32(offset.y)),
+            mix(1.0 - alpha.z, alpha.z, f32(offset.z)),
+        );
+
+        let probe_irradiance = sample_probe_irradiance(probe_coord, world_normal);
+        irradiance += probe_irradiance * weight;
+    }
+}
+
+fn sample_probe_irradiance(
+    probe_coord: vec3<i32>,
+    direction: vec3<f32>,
+) -> vec3<f32> {
+    let abs_dir = abs(direction);
+    let max_axis = max(max(abs_dir.x, abs_dir.y), abs_dir.z);
+
+    var face: i32;
+    var uv: vec2<f32>;
+    if (max_axis == abs_dir.x) {
+        face = select(1, 0, direction.x > 0.0);
+        uv = vec2<f32>(-direction.z, -direction.y) / direction.x;
+    } else if (max_axis == abs_dir.y) {
+        face = select(3, 2, direction.y > 0.0);
+        uv = vec2<f32>(direction.x, direction.z) / direction.y;
+    } else {
+        face = select(5, 4, direction.z > 0.0);
+        uv = vec2<f32>(direction.x, -direction.y) / direction.z;
+    }
+
+    uv = uv * 0.5 + 0.5;
+    let probe_index = probe_coord.x + probe_coord.z * ddgi_uniforms.grid_size.x;
+    let texel_size = 1.0 / f32(ddgi_uniforms.ddgi_irradiance_resolution);
+    let texture_coord = vec2<f32>(
+        (f32(probe_index) + uv.x) * texel_size,
+        (f32(probe_coord.y) + uv.y) * texel_size,
+    );
+    return textureSample(ddgi_irradiance_texture, evy_pbr::pbr_bindings::base_color_sampler, texture_coord, face).rgb;
+}
+#endif
 
 struct MyVertexOutput {
     @builtin(position) position: vec4<f32>,
@@ -58,8 +131,8 @@ fn vertex(
 // @group(2) @binding(0) var _sampler: sampler;
 // @group(2) @binding(1) var tex_diffuse: texture_2d<f32>;
 // @group(2) @binding(2) var tex_normal: texture_2d<f32>;
-@group(2) @binding(100) var dram_texture: texture_2d<f32>;
-@group(2) @binding(101) var<uniform> sample_scale: f32;
+@group(#{MATERIAL_BIND_GROUP}) @binding(100) var dram_texture: texture_2d<f32>;
+@group(#{MATERIAL_BIND_GROUP}) @binding(101) var<uniform> sample_scale: f32;
 
 // @group(1) @binding(4) var<uniform> sample_scale: f32;
 // @group(1) @binding(5) var<uniform> normal_intensity: f32;
@@ -203,6 +276,11 @@ fn fragment(
     pbr_in.diffuse_occlusion = vec3<f32>(pow(occlusion, 0.25));
     pbr_in.specular_occlusion = occlusion;
     
+    //let ddgi_irradiance = sample_ddgi_irradiance(worldpos, world_normal);
+    //pbr_in.diffuse_occlusion *= ddgi_irradiance;
+
+    // debug
+    //pbr_in.material.base_color = vec4<f32>(ddgi_irradiance, ddgi_irradiance, ddgi_irradiance, 1.0);
     
     return bevy_pbr::pbr_deferred_functions::deferred_output(vert_out, pbr_in);
     // var color = pbr_functions::apply_pbr_lighting(pbr_in);

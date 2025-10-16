@@ -121,7 +121,7 @@ fn setup_items(
     info!("Registered {} items: {:?}", reg.len(), reg.vec);
 
     items.atlas = asset_server.load("baked/items.png");
-    items.atlas_egui = egui_ctx.add_image(items.atlas.clone());
+    items.atlas_egui = egui_ctx.add_image(bevy_egui::EguiTextureHandle::Strong(items.atlas.clone()));
 
     unsafe {
         _ITEMS_REG = std::ptr::from_ref(items);

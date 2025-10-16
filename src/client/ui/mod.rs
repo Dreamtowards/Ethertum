@@ -18,11 +18,11 @@ use bevy::{
     diagnostic::{EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy::core_pipeline::bloom::Bloom;
-use bevy::core_pipeline::fxaa::Fxaa;
+use bevy::post_process::bloom::Bloom;
+use bevy::anti_alias::fxaa::Fxaa;
 use bevy::core_pipeline::Skybox;
 use bevy::core_pipeline::tonemapping::Tonemapping;
-use bevy::pbr::{ScreenSpaceReflections, VolumetricFog};
+use bevy::pbr::{ScreenSpaceReflections};
 use bevy_egui::{egui::{
     self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
 }, EguiContextSettings, EguiContexts, EguiGlobalSettings, EguiMultipassSchedule, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet, PrimaryEguiContext};
@@ -63,9 +63,7 @@ impl Plugin for UiPlugin {
                     (ui_example_system, update_ui_scale_factor_system),
                     /* debug */
                     debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar),
-                    debug::hud_debug_text
-                        .run_if(|cli: Res<ClientInfo>| cli.dbg_text)
-                        .before(debug::ui_menu_panel),
+                    debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel),
                     /* hud */
                     (hud::hud_hotbar, hud::hud_chat, hud::hud_playerlist.run_if(condition::manipulating)).run_if(condition::in_world),
                     items::draw_ui_holding_item,
@@ -78,7 +76,7 @@ impl Plugin for UiPlugin {
                         serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalWorldList)),
                         serverlist::ui_create_world.run_if(condition::in_ui(CurrentUI::LocalWorldNew)),
                         serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::ServerList)),
-                        serverlist::ui_connecting_server.run_if(condition::in_ui(CurrentUI::ConnectingServer)),
+                        //serverlist::ui_connecting_server.run_if(condition::in_ui(CurrentUI::ConnectingServer)),
                         serverlist::ui_disconnected_reason.run_if(condition::in_ui(CurrentUI::DisconnectedReason)),
                     )
                 ),
@@ -89,7 +87,7 @@ impl Plugin for UiPlugin {
 
         app.add_plugins((
             FrameTimeDiagnosticsPlugin::default(),
-            EntityCountDiagnosticsPlugin,
+            EntityCountDiagnosticsPlugin::default(),
             // SystemInformationDiagnosticsPlugin,
         ));
 
@@ -212,10 +210,11 @@ fn setup_camera_system(
     commands.spawn((
         Camera3d::default(),
         Camera {
-            hdr: true,  // WARNING: Camera3d 和 ui的Camera2d 必须都开启hdr或者都不开启 否则只会渲染order大的那个
+            //hdr: true,  // WARNING: Camera3d 和 ui的Camera2d 必须都开启hdr或者都不开启 否则只会渲染order大的那个
             order: 0,
             ..default()
         },
+        bevy::render::view::Hdr,
         /*
         bevy::pbr::Atmosphere::EARTH,
         bevy::pbr::AtmosphereSettings {
@@ -258,7 +257,7 @@ fn setup_camera_system(
         .insert(Fxaa::default())
         .insert(Tonemapping::TonyMcMapface)
         .insert(Bloom::default())
-        .insert(VolumetricFog {
+        .insert(bevy::light::VolumetricFog {
             ambient_intensity: 0.,
             //density: 0.01,
             //light_tint: Color::linear_rgb(0.916, 0.941, 1.000),

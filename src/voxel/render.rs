@@ -1,7 +1,7 @@
-use bevy::{asset::ReflectAsset, pbr::{ExtendedMaterial, MaterialExtension}, render::render_resource::{AsBindGroup, ShaderRef}};
+use bevy::{asset::ReflectAsset, pbr::{ExtendedMaterial, MaterialExtension}, render::render_resource::{AsBindGroup}, shader::{ShaderRef}};
 
 use crate::prelude::*;
-
+use crate::client::prelude::*;
 
 pub fn init(app: &mut App)
 {
@@ -49,6 +49,20 @@ pub struct TerrainMaterial {
     // pub triplanar_blend_pow: f32,
     // #[uniform(7)]
     // pub heightmap_blend_pow: f32, // littler=mix, greater=distinct, opt 0.3 - 0.6, 0.48 = nature
+
+    #[cfg(feature = "ddgi")]
+    #[uniform(102, visibility(fragment))]
+    pub ddgi_uniforms: DDGIUniforms,
+
+    #[cfg(feature = "ddgi")]
+    #[texture(103, visibility(fragment))]
+    //#[sampler(202, visibility(fragment))]
+    pub ddgi_irradiance_texture: Option<Handle<Image>>,
+
+    #[cfg(feature = "ddgi")]
+    #[texture(104, visibility(fragment))]
+    //#[sampler(204, visibility(fragment))]
+    pub ddgi_distance_texture: Option<Handle<Image>>,
 }
 
 impl Default for TerrainMaterial {
@@ -63,6 +77,13 @@ impl Default for TerrainMaterial {
             // texture_normal: None,
             // wasm0: Vec4::new(1.5, 1.0, 4.5, 0.48),
             // normal_intensity: 1.0,
+
+            #[cfg(feature = "ddgi")]
+            ddgi_uniforms: DDGIUniforms::default(),
+            #[cfg(feature = "ddgi")]
+            ddgi_irradiance_texture: None,
+            #[cfg(feature = "ddgi")]
+            ddgi_distance_texture: None,
         }
     }
 }
@@ -108,7 +129,7 @@ impl MaterialExtension for FoliageMaterial {
     fn specialize(
             _pipeline: &bevy::pbr::MaterialExtensionPipeline,
             descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-            _layout: &bevy::render::mesh::MeshVertexBufferLayoutRef,
+            _layout: &bevy::mesh::MeshVertexBufferLayoutRef,
             _key: bevy::pbr::MaterialExtensionKey<Self>,
         ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         

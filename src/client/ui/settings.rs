@@ -161,7 +161,7 @@ pub fn ui_settings(
                         ui_setting_line(ui, "HUD Padding", egui::Slider::new(&mut cfg.hud_padding, 0.0..=48.0));
                         
                         ui.label("Controls");
-                        if let Ok(mut ctl) = query_char.get_single_mut() {
+                        if let Ok(mut ctl) = query_char.single_mut() {
                             ui_setting_line(ui, "Unfly on Grounded", egui::Checkbox::new(&mut ctl.unfly_on_ground, ""));
                         }
                     }

@@ -9,6 +9,7 @@ mod voxel_server;
 mod render;
 
 pub use chunk::Chunk;
+pub use render::{TerrainMaterial};
 pub use vox::{Vox, VoxShape, VoxTex, VoxLight,};
 pub use voxel_client::{ClientChunkSystem, ClientVoxelPlugin, HitResult, VoxelBrush};
 pub use voxel_server::{ServerChunkSystem, ServerVoxelPlugin};

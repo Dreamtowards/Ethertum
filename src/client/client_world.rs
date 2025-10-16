@@ -1,10 +1,11 @@
 use std::f32::consts::PI;
 
-use bevy::core_pipeline::bloom::Bloom;
-use bevy::core_pipeline::fxaa::Fxaa;
+use bevy::post_process::bloom::Bloom;
+use bevy::anti_alias::fxaa::Fxaa;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::core_pipeline::Skybox;
-use bevy::pbr::{ScreenSpaceReflections, VolumetricFog, VolumetricLight};
+use bevy::pbr::{ScreenSpaceReflections};
+use bevy::light::{VolumetricFog, VolumetricLight};
 use bevy_renet::netcode::NetcodeClientTransport;
 use bevy_renet::renet::RenetClient;
 
@@ -202,7 +203,7 @@ fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOn
     info!("Unload World");
 
     for entity in query_despawn.iter() {
-        cmds.entity(entity).despawn_recursive();
+        cmds.entity(entity).despawn();
     }
 
     // todo: net_client.disconnect();  即时断开 否则服务器会觉得你假死 对其他用户体验不太好
@@ -287,7 +288,7 @@ fn tick_world(
     }
 
     // Send PlayerPos
-    if let Ok(player_loc) = query_player.get_single() {
+    if let Ok(player_loc) = query_player.single() {
         let player_pos = player_loc.translation;
 
         if player_pos.distance_squared(*last_player_pos) > 0.01 * 0.01 {

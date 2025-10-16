@@ -5,7 +5,7 @@ use crate::util::SmoothValue;
 
 use bevy::{
     input::mouse::{MouseMotion, MouseWheel},
-    prelude::*, transform::TransformSystem,
+    prelude::*, transform::TransformSystems,
 };
 use avian3d::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
@@ -18,7 +18,7 @@ impl Plugin for CharacterControllerPlugin {
 
         app.add_systems(Update, input_move.run_if(condition::in_world));
 
-        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Sync));
+        app.add_systems(PostUpdate, sync_camera.in_set(PhysicsSet::Writeback));
     }
 }
 
@@ -385,8 +385,8 @@ fn sync_camera(
     cli: Res<ClientInfo>,
     cfg: Res<ClientSettings>,
 ) {
-    if let Ok((char_pos, ctl)) = query_char.get_single() {
-        if let Ok((mut cam_trans, mut proj)) = query_cam.get_single_mut() {
+    if let Ok((char_pos, ctl)) = query_char.single() {
+        if let Ok((mut cam_trans, mut proj)) = query_cam.single_mut() {
             // // stop rotate Tracker when hold alt. thus can free view the Tracker.
             // if !input_key.pressed(KeyCode::AltLeft) {
             cam_trans.rotation = Quat::from_euler(EulerRot::YXZ, ctl.yaw, ctl.pitch, 0.0);

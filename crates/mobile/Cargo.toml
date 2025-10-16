@@ -9,7 +9,7 @@ name = "mobile"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-bevy = { version = "0.16" }
+bevy = { version = "0.17" }
 ethertia = { path = "../..", default-features = false }
 
 [package.metadata.android]

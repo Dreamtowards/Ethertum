@@ -1,6 +1,6 @@
 use std::net::ToSocketAddrs;
 
-use bevy::{ecs::system::SystemParam, math::vec3, pbr::DirectionalLightShadowMap, prelude::*};
+use bevy::{ecs::system::SystemParam, math::vec3, light::DirectionalLightShadowMap, prelude::*};
 use bevy_renet::renet::RenetClient;
 use avian3d::prelude::*;
 
@@ -23,21 +23,21 @@ impl Plugin for ClientGamePlugin {
             // Atmosphere
             #[cfg(feature = "target_native_os")]
             {
-                app.add_plugins(AtmospherePlugin);
-                app.insert_resource(AtmosphereModel::default());
+                //app.add_plugins(AtmospherePlugin);
+                //app.insert_resource(AtmosphereModel::default());
             }
-
+            
             // for SSR
             //app.insert_resource(Msaa::Off);
             app.insert_resource(bevy::pbr::DefaultOpaqueRendererMethod::deferred());
-
+            
             // Billiboard
             // use bevy_mod_billboard::prelude::*;
             // app.add_plugins(BillboardPlugin);
-
+            
             // ShadowMap sizes
             app.insert_resource(DirectionalLightShadowMap { size: 1024 });
-
+            
             // SSAO
             // app.add_plugins(TemporalAntiAliasPlugin);
             // app.insert_resource(AmbientLight { brightness: 0.05, ..default() });
@@ -45,42 +45,45 @@ impl Plugin for ClientGamePlugin {
         // .obj model loader.
         app.add_plugins(bevy_obj::ObjPlugin);
         app.insert_resource(GlobalVolume::new(bevy::audio::Volume::Linear(1.0))); // Audio GlobalVolume
-
+        
         // Physics
         app.add_plugins(PhysicsPlugins::default());
-
+        
         // UI
         app.add_plugins(crate::ui::UiPlugin);
-
+        
         // Gameplay
         app.add_plugins(CharacterControllerPlugin); // CharacterController
         app.add_plugins(ClientVoxelPlugin); // Voxel
         app.add_plugins(ItemPlugin); // Items
-
+        
         // Network
         app.add_plugins(ClientNetworkPlugin); // Client Network
         app.add_plugins(IntegratedServerPlugin);
-
+        
         // ClientInfo
         app.insert_resource(ClientInfo::default());
         app.register_type::<ClientInfo>();
-
+        
         super::settings::build_plugin(app); // Config
         super::input::init(app); // Input
-
+        
         // World
         super::client_world::init(app);
 
         // Debug
         {
             // app.add_systems(Update, wfc_test);
-
+            
             // Draw Basis
-            app.add_systems(PostUpdate, debug_draw_gizmo.in_set(PhysicsSet::Sync).run_if(condition::in_world));
-
+            app.add_systems(PostUpdate, debug_draw_gizmo.in_set(PhysicsSet::Writeback).run_if(condition::in_world));
+            
             // World Inspector
             app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new().run_if(|cli: Res<ClientInfo>| cli.dbg_inspector));
         }
+
+        #[cfg(feature = "ddgi")]
+        app.add_plugins(DDGIPlugin);
     }
 }
 
@@ -128,7 +131,7 @@ fn debug_draw_gizmo(
     }
 
     // View Basis
-    if let Ok(cam_trans) = query_cam.get_single() {
+    if let Ok(cam_trans) = query_cam.single() {
         // let cam_trans = query_cam.single();
         let p = cam_trans.translation;
         let rot = cam_trans.rotation;
@@ -156,6 +159,7 @@ pub struct ClientInfo {
     pub dbg_gizmo_remesh_chunks: bool,
     pub dbg_gizmo_curr_chunk: bool,
     pub dbg_gizmo_all_loaded_chunks: bool,
+    pub dbg_tex: bool,
 
     // Render Sky
     pub sky_fog_color: Color,
@@ -188,6 +192,7 @@ impl Default for ClientInfo {
             dbg_gizmo_remesh_chunks: true,
             dbg_gizmo_curr_chunk: false,
             dbg_gizmo_all_loaded_chunks: false,
+            dbg_tex: false,
 
             sky_fog_color: Color::srgba(0.0, 0.666, 1.0, 1.0),
             sky_fog_visibility: 1200.0, // 280 for ExpSq, 1200 for Atmo
