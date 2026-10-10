@@ -1,2 +1,15 @@
+# Cargo 总是自动加载本文件。更激进的选项见 config_build_fastest.toml / config_build_faster.toml (需 --config=)
+
 [target.wasm32-unknown-unknown]
 runner = "wasm-server-runner"
+
+# Linux: 用 clang 驱动，链接阶段走 lld (比默认链接器通常更快，Bevy 大工程更明显)
+[target.x86_64-unknown-linux-gnu]
+linker = "clang"
+rustflags = [
+    "-Clink-arg=-fuse-ld=lld",
+]
+
+# Windows: 用 Rust 自带的 rust-lld 做链接 (需已安装 MSVC 工具链；主要缩短 link 等待)
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
