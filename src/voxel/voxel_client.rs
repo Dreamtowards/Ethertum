@@ -209,6 +209,7 @@ static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, Vert
 
 fn chunks_remesh_enqueue(
     mut commands: Commands,
+    query_children: Query<&Children>,
 
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
@@ -331,7 +332,11 @@ fn chunks_remesh_enqueue(
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    while let Ok((chunkpos, entity, mesh_terrain, mesh_handle_terrain, collider, mesh_foliage, mesh_handle_foliage, mesh_liquid, mesh_handle_liquid)) = rx_chunks_meshing.try_recv() {
+    while let Ok((chunkpos, entity, mut mesh_terrain, mesh_handle_terrain, collider, mut mesh_foliage, mesh_handle_foliage, mut mesh_liquid, mesh_handle_liquid)) = rx_chunks_meshing.try_recv() {
+        let terrain_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_terrain);
+        let foliage_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_foliage);
+        let liquid_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_liquid);
+
         // Update Mesh Asset
         *meshes.get_mut(mesh_handle_terrain.id()).unwrap() = mesh_terrain;
 
@@ -339,11 +344,17 @@ fn chunks_remesh_enqueue(
 
         *meshes.get_mut(mesh_handle_liquid.id()).unwrap() = mesh_liquid;
 
-        // Update Phys Collider TriMesh
-        if let Some(collider) = collider {
-            if let Ok(mut cmds) = commands.get_entity(entity) {
-                // note: use try_insert cuz the entity may already been unloaded when executing the cmds (?)
-                cmds.remove::<Collider>().try_insert(collider).try_insert(Visibility::Visible);
+        // A populated GPU mesh can remain cached after a CPU-only empty update.
+        // Hide each empty surface explicitly, including foliage and liquid children.
+        if let Ok(mut cmds) = commands.get_entity(entity) {
+            cmds.try_remove::<Collider>().try_insert(terrain_visibility);
+            if let Some(collider) = collider {
+                cmds.try_insert(collider);
+            }
+        }
+        if let Ok(children) = query_children.get(entity) {
+            for (child, visibility) in children.iter().zip([foliage_visibility, liquid_visibility]) {
+                commands.entity(child).try_insert(visibility);
             }
         }
 

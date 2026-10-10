@@ -5,6 +5,9 @@ mod main_menu;
 pub mod serverlist;
 mod settings;
 
+#[cfg(test)]
+mod tests;
+
 pub mod prelude {
     pub use super::items::{ui_inventory, ui_item_stack};
     pub use super::sfx_play;
@@ -247,7 +250,6 @@ fn setup_camera_system(
         },
         CharacterControllerCamera,
         Name::new("Camera"),
-        DespawnOnWorldUnload,
 
         Msaa::Off,  // Optional 保持原本的设置, 之前关闭Msaa好像是为了SSR?
         // ScreenSpaceReflectionsBundle::default(),

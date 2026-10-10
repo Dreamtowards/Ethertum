@@ -1,5 +1,6 @@
 mod vox;
 mod chunk;
+mod chunk_mesh;
 pub mod meshgen;
 pub mod worldgen;
 pub mod lighting;

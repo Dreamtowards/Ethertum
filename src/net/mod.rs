@@ -13,6 +13,7 @@ use bevy_renet::netcode::{
 };
 
 pub mod netproc_client;
+pub(crate) mod client_entities;
 mod netproc_server;
 mod packet;
 
@@ -82,18 +83,14 @@ fn net_channel_config(max_memory_usage_bytes: usize) -> Vec<ChannelConfig> {
     ]
 }
 
-// An unique id shared in Server and Client. in client with a big offset to avoid id collision.
+// A server-side network ID, mapped to an independently allocated entity on clients.
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EntityId(u32);
 
 impl EntityId {
     pub fn from_server(entity: Entity) -> EntityId {
         EntityId(entity.index().index())
-    }
-
-    pub fn client_entity(&self) -> Entity {
-        Entity::from_raw_u32(10_000 + self.0).unwrap()
     }
 
     pub fn raw(&self) -> u32 {

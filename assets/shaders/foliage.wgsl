@@ -10,8 +10,12 @@
 #import bevy_pbr::pbr_functions
 #import bevy_pbr::pbr_fragment
 
+#ifdef PREPASS_PIPELINE
 #import bevy_render::globals::Globals
 @group(0) @binding(1) var<uniform> globals: Globals;
+#else
+#import bevy_pbr::mesh_view_bindings::globals
+#endif
 
 // #import bevy_render::globals::Globals
 // @group(0) @binding(1) var<uniform> globals: Globals;

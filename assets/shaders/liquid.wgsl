@@ -6,7 +6,12 @@
 #import bevy_pbr::prepass_io::VertexOutput
 #import bevy_pbr::prepass_io::FragmentOutput
 #import bevy_pbr::pbr_fragment
+#ifdef PREPASS_PIPELINE
 #import bevy_render::globals::Globals
+@group(0) @binding(1) var<uniform> globals: Globals;
+#else
+#import bevy_pbr::mesh_view_bindings::globals
+#endif
 
 // // Parameters to the water shader.
 // struct WaterSettings {
@@ -19,7 +24,6 @@
 //     octave_strengths: vec4<f32>,
 // }
 
-@group(0) @binding(1) var<uniform> globals: Globals;
 
 @group(#{MATERIAL_BIND_GROUP}) @binding(100) var water_normals_texture: texture_2d<f32>;
 @group(#{MATERIAL_BIND_GROUP}) @binding(101) var water_normals_sampler: sampler;

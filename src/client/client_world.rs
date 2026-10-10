@@ -199,14 +199,25 @@ fn on_world_init(
     ));
 }
 
-fn on_world_exit(mut cmds: Commands, query_despawn: Query<Entity, With<DespawnOnWorldUnload>>) {
+pub(super) fn on_world_exit(
+    mut cmds: Commands,
+    query_despawn: Query<Entity, With<DespawnOnWorldUnload>>,
+    mut entities: ResMut<crate::net::client_entities::ClientEntities>,
+    mut transport: Option<ResMut<NetcodeClientTransport>>,
+) {
     info!("Unload World");
+
+    // Send the transport disconnect before dropping its socket, so the server
+    // releases the player immediately and a subsequent login can reuse the name.
+    if let Some(transport) = transport.as_mut() {
+        transport.disconnect();
+    }
 
     for entity in query_despawn.iter() {
         cmds.entity(entity).despawn();
     }
+    entities.clear();
 
-    // todo: net_client.disconnect();  即时断开 否则服务器会觉得你假死 对其他用户体验不太好
     cmds.remove_resource::<RenetClient>();
     cmds.remove_resource::<NetcodeClientTransport>();
 }
