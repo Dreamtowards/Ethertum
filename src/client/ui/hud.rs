@@ -6,7 +6,7 @@ use bevy_egui::{
     egui::{text::CCursorRange, Align, Frame, Id, Layout, TextEdit, Vec2},
     EguiContexts,
 };
-use bevy_renet::renet::RenetClient;
+use bevy_renet::RenetClient;
 
 use crate::ui::prelude::*;
 use crate::{

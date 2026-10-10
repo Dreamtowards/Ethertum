@@ -7,7 +7,7 @@ use bevy_egui::{
     egui::{self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget},
     EguiContexts,
 };
-use bevy_renet::renet::{RenetClient};
+use bevy_renet::RenetClient;
 use bevy_renet::{netcode::NetcodeClientTransport};
 
 use crate::{
@@ -27,7 +27,7 @@ pub fn ui_menu_panel(
     net_client: Option<Res<RenetClient>>,
     net_transport: Option<Res<NetcodeClientTransport>>,
 
-    mut app_exit_events: EventWriter<AppExit>,
+    mut app_exit_events: MessageWriter<AppExit>,
 ) {
     // const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     // const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);

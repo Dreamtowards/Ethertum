@@ -46,7 +46,7 @@ fn on_init(mut cfg: ResMut<ServerSettings>) {
     }
 }
 
-fn on_exit(mut exit_events: EventReader<bevy::app::AppExit>, cfg: Res<ServerSettings>) {
+fn on_exit(mut exit_events: MessageReader<bevy::app::AppExit>, cfg: Res<ServerSettings>) {
     for _ in exit_events.read() {
         info!("Saving server settings to {SERVER_SETTINGS_FILE}");
 

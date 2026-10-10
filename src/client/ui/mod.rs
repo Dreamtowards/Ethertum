@@ -60,7 +60,7 @@ impl Plugin for UiPlugin {
                 EguiPrimaryContextPass,
                 (
                     /* test */
-                    (ui_example_system, update_ui_scale_factor_system),
+                    (ui_example_system,),
                     /* debug */
                     debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar),
                     debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel),
@@ -214,7 +214,7 @@ fn setup_camera_system(
             order: 0,
             ..default()
         },
-        bevy::render::view::Hdr,
+        bevy::camera::Hdr,
         /*
         bevy::pbr::Atmosphere::EARTH,
         bevy::pbr::AtmosphereSettings {
@@ -235,7 +235,7 @@ fn setup_camera_system(
             ..default()
         },
         Skybox {
-            image: skybox_image.clone(),
+            image: Some(skybox_image.clone()),
             brightness: 1000.0,
             ..Default::default()
         },
@@ -327,24 +327,6 @@ fn configure_visuals_system(mut contexts: EguiContexts) -> Result {
 
 fn configure_ui_state_system(mut ui_state: ResMut<UiState>) {
     ui_state.is_window_open = true;
-}
-
-fn update_ui_scale_factor_system(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut toggle_scale_factor: Local<Option<bool>>,
-    egui_context: Single<(&mut EguiContextSettings, &Camera)>,
-) {
-    let (mut egui_settings, camera) = egui_context.into_inner();
-    if keyboard_input.just_pressed(KeyCode::Slash) || toggle_scale_factor.is_none() {
-        *toggle_scale_factor = Some(!toggle_scale_factor.unwrap_or(true));
-
-        let scale_factor = if toggle_scale_factor.unwrap() {
-            1.0
-        } else {
-            1.0 / camera.target_scaling_factor().unwrap_or(1.0)
-        };
-        egui_settings.scale_factor = scale_factor;
-    }
 }
 
 fn ui_example_system(

@@ -10,7 +10,7 @@ use crate::{client::client_world::ClientPlayerInfo, ui::prelude::*};
 pub fn ui_main_menu(
     // mut rendered_texture_id: Local<egui::TextureId>,
     // asset_server: Res<AssetServer>,
-    mut app_exit_events: EventWriter<AppExit>,
+    mut app_exit_events: MessageWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
     // cmds: Commands,

@@ -7,8 +7,6 @@ default-run = "ethertia"
 [features]
 default = ["target_native_os"]
 target_native_os = [
-    "dep:bevy_atmosphere",
-    "dep:bevy_editor_pls",
     "dep:native-dialog",
     "dep:memory-stats",
     "dep:sysinfo",
@@ -21,32 +19,33 @@ ddgi2 = []
 
 
 [dev-dependencies]
-bevy = { version = "0.17.2", features = ["dynamic_linking", "file_watcher", "trace_chrome", "bevy_solari", "jpeg"] }
+# Avoid enabling `dynamic_linking` here: dev-dep features unify with `dependencies.bevy`
+# and force the slow per-crate DLL link path for normal desktop builds.
+bevy = { version = "0.19.1", features = ["file_watcher", "trace_chrome", "bevy_solari", "jpeg"] }
 # cargo run --features bevy/trace_tracy
 
 
 [dependencies]
-bevy = { version = "0.17.2", features = ["bevy_solari", "jpeg"] }
+bevy = { version = "0.19.1", features = ["bevy_solari", "jpeg"] }
 
-avian3d = "0.4.1"
-bevy_renet = "3.0"
+avian3d = "0.7"
+bevy_renet = "5.0"
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
 
 #bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
 #bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-bevy_egui = "0.38"
-bevy-inspector-egui = "0.34"
-bevy_editor_pls = { version = "0.10", optional = true }
-bevy_touch_stick = { version = "0.2" }
-egui_extras = { version = "0.33", default-features = false, features = [] }
-egui-notify = "0.21"
-leafwing-input-manager = { version = "0.18" }
+bevy_egui = "0.40"
+bevy-inspector-egui = "0.37"
+# Legacy Bevy 0.13 touch input prototype; the plugin is currently commented out.
+# Keep it out of desktop builds until the mobile input path is migrated.
+bevy_touch_stick = { version = "0.2", optional = true }
+egui_extras = { version = "0.34", default-features = false, features = [] }
+egui-notify = "0.22"
+leafwing-input-manager = { version = "0.21" }
 
-bevy_atmosphere = { version = "0.13", optional = true }
-bevy_mod_billboard = "0.7"
-bevy_common_assets = { version = "0.14", features = ["json"] }
-bevy_obj = "0.17"
+bevy_common_assets = { version = "0.17", features = ["json"] }
+bevy_obj = "0.19"
 
 noise = "0.9"
 bincode = "1.3"
@@ -60,7 +59,7 @@ thread_local = "1.1"
 once_cell = "1.19"
 futures-lite = "2.0.1"  # async poll task
 
-sysinfo = { version = "0.37", optional = true }
+sysinfo = { version = "0.39", optional = true }
 native-dialog = { version = "0.9", optional = true }
 memory-stats = { version = "1.2", optional = true }
 log = "0.4.20"

@@ -2,7 +2,8 @@ use std::time::Duration;
 
 use bevy::{prelude::*, platform::collections::HashSet};
 use bevy_renet::{
-    renet::{ConnectionConfig, DefaultChannel, RenetServer, ServerEvent},
+    renet::{ConnectionConfig, DefaultChannel, ServerEvent},
+    RenetServer, RenetServerEvent,
     netcode::{NetcodeServerTransport, NetcodeServerPlugin},
     RenetServerPlugin,
 };
@@ -28,6 +29,7 @@ impl Plugin for ServerNetworkPlugin {
 
         app.add_systems(Startup, bind_server_endpoint);
         app.add_systems(Update, server_sys);
+        app.add_observer(server_event_observer);
 
         // app.add_systems(Update, ui_server_net);
     }
@@ -38,40 +40,45 @@ fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>) {
     info!("Server bind endpoint at port {}", cfg.port);
 }
 
-pub fn server_sys(
-    mut server_events: EventReader<ServerEvent>,
+pub fn server_event_observer(
+    trigger: On<RenetServerEvent>,
     mut server: ResMut<RenetServer>,
-    transport: Res<NetcodeServerTransport>,
+    transport: Option<Res<NetcodeServerTransport>>,
+
+    mut serverinfo: ResMut<ServerInfo>,
+) {
+    match trigger.0 {
+        ServerEvent::ClientConnected { client_id } => {
+            let result_string: String = transport
+                .as_ref()
+                .and_then(|t| t.user_data(client_id))
+                .unwrap_or([0; bevy_renet::netcode::NETCODE_USER_DATA_BYTES])
+                .iter()
+                .map(|&byte| byte as char)
+                .collect();
+
+            info!("Cli Connected {} {}", client_id, result_string);
+        }
+        ServerEvent::ClientDisconnected { client_id, reason } => {
+            info!("Cli Disconnected {} {}", client_id, reason);
+
+            if let Some(player) = serverinfo.online_players.remove(&client_id) {
+                server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
+
+                server.broadcast_packet(&SPacket::EntityDel { entity_id: player.entity_id });
+            }
+        }
+    }
+}
+
+pub fn server_sys(
+    mut server: ResMut<RenetServer>,
 
     mut serverinfo: ResMut<ServerInfo>,
     // mut worldinfo: ResMut<WorldInfo>,
     // chunk_sys: ResMut<ServerChunkSystem>,
     mut cmds: Commands,
 ) {
-    for event in server_events.read() {
-        match event {
-            ServerEvent::ClientConnected { client_id } => {
-                let result_string: String = transport
-                    .user_data(*client_id)
-                    .unwrap_or([0; bevy_renet::netcode::NETCODE_USER_DATA_BYTES])
-                    .iter()
-                    .map(|&byte| byte as char)
-                    .collect();
-
-                info!("Cli Connected {} {}", client_id, result_string);
-            }
-            ServerEvent::ClientDisconnected { client_id, reason } => {
-                info!("Cli Disconnected {} {}", client_id, reason);
-
-                if let Some(player) = serverinfo.online_players.remove(client_id) {
-                    server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
-
-                    server.broadcast_packet(&SPacket::EntityDel { entity_id: player.entity_id });
-                }
-            }
-        }
-    }
-
     // Receive message from all clients
     for client_id in server.clients_id() {
         while let Some(bytes) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {

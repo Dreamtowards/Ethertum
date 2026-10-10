@@ -3,7 +3,7 @@ use bevy::{
     tasks::AsyncComputeTaskPool,
     platform::collections::{HashMap, HashSet},
 };
-use bevy_renet::renet::RenetServer;
+use bevy_renet::RenetServer;
 use avian3d::prelude::*;
 use std::sync::Arc;
 

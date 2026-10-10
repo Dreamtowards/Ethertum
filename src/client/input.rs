@@ -89,7 +89,7 @@ pub fn input_handle(
     key: Res<ButtonInput<KeyCode>>,
     query_input: Query<&ActionState<InputAction>>,
 
-    mut mouse_wheel_events: EventReader<bevy::input::mouse::MouseWheel>,
+    mut mouse_wheel_events: MessageReader<bevy::input::mouse::MouseWheel>,
     mut query_window: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
     mut primary_cursor_options: Single<&mut CursorOptions, With<PrimaryWindow>>,
     mut query_controller: Query<&mut CharacterController>,

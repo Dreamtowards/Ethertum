@@ -7,7 +7,7 @@ use bevy::core_pipeline::Skybox;
 use bevy::pbr::{ScreenSpaceReflections};
 use bevy::light::{VolumetricFog, VolumetricLight};
 use bevy_renet::netcode::NetcodeClientTransport;
-use bevy_renet::renet::RenetClient;
+use bevy_renet::RenetClient;
 
 use crate::client::prelude::*;
 use crate::net::{CPacket, RenetClientHelper};
@@ -230,14 +230,13 @@ fn reinterpret_skybox_cubemap(
     if !cubemap.is_loaded {
         if let Some(load_state) = asset_server.get_load_state(&cubemap.image_handle) {
             if load_state.is_loaded() {
-                let image = images.get_mut(&cubemap.image_handle).unwrap();
+                let mut image = images.get_mut(&cubemap.image_handle).unwrap();
                 // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
                 // so they appear as one texture. The following code reconfigures the texture as necessary.
                 if image.texture_descriptor.array_layer_count() == 1 {
                     info!("Reinterpret 2D image into Cubemap");
-                    image.reinterpret_stacked_2d_as_array(
-                        image.texture_descriptor.size.height / image.texture_descriptor.size.width,
-                    );
+                    let layers = image.texture_descriptor.size.height / image.texture_descriptor.size.width;
+                    image.reinterpret_stacked_2d_as_array(layers).unwrap();
                     image.texture_view_descriptor = Some(bevy::render::render_resource::TextureViewDescriptor {
                         dimension: Some(bevy::render::render_resource::TextureViewDimension::Cube),
                         ..default()
@@ -329,7 +328,7 @@ fn tick_world(
 
     if let Some((mut light_trans, mut directional)) = query_sun.single_mut().unwrap().into() {
         directional.illuminance = sun_angle.sin().max(0.0).powf(2.0) * cli.skylight_illuminance * 1000.0;
-        directional.shadows_enabled = cli.skylight_shadow;
+        directional.shadow_maps_enabled = cli.skylight_shadow;
 
         // or from000.looking_at()
         light_trans.rotation = Quat::from_rotation_z(sun_angle) * Quat::from_rotation_y(PI / 2.3);

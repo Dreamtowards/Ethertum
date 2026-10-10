@@ -13,7 +13,7 @@ fn on_app_init(mut cfg: ResMut<ClientSettings>) {
     }
 }
 
-fn on_app_exit(mut exit_events: EventReader<bevy::app::AppExit>, cfg: Res<ClientSettings>) {
+fn on_app_exit(mut exit_events: MessageReader<bevy::app::AppExit>, cfg: Res<ClientSettings>) {
     for _ in exit_events.read() {
         info!("Program Terminate");
 

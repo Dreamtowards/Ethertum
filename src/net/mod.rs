@@ -89,7 +89,7 @@ pub struct EntityId(u32);
 
 impl EntityId {
     pub fn from_server(entity: Entity) -> EntityId {
-        EntityId(entity.index())
+        EntityId(entity.index().index())
     }
 
     pub fn client_entity(&self) -> Entity {

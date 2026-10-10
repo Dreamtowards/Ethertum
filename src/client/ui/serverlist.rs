@@ -11,7 +11,7 @@ use bevy_egui::{
     egui::{self, Color32, Layout},
     EguiContexts,
 };
-use bevy_renet::renet::RenetClient;
+use bevy_renet::RenetClient;
 
 use super::{sfx_play, ui_lr_panel, CurrentUI, UiExtra};
 

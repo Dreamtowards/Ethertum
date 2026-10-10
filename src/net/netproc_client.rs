@@ -2,7 +2,8 @@
 
 use bevy::{ecs::system::EntityCommands, prelude::*, platform::collections::HashMap};
 use bevy_renet::{
-    renet::{DefaultChannel, DisconnectReason, RenetClient},
+    renet::{DefaultChannel, DisconnectReason},
+    RenetClient,
     netcode::NetcodeClientPlugin,
     RenetClientPlugin,
 };
@@ -33,7 +34,7 @@ impl Plugin for ClientNetworkPlugin {
 }
 
 pub fn client_sys(
-    // mut client_events: EventReader<ClientEvent>,
+    // mut client_events: MessageReader<ClientEvent>,
     mut net_client: ResMut<RenetClient>,
     mut last_connected: Local<u32>, // 0=NonConnection, 1=Connecting, 2=Connected
     mut cli: ResMut<ClientInfo>,

@@ -44,7 +44,7 @@ use bevy::prelude::*;
 
 
 // fn handle_inputs(
-//     mut editor_events: EventReader<bevy_editor_pls::editor::EditorEvent>,
+//     mut editor_events: MessageReader<bevy_editor_pls::editor::EditorEvent>,
 //     mut window_query: Query<&mut Window, With<PrimaryWindow>>,
 //     mut controller_query: Query<&mut CharacterController>,
 //     key: Res<Input<KeyCode>>,
