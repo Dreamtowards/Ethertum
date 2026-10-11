@@ -268,6 +268,8 @@ fn chunks_remesh_enqueue(
             continue;
         }
 
+        // 在主线程捕获一致的只读邻域，再交给后台；任务不访问正在编辑的世界区块。
+        // 快照保证读取稳定，ticket 的 epoch/修订号检查负责丢弃退出或编辑后的过期结果。
         if let Some(chunk) = chunk_sys.snapshot_chunk(chunkpos) {
             let ticket = chunk_sys.mesh_ticket(chunkpos);
             chunk_sys.chunks_meshing.insert(chunkpos, ticket);

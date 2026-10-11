@@ -60,6 +60,8 @@ pub trait ChunkSystem {
     }
 
     /// Capture the full sampling neighborhood without keeping pointers to live chunks.
+    /// 在主线程提交网格任务前或开始邻域编辑前调用。包含面、边、角邻居，以便
+    /// 采样区块边界；缺失邻居保持 None。clone 共享 Arc 体素数组，不立即复制体素。
     fn snapshot_chunk(&self, chunkpos: IVec3) -> Option<ChunkSnapshot> {
         let mut snapshot = self.get_chunk(chunkpos)?.clone();
         snapshot.neighbor_chunks = std::array::from_fn(|i| {

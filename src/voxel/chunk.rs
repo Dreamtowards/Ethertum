@@ -3,6 +3,11 @@ use std::sync::Arc;
 use crate::prelude::*;
 
 /// An owned, read-only neighborhood. Its voxel arrays never change with the world.
+///
+/// 快照持有中心区块和最多 26 个已加载邻居的独立 Chunk 外壳；体素数组通过 Arc
+/// 共享，创建时不会复制 27 份体素。世界编辑时由 Arc::make_mut 写时复制，后台
+/// 任务继续读取捕获时的旧数据。这里只提供 Deref，不提供 DerefMut，限制为只读。
+/// 当前仍有邻居 Box 分配及字段/句柄克隆的成本，并非完全零分配。
 #[derive(Clone)]
 pub struct ChunkSnapshot(Chunk);
 
@@ -10,6 +15,7 @@ impl ChunkSnapshot {
     pub(super) fn new(chunk: Chunk) -> Self {
         Self(chunk)
     }
+    // 仅供 voxel 模块内的主线程邻域编辑：消费快照后编辑独立数据，再显式写回世界。
     pub(super) fn into_chunk(self) -> Chunk {
         self.0
     }
@@ -25,7 +31,7 @@ impl std::ops::Deref for ChunkSnapshot {
 // World systems own chunks. Clones share immutable voxel storage until a write.
 #[derive(Clone)]
 pub struct Chunk {
-    // shoud Box?
+    // Arc 保护共享存储的生命周期；并发读取安全来自只读快照和下面的写时复制。
     pub(super) voxel: Arc<[Vox; Self::LEN3]>,
 
     pub chunkpos: IVec3,
@@ -72,6 +78,8 @@ impl Chunk {
     }
 
     pub fn at_voxel_mut(&mut self, localpos: IVec3) -> &mut Vox {
+        // 若快照仍共享此数组，首次写入复制整个区块的 4096 个体素；独占时直接修改。
+        // 在没有新的共享引用时，后续写入复用这份数组，旧快照中的数据保持不变。
         &mut Arc::make_mut(&mut self.voxel)[Chunk::local_idx(localpos)]
     }
 
