@@ -159,20 +159,6 @@ pub mod iter {
 use bevy::prelude::*;
 use serde::de::DeserializeOwned;
 
-pub trait BevyEcsCommandsExt {
-    fn get_or_spawn(&mut self, entity: Entity) -> EntityCommands<'_>;
-}
-
-impl<'w, 's> BevyEcsCommandsExt for Commands<'w, 's> {
-    fn get_or_spawn(&mut self, entity: Entity) -> EntityCommands<'_> {
-        if self.get_entity(entity).is_ok() {
-            self.entity(entity)
-        } else {
-            self.spawn_empty()
-        }
-    }
-}
-
 #[derive(Default)]
 pub struct SmoothValue {
     pub target: f32,

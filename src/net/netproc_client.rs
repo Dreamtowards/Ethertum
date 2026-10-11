@@ -2,7 +2,8 @@
 
 use bevy::{ecs::system::EntityCommands, prelude::*, platform::collections::HashMap};
 use bevy_renet::{
-    renet::{DefaultChannel, DisconnectReason, RenetClient},
+    renet::{DefaultChannel, DisconnectReason},
+    RenetClient,
     netcode::NetcodeClientPlugin,
     RenetClientPlugin,
 };
@@ -13,10 +14,10 @@ use crate::{
     client::ui::CurrentUI,
     util::{current_timestamp_millis, AsMutRef},
     voxel::{Chunk, ChunkSystem, ClientChunkSystem},
-    util::BevyEcsCommandsExt,
 };
 
 use super::{packet::CellData, SPacket};
+use super::client_entities::ClientEntities;
 
 pub struct ClientNetworkPlugin;
 
@@ -24,6 +25,7 @@ impl Plugin for ClientNetworkPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(RenetClientPlugin);
         app.add_plugins(NetcodeClientPlugin);
+        app.init_resource::<ClientEntities>();
 
         // 待考证: resource_exists::<RenetClient> 之前会造成 获取未加载的ChunkSystemClient
         app.add_systems(Update, client_sys.run_if(condition::in_world));
@@ -32,8 +34,8 @@ impl Plugin for ClientNetworkPlugin {
     }
 }
 
-pub fn client_sys(
-    // mut client_events: EventReader<ClientEvent>,
+pub(crate) fn client_sys(
+    // mut client_events: MessageReader<ClientEvent>,
     mut net_client: ResMut<RenetClient>,
     mut last_connected: Local<u32>, // 0=NonConnection, 1=Connecting, 2=Connected
     mut cli: ResMut<ClientInfo>,
@@ -41,6 +43,7 @@ pub fn client_sys(
 
     mut chats: ResMut<crate::client::ui::hud::ChatHistory>,
     mut cmds: Commands,
+    mut entities: ResMut<ClientEntities>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
     mut worldinfo: ResMut<WorldInfo>,
 
@@ -104,7 +107,7 @@ pub fn client_sys(
                 cli.curr_ui = CurrentUI::None;
 
                 spawn_player(
-                    &mut cmds.get_or_spawn(player_entity.client_entity()), // 为什么在这生成 因为要指定id，以及其他player也是在这生成
+                    &mut entities.get_or_spawn(*player_entity, &mut cmds),
                     true,
                     &cfg.username,
                     &asset_server,
@@ -121,11 +124,10 @@ pub fn client_sys(
             SPacket::EntityNew { entity_id, name } => {
                 info!("Spawn EntityNew {}", entity_id.raw());
 
-                // 客户端此时可能的确存在这个entity 因为内置的broadcast EntityPos 会发给所有客户端，包括没登录的
-                // assert!(cmds.get_entity(entity_id.client_entity()).is_none(), "The EntityId already occupied in client.");
+                // EntityPos can arrive before EntityNew; reuse the mapped placeholder.
 
                 spawn_player(
-                    &mut cmds.get_or_spawn(entity_id.client_entity()),
+                    &mut entities.get_or_spawn(*entity_id, &mut cmds),
                     false,
                     name,
                     &asset_server,
@@ -136,13 +138,13 @@ pub fn client_sys(
             SPacket::EntityPos { entity_id, position } => {
                 info!("EntityPos {} -> {}", entity_id.raw(), position);
 
-                cmds.get_or_spawn(entity_id.client_entity())
+                entities.get_or_spawn(*entity_id, &mut cmds)
                     .insert(Transform::from_translation(*position));
             }
             SPacket::EntityDel { entity_id } => {
                 info!("DeSpawn EntityDel {}", entity_id.raw());
 
-                cmds.get_entity(entity_id.client_entity()).unwrap().despawn();
+                entities.remove(*entity_id, &mut cmds);
             }
             SPacket::PlayerList { playerlist } => {
                 cli.playerlist.clone_from(playerlist); // should move?
@@ -198,7 +200,7 @@ pub fn client_sys(
 pub fn spawn_player(
     ec: &mut EntityCommands,
     is_theplayer: bool,
-    _name: &String,
+    name: &String,
     // cmds: &mut Commands,
     _asset_server: &Res<AssetServer>,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -208,7 +210,6 @@ pub fn spawn_player(
     //     let meshes = world.get_resource_mut::<Assets<Mesh>>().unwrap();
     //     let materials = world.get_resource_mut::<Assets<StandardMaterial>>().unwrap();
     // });
-    // let mut ec = cmds.get_or_spawn(entity);
 
     ec.insert(((
             Mesh3d(meshes.add(Capsule3d {
@@ -216,8 +217,8 @@ pub fn spawn_player(
                 half_length: 0.9,
             })),
             MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
-            Transform::from_xyz(0.0, 0.0, 0.0),
         ),
+        Name::new(name.to_owned()),
         DespawnOnWorldUnload,
     ))
     .with_children(|parent| {

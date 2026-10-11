@@ -139,8 +139,8 @@ impl Default for CharacterController {
 fn input_move(
     input_key: Res<ButtonInput<KeyCode>>,
     input_mouse_button: Res<ButtonInput<MouseButton>>,
-    mut mouse_motion_events: EventReader<MouseMotion>,
-    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut mouse_motion_events: MessageReader<MouseMotion>,
+    mut mouse_wheel_events: MessageReader<MouseWheel>,
     touches: Res<Touches>,
 
     time: Res<Time>,

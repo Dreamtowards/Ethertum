@@ -6,15 +6,14 @@ fn main() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             resizable: false,
-            mode: bevy::window::WindowMode::BorderlessFullscreen,
+            mode: bevy::window::WindowMode::BorderlessFullscreen(bevy::window::MonitorSelection::Primary),
             ..default()
         }),
         ..default()
     }))
-    .add_plugins(ethertia::game_client::GameClientPlugin);
+    .add_plugins(ethertia::client::prelude::ClientGamePlugin);
 
-    #[cfg(target_os = "android")]
-    app.insert_resource(Msaa::Off);
+    // MSAA is configured on the startup camera by ClientGamePlugin.
 
     app.run();
 }

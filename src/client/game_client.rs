@@ -1,11 +1,9 @@
 use std::net::ToSocketAddrs;
 
 use bevy::{ecs::system::SystemParam, math::vec3, light::DirectionalLightShadowMap, prelude::*};
-use bevy_renet::renet::RenetClient;
+use bevy_renet::RenetClient;
 use avian3d::prelude::*;
 
-#[cfg(feature = "target_native_os")]
-use bevy_atmosphere::prelude::*;
 
 use crate::client::prelude::*;
 use crate::item::ItemPlugin;
