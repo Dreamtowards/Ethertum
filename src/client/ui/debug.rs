@@ -41,14 +41,22 @@ pub fn ui_menu_panel(
     };
     // color32_of(worldinfo.map_or(DARK, |v| v.is_paused));
 
-    egui::TopBottomPanel::top("menu_panel")
+    let context = ctx.ctx_mut().unwrap();
+    let mut viewport_ui = egui::Ui::new(
+        context.clone(),
+        "debug_menu_viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(LayerId::new(egui::Order::Foreground, Id::new("debug_menu")))
+            .max_rect(context.viewport_rect()),
+    );
+    egui::Panel::top("menu_panel")
         .frame(Frame::default().fill(bg))
         .show_separator_line(false)
         // .height_range(Rangef::new(16., 16.))  // 24
-        .show(ctx.ctx_mut().unwrap(), |ui| {
+        .show(&mut viewport_ui, |ui| {
             // ui.painter().text([0., 48.].into(), Align2::LEFT_TOP, "SomeText", FontId::default(), Color32::WHITE);
 
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.style_mut().spacing.button_padding.x = 6.;
                 ui.style_mut().visuals.widgets.noninteractive.fg_stroke.color = Color32::from_white_alpha(130);
                 ui.style_mut().visuals.widgets.inactive.fg_stroke.color = Color32::from_white_alpha(210); // MenuButton lighter
@@ -294,10 +302,10 @@ pub fn hud_debug_text(
         let mut mem_usage_phys = 0.;
         let mut mem_usage_virtual = 0.;
 
-        let gpu_name = &render_adapter_info.0.name;
-        let gpu_backend = &render_adapter_info.0.backend.to_str();
-        let gpu_driver_name = &render_adapter_info.0.driver;
-        let gpu_driver_info = &render_adapter_info.0.driver_info;
+        let gpu_name = &render_adapter_info.name;
+        let gpu_backend = &render_adapter_info.backend.to_str();
+        let gpu_driver_name = &render_adapter_info.driver;
+        let gpu_driver_info = &render_adapter_info.driver_info;
 
         // #[cfg(feature = "target_native_os")]
         if let Some(usage) = memory_stats::memory_stats() {

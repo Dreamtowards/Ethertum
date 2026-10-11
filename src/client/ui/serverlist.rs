@@ -367,7 +367,7 @@ pub fn ui_create_world(
         ui.add_space(space);
 
         ui.label("Difficulty:");
-        egui::ComboBox::from_id_source("Difficulty")
+        egui::ComboBox::from_id_salt("Difficulty")
             .selected_text(format!("{:?}", *_difficulty))
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut *_difficulty, Difficulty::Peace, "Peace");

@@ -1,21 +1,14 @@
 
-#import bevy_pbr::prepass_io::Vertex
-#import bevy_pbr::prepass_io::VertexOutput
-#import bevy_pbr::prepass_io::FragmentOutput
+import bevy_pbr::prepass::io::{Vertex, VertexOutput, FragmentOutput, decompress_vertex};
 // #import bevy_pbr::forward_io::Vertex
 // #import bevy_pbr::forward_io::VertexOutput
 
-#import bevy_pbr::mesh_functions
-#import bevy_pbr::pbr_types
-#import bevy_pbr::pbr_functions
-#import bevy_pbr::pbr_fragment
+import bevy_pbr::render::{mesh_functions, pbr_types, pbr_functions, pbr_fragment};
 
-#ifdef PREPASS_PIPELINE
-#import bevy_render::globals::Globals
+@if(PREPASS_PIPELINE) import bevy_render::globals::Globals;
+@if(!PREPASS_PIPELINE) import bevy_pbr::render::mesh_view_bindings::globals;
+@if(PREPASS_PIPELINE)
 @group(0) @binding(1) var<uniform> globals: Globals;
-#else
-#import bevy_pbr::mesh_view_bindings::globals
-#endif
 
 // #import bevy_render::globals::Globals
 // @group(0) @binding(1) var<uniform> globals: Globals;
@@ -29,8 +22,10 @@
 
 @vertex
 fn vertex(
-    in: Vertex,
+    raw_vertex: Vertex,
 ) -> VertexOutput {
+
+    let in = decompress_vertex(raw_vertex, raw_vertex.instance_index);
 
     let inst_idx = in.instance_index;
     let model = mesh_functions::get_world_from_local(inst_idx);
@@ -65,7 +60,7 @@ fn fragment(
     // var worldnorm = in.world_normal;//select(-in.world_normal, in.world_normal, is_front);
     // worldnorm = normalize(worldnorm + vec3<f32>(0, 20.1, 0));
 
-    let base_color = textureSample(bevy_pbr::pbr_bindings::base_color_texture, bevy_pbr::pbr_bindings::base_color_sampler, in.uv);
+    let base_color = textureSample(bevy_pbr::render::pbr_bindings::base_color_texture, bevy_pbr::render::pbr_bindings::base_color_sampler, in.uv);
 
     if base_color.a < 0.5 {
         discard;
@@ -89,5 +84,5 @@ fn fragment(
     // // color = vec4<f32>(worldnorm, 1.0);
     // return color;
 
-    return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_in);
+    return bevy_pbr::deferred::functions::deferred_output(in, pbr_in);
 }

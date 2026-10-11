@@ -222,7 +222,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
                 let mut rect = ui.min_rect();
                 rect.set_height(health_bar_size.y);
                 rect.set_width(health_bar_size.x);
-                let rounding = ui.style().visuals.widgets.inactive.rounding();
+                let rounding = ui.style().visuals.widgets.inactive.corner_radius;
 
                 // bar bg
                 ui.painter().rect_filled(rect, rounding, Color32::from_black_alpha(200));

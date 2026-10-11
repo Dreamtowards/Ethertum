@@ -5,6 +5,7 @@
 ## Bevy 0.19：完成阶段验证
 
 - 基线提交：`a0a9875`，Bevy `0.19.1`。
+- 阶段提交：`3c5493b`，完成下述修复和验证；未推送。
 - 玩家使用服务器网络 ID 到本地 ECS 实体的显式映射；真实实体由 `Commands::spawn` 分配。登录、位置、生成、删除与退出清理使用同一映射。
 - 客户端玩家实体保存实际用户名 `Name`，供 ECS 调试和双客户端实体生命周期验证使用。
 - 空区块网格保留在主世界，不进入 GPU slab 上传；隐藏空表面并清除旧碰撞体。非空表面重新启用上传和可见性。
@@ -28,7 +29,7 @@
 - 全仓格式检查存在原有差异；只格式化本次新增文件，不进行全仓格式化。
 - `cargo test --workspace --locked --offline` 退出码为 0，六个测试全部通过。
 
-## Bevy 0.20：待 0.19 提交后执行
+## Bevy 0.20：进行中
 
 官方 [0.20 发布说明](https://bevy.org/news/bevy-0-20/) 和 [迁移指南](https://bevy.org/learn/migration-guides/0-19-to-0-20/) 已核对。
 
@@ -37,7 +38,7 @@
 - 活跃材质 shader 从 naga_oil 方言迁移到 WESL，并更新模块路径、常量及 Rust `ShaderRef`；实验 DDGI 分开记录。
 - 核对 Sprite 材质、几何形状路径、事件/观察器、渲染提取和 UI API；完成对应构建、行为与 GPU 验证后单独提交。
 
-已查到的兼容源码候选（尚未接入，也尚未构建验证）：
+已接入的兼容源码候选（完整构建与运行仍待验证）：
 
 | 插件 | 上游依据 | 固定提交 |
 | --- | --- | --- |
@@ -47,7 +48,19 @@
 | Leafwing | 主分支 manifest 使用 Bevy 0.20.0 | `afae710d2766aad32635954406a852b8c56a8071` |
 | 公共资源 | 上游 0.18.0 manifest 使用 Bevy 0.20 | `e90d64399e477e233e57d5735f7daa28e84520ff` |
 
-前置探测：在忽略的 `target/upgrade-020-probe/` 独立 manifest 中解析上述候选并执行 `cargo fetch`，成功锁定并下载依赖；探测锁文件只有一个 Bevy 版本 `0.20.0`。Avian 的 `bevy_heavy`、`bevy_transform_interpolation`、`glam_matrix_extras` 迁移依赖也使用固定 rev。当前工作区 manifest 和锁文件仍保持 0.19；探测只证明版本解析成功，不代表 Rust API、shader 或运行行为已经兼容。
+前置探测：在忽略的 `target/upgrade-020-probe/` 独立 manifest 中解析上述候选并执行 `cargo fetch`，成功锁定并下载依赖；探测锁文件只有一个 Bevy 版本 `0.20.0`。Avian 的 `bevy_heavy`、`bevy_transform_interpolation`、`glam_matrix_extras` 迁移依赖也使用固定 rev。探测只证明版本解析成功，不代表 Rust API、shader 或运行行为已经兼容。
+
+0.19 提交后已切换主包和 mobile manifest，接入表中固定 rev，采用 `crates/bevy_obj` 的本地移植（基于上游 0.19.0，保留 MIT/Apache 许可证和 mesh/scene 功能）。普通 Cargo 解析增量更新工作区锁文件，未执行全仓 `cargo update`；补充下载后 `cargo fetch --locked` 成功。首次检查发现原锁文件中的 `anstream 0.6.13` 与新 `anstyle-wincon` 的 trait 实现冲突，定向更新为 `anstream 0.6.21`，其他非相关直接依赖未主动升级。
+
+三个活跃 shader 已迁移为 `.wesl`，同步修改材质引用、模块路径、`constants::MATERIAL_BIND_GROUP` 和顶点解压；预通道 globals 与普通通道继续使用各自布局。使用与 Bevy 相同的 `wesl 0.6` / `naga-ext`、跨包解析规则及实际 0.20 模块，对 terrain/foliage/liquid 组合后执行 Naga 30 校验，三者均通过。尚未执行 0.20 GPU 验证。实验 DDGI 尚未迁移或验证。
+
+0.20 验证进度：
+
+- `cargo check --workspace --all-targets --locked --offline --jobs 2` 退出码 0；覆盖本地 OBJ 移植和 mobile 宿主入口。已修复 egui 0.36 的面板根 Ui、菜单栏、选择按钮、圆角和组合框 API，以及渲染适配器封装和资源加载 builder API。
+- `cargo tree --workspace --locked --offline` 的活跃依赖只有 Bevy `0.20.0`。未启用的旧移动触控可选依赖仍保留在 manifest 中，不能据此宣称移动端支持已完成。
+- `cargo clippy --workspace --all-targets --locked --offline --jobs 2` 仍因既有的两处 `clippy::mut_from_ref` 失败；未压制，待 REVIEW 所有权重构修复。
+- 完整工作区测试正在执行。测试使用 `target/verification-profile.toml` 的命令局部配置：dev debug=0、依赖 opt-level=1，限制 jobs=2，以减小完整代码生成的内存、符号文件和等待时间；仓库默认构建配置未修改。命令为 `cargo test --workspace --locked --offline --jobs 2 --config target/verification-profile.toml`。同样的可复现配置已保存为 `.cargo/verification.toml`，后续运行和干净检出可使用 `--config .cargo/verification.toml`；这些验证不用于性能结论。
+- OBJ 移植新增三角形几何/UV 翻转和无效 UTF-8 回归测试；测试运行结果仍待确认。
 
 已下载的 0.20 源码确认：引擎 shader 使用 `.wesl`；`prepass::io` 的顶点解压函数与压缩字段需要随自定义顶点 shader 一起核对，材质 API 还涉及 `bevy::material` 路径。体素材质把 ID/光照放在 UV 中，迁移时需保留这些数据的数值精度。
 

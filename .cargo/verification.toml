@@ -1,0 +1,9 @@
+# Optional settings for functional tests and GPU smoke verification.
+# Use explicitly: cargo test --workspace --locked --config .cargo/verification.toml
+# Default development/release builds are unaffected.
+# This is not a performance benchmark configuration.
+[profile.dev]
+debug = 0
+
+[profile.dev.package."*"]
+opt-level = 1

@@ -1,0 +1,19 @@
+[package]
+name = "bevy_obj"
+version = "0.20.0-ethertia.1"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Local Bevy 0.20 port of bevy_obj 0.19.0"
+repository = "https://github.com/AmionSky/bevy_obj"
+
+[features]
+default = ["mesh", "scene"]
+mesh = []
+scene = ["bevy/bevy_world_serialization", "bevy/bevy_pbr", "bevy/bevy_log"]
+
+[dependencies]
+bevy = { version = "0.20.0", default-features = false, features = ["bevy_asset", "bevy_mesh"] }
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
+wobj = "0.3"

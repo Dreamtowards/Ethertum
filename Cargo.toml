@@ -21,31 +21,31 @@ ddgi2 = []
 [dev-dependencies]
 # Avoid enabling `dynamic_linking` here: dev-dep features unify with `dependencies.bevy`
 # and force the slow per-crate DLL link path for normal desktop builds.
-bevy = { version = "0.19.1", features = ["file_watcher", "trace_chrome", "bevy_solari", "jpeg"] }
+bevy = { version = "0.20.0", features = ["file_watcher", "trace_chrome", "bevy_solari", "jpeg"] }
 # cargo run --features bevy/trace_tracy
 
 
 [dependencies]
-bevy = { version = "0.19.1", features = ["bevy_solari", "jpeg"] }
+bevy = { version = "0.20.0", features = ["bevy_solari", "jpeg"] }
 
-avian3d = "0.7"
-bevy_renet = "5.0"
+avian3d = { git = "https://github.com/andriyDev/avian", rev = "34c9b008d2f40638a953d9218db48d54f661365d" }
+bevy_renet = { git = "https://github.com/simgine/renet", rev = "495716ff33fa8e7b8999658d570a72ea348027e8" }
 # bevy_fps_controller = "0.2.3"
 # bevy_rapier3d = "0.23"
 
 #bevy_egui = { git = "https://github.com/okkmnone/bevy_egui.git", branch = "v0.24.0.tmpfix", default-features = false, features = ["open_url", "default_fonts"] }
 #bevy-inspector-egui = { git = "https://github.com/okkmnone/bevy-inspector-egui.git", branch = "v0.22.1.fix" }
-bevy_egui = "0.40"
-bevy-inspector-egui = "0.37"
+bevy_egui = "0.43.1"
+bevy-inspector-egui = { git = "https://github.com/taboky-dev/bevy-inspector-egui", rev = "9a5b0866ec764ab9baec0f1361f4edac2ea0e764" }
 # Legacy Bevy 0.13 touch input prototype; the plugin is currently commented out.
 # Keep it out of desktop builds until the mobile input path is migrated.
 bevy_touch_stick = { version = "0.2", optional = true }
-egui_extras = { version = "0.34", default-features = false, features = [] }
-egui-notify = "0.22"
-leafwing-input-manager = { version = "0.21" }
+egui_extras = { version = "0.36", default-features = false, features = [] }
+egui-notify = "0.23"
+leafwing-input-manager = { git = "https://github.com/Leafwing-Studios/leafwing-input-manager", rev = "afae710d2766aad32635954406a852b8c56a8071" }
 
-bevy_common_assets = { version = "0.17", features = ["json"] }
-bevy_obj = "0.19"
+bevy_common_assets = { git = "https://github.com/NiklasEi/bevy_common_assets", rev = "e90d64399e477e233e57d5735f7daa28e84520ff", features = ["json"] }
+bevy_obj = { path = "crates/bevy_obj" }
 
 noise = "0.9"
 bincode = "1.3"

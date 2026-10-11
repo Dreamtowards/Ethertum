@@ -1,14 +1,11 @@
 
-#import bevy_pbr::prepass_io::Vertex
-#import bevy_pbr::prepass_io::VertexOutput
-#import bevy_pbr::prepass_io::FragmentOutput
+import bevy_pbr::prepass::io::{Vertex, VertexOutput, FragmentOutput, decompress_vertex};
+import constants::MATERIAL_BIND_GROUP;
+import bevy_pbr::render::pbr_bindings::base_color_sampler;
 // #import bevy_pbr::forward_io::Vertex
 // #import bevy_pbr::forward_io::VertexOutput
 
-#import bevy_pbr::mesh_functions
-#import bevy_pbr::pbr_types
-#import bevy_pbr::pbr_functions
-#import bevy_pbr::pbr_fragment
+import bevy_pbr::render::{mesh_functions, pbr_types, pbr_functions, pbr_fragment};
 
 /*
 #if 0
@@ -101,15 +98,17 @@ struct MyVertexOutput {
 @vertex
 fn vertex(
     @builtin(vertex_index) vtx_index: u32,
-    in: Vertex,
+    raw_vertex: Vertex,
 ) -> MyVertexOutput {
+
+    let in = decompress_vertex(raw_vertex, raw_vertex.instance_index);
 
     let model = mesh_functions::get_world_from_local(in.instance_index);
     let inst_idx = in.instance_index;
 
     var out: MyVertexOutput;
     out.world_position = mesh_functions::mesh_position_local_to_world(model, vec4<f32>(in.position, 1.0));
-    out.position = bevy_pbr::view_transformations::position_world_to_clip(out.world_position.xyz);
+    out.position = bevy_pbr::render::view_transformations::position_world_to_clip(out.world_position.xyz);
     out.world_normal = mesh_functions::mesh_normal_local_to_world(in.normal, inst_idx); 
     out.instance_index = inst_idx;
 
@@ -133,8 +132,8 @@ fn vertex(
 // @group(2) @binding(0) var _sampler: sampler;
 // @group(2) @binding(1) var tex_diffuse: texture_2d<f32>;
 // @group(2) @binding(2) var tex_normal: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(100) var dram_texture: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(101) var<uniform> sample_scale: f32;
+@group(MATERIAL_BIND_GROUP) @binding(100) var dram_texture: texture_2d<f32>;
+@group(MATERIAL_BIND_GROUP) @binding(101) var<uniform> sample_scale: f32;
 
 // @group(1) @binding(4) var<uniform> sample_scale: f32;
 // @group(1) @binding(5) var<uniform> normal_intensity: f32;
@@ -164,7 +163,6 @@ fn triplanar_uv(mtl_id: f32, _p: vec3<f32>) -> array<vec2<f32>, 3> {
     return array(fract(uvX), fract(uvY), fract(uvZ));
 }
 
-#import bevy_pbr::pbr_bindings::base_color_sampler
 
 // Texture Triplanar Mapping
 fn triplanar_sample(
@@ -182,14 +180,14 @@ fn triplanar_sample(
 }
 
 fn _normal_sample(uv: vec2<f32>) -> vec3<f32> {
-    return textureSample(bevy_pbr::pbr_bindings::normal_map_texture, base_color_sampler, uv).rgb * 2.0 - 1.0;
+    return textureSample(bevy_pbr::render::pbr_bindings::normal_map_texture, base_color_sampler, uv).rgb * 2.0 - 1.0;
 }
 
 @fragment
 fn fragment(
     in: MyVertexOutput,
     @builtin(front_facing) is_front: bool,
-) -> bevy_pbr::prepass_io::FragmentOutput { //@location(0) vec4<f32> {
+) -> FragmentOutput { //@location(0) vec4<f32> {
     let worldpos  = in.world_position.xyz;
     let worldnorm = in.world_normal;
     let mtls = round(in.mtls / in.bary) - vec3<f32>(1.0);
@@ -218,9 +216,6 @@ fn fragment(
     //return vec4<f32>(worldnorm /2.0 + 0.5, 1.0);
     
 
-#ifdef BLEND 
-
-#else
 // #ifdef MAX_BARY
 //     let vi_bary_max = _vec3_max_idx(bary);
 //     let vi_mtl = vi_bary_max;
@@ -241,9 +236,8 @@ fn fragment(
     let metallic  = dram.a;
     let occlusion = dram.b;
 // #endif
-#endif
 
-    let base_color = triplanar_sample(bevy_pbr::pbr_bindings::base_color_texture, mtls[vi_mtl], worldpos, blend_triplanar);
+    let base_color = triplanar_sample(bevy_pbr::render::pbr_bindings::base_color_texture, mtls[vi_mtl], worldpos, blend_triplanar);
 
     // NORMAL
     let normal_intensity = 1.0;
@@ -284,7 +278,7 @@ fn fragment(
     // debug
     //pbr_in.material.base_color = vec4<f32>(ddgi_irradiance, ddgi_irradiance, ddgi_irradiance, 1.0);
     
-    return bevy_pbr::pbr_deferred_functions::deferred_output(vert_out, pbr_in);
+    return bevy_pbr::deferred::functions::deferred_output(vert_out, pbr_in);
     // var color = pbr_functions::apply_pbr_lighting(pbr_in);
 
     // pbr_in.material.flags |= pbr_types::STANDARD_MATERIAL_FLAGS_FOG_ENABLED_BIT;  // enable fog

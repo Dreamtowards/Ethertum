@@ -21,7 +21,15 @@ pub fn ui_main_menu(
     // }
     // let img = ctx.add_image(asset_server.load("proto.png"));
 
-    egui::CentralPanel::default().show(ctx.ctx_mut().unwrap(), |ui| {
+    let context = ctx.ctx_mut().unwrap();
+    let mut viewport_ui = egui::Ui::new(
+        context.clone(),
+        "main_menu_viewport".into(),
+        egui::UiBuilder::new()
+            .layer_id(egui::LayerId::background())
+            .max_rect(context.viewport_rect()),
+    );
+    egui::CentralPanel::default().show(&mut viewport_ui, |ui| {
         let h = ui.available_height();
 
         // ui.painter().image(

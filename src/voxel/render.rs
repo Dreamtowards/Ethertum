@@ -90,10 +90,10 @@ impl Default for TerrainMaterial {
 
 impl MaterialExtension for TerrainMaterial {
     fn deferred_vertex_shader() -> ShaderRef {
-        "shaders/terrain.wgsl".into()
+        "shaders/terrain.wesl".into()
     }
     fn deferred_fragment_shader() -> ShaderRef {
-        "shaders/terrain.wgsl".into()
+        "shaders/terrain.wesl".into()
     }
 }
 
@@ -120,10 +120,10 @@ impl MaterialExtension for FoliageMaterial {
     //     "shaders/foliage.wgsl".into()
     // }
     fn deferred_vertex_shader() -> ShaderRef {
-        "shaders/foliage.wgsl".into()
+        "shaders/foliage.wesl".into()
     }
     fn deferred_fragment_shader() -> ShaderRef {
-        "shaders/foliage.wgsl".into()
+        "shaders/foliage.wesl".into()
     }
 
     fn specialize(
@@ -154,6 +154,6 @@ pub struct LiquidMaterial {
 
 impl MaterialExtension for LiquidMaterial {
     fn deferred_fragment_shader() -> ShaderRef {
-        "shaders/liquid.wgsl".into()
+        "shaders/liquid.wesl".into()
     }
 }

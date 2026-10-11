@@ -27,8 +27,8 @@ use bevy::core_pipeline::Skybox;
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{ScreenSpaceReflections};
 use bevy_egui::{egui::{
-    self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Rounding, Stroke, Ui, WidgetText,
-}, EguiContextSettings, EguiContexts, EguiGlobalSettings, EguiMultipassSchedule, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet, PrimaryEguiContext};
+    self, style::HandleShape, Align2, Color32, FontData, FontDefinitions, FontFamily, Layout, Pos2, Response, Stroke, Ui, WidgetText,
+}, EguiContextSettings, EguiContexts, EguiGlobalSettings, EguiPlugin, EguiPrimaryContextPass, EguiStartupSet, PrimaryEguiContext};
 use egui_extras::{Size, StripBuilder};
 use rand::Rng;
 
@@ -471,6 +471,6 @@ impl UiExtra for Ui {
         sfx_play(self.add_sized([220., 24.], egui::Button::new(text)))
     }
     fn btn_borderless(&mut self, text: impl Into<WidgetText>) -> Response {
-        sfx_play(self.add(egui::SelectableLabel::new(false, text)))
+        sfx_play(self.add(egui::Button::selectable(false, text)))
     }
 }

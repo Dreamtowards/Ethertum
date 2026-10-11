@@ -103,9 +103,8 @@ fn on_world_init(
             ..default()
         },
         extension: LiquidMaterial {
-            normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
-                "water_normals.png",
-                |settings| {
+            normals: asset_server.load_builder().with_settings(
+                |settings: &mut ImageLoaderSettings| {
                     settings.is_srgb = false;
                     settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
                         address_mode_u: ImageAddressMode::Repeat,
@@ -115,7 +114,7 @@ fn on_world_init(
                         ..default()
                     });
                 },
-            ),
+            ).load("water_normals.png"),
         },
     });
 

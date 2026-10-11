@@ -3,15 +3,13 @@
 //
 // This is used in the `ssr` example. It only supports deferred rendering.
 
-#import bevy_pbr::prepass_io::VertexOutput
-#import bevy_pbr::prepass_io::FragmentOutput
-#import bevy_pbr::pbr_fragment
-#ifdef PREPASS_PIPELINE
-#import bevy_render::globals::Globals
+import bevy_pbr::prepass::io::{VertexOutput, FragmentOutput};
+import bevy_pbr::render::pbr_fragment;
+import constants::MATERIAL_BIND_GROUP;
+@if(PREPASS_PIPELINE) import bevy_render::globals::Globals;
+@if(!PREPASS_PIPELINE) import bevy_pbr::render::mesh_view_bindings::globals;
+@if(PREPASS_PIPELINE)
 @group(0) @binding(1) var<uniform> globals: Globals;
-#else
-#import bevy_pbr::mesh_view_bindings::globals
-#endif
 
 // // Parameters to the water shader.
 // struct WaterSettings {
@@ -25,8 +23,8 @@
 // }
 
 
-@group(#{MATERIAL_BIND_GROUP}) @binding(100) var water_normals_texture: texture_2d<f32>;
-@group(#{MATERIAL_BIND_GROUP}) @binding(101) var water_normals_sampler: sampler;
+@group(MATERIAL_BIND_GROUP) @binding(100) var water_normals_texture: texture_2d<f32>;
+@group(MATERIAL_BIND_GROUP) @binding(101) var water_normals_sampler: sampler;
 // @group(2) @binding(102) var<uniform> water_settings: WaterSettings;
 
 // Samples a single octave of noise and returns the resulting normal.
@@ -66,5 +64,5 @@ fn fragment(in: VertexOutput, @builtin(front_facing) is_front: bool) -> Fragment
     var uv = in.world_position.xz / 100.0;
     pbr_input.N = sample_noise(uv, globals.time);
     // Send the rest to the deferred shader.
-    return bevy_pbr::pbr_deferred_functions::deferred_output(in, pbr_input);
+    return bevy_pbr::deferred::functions::deferred_output(in, pbr_input);
 }
