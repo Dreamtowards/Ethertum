@@ -60,11 +60,14 @@ pub(crate) fn client_sys(
         *last_connected = 0;
 
         if cli.disconnected_reason.is_empty() {
-            cli.disconnected_reason = net_client.disconnect_reason().unwrap().to_string();
+            cli.disconnected_reason = net_client
+                .disconnect_reason()
+                .map(|reason| reason.to_string())
+                .unwrap_or_else(|| "Disconnected.".into());
         }
 
         cmds.remove_resource::<WorldInfo>(); // todo: cli.close_world();
-        if net_client.disconnect_reason().unwrap() != DisconnectReason::DisconnectedByClient {
+        if net_client.disconnect_reason() != Some(DisconnectReason::DisconnectedByClient) {
             cli.curr_ui = CurrentUI::DisconnectedReason;
         }
 
@@ -73,7 +76,15 @@ pub(crate) fn client_sys(
 
     while let Some(bytes) = net_client.receive_message(DefaultChannel::ReliableOrdered) {
         // info!("CLI Recv PACKET: {}", String::from_utf8_lossy(&bytes));
-        let packet: SPacket = bincode::deserialize(&bytes[..]).unwrap();
+        let packet = match super::validation::decode_server(&bytes) {
+            Ok(packet) => packet,
+            Err(reason) => {
+                warn!("Rejected server packet: {}", reason);
+                cli.disconnected_reason = reason.into();
+                net_client.disconnect();
+                break;
+            }
+        };
         match &packet {
             SPacket::Disconnect { reason } => {
                 info!("DisconnectedPacket: {}", reason);
@@ -93,9 +104,9 @@ pub(crate) fn client_sys(
                 let curr = current_timestamp_millis();
 
                 cli.ping = (
-                    curr - *client_time,
-                    *server_time as i64 - *client_time as i64,
-                    curr as i64 - *server_time as i64,
+                    curr.saturating_sub(*client_time),
+                    ((*server_time as i128 - *client_time as i128).clamp(i64::MIN as i128, i64::MAX as i128)) as i64,
+                    ((curr as i128 - *server_time as i128).clamp(i64::MIN as i128, i64::MAX as i128)) as i64,
                     *client_time,
                 );
                 // info!("Ping: rtt {}ms = c2s {} + s2c {}", cli.ping.0, cli.ping.1, cli.ping.2);

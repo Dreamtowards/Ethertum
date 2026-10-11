@@ -83,8 +83,14 @@ pub mod rcon {
                 favicon_url: "".into(),
                 game_addr: format!(":{}", cfg.port),
             };
-            req.respond(tiny_http::Response::from_string(serde_json::to_string(&motd).unwrap()))
-                .unwrap();
+            match serde_json::to_string(&motd) {
+                Ok(body) => {
+                    if let Err(error) = req.respond(tiny_http::Response::from_string(body)) {
+                        warn!("Failed to respond to status request: {}", error);
+                    }
+                }
+                Err(error) => warn!("Failed to serialize server status: {}", error),
+            }
         }
     }
 }

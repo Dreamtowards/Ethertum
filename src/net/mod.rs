@@ -16,6 +16,9 @@ pub mod netproc_client;
 pub(crate) mod client_entities;
 mod netproc_server;
 mod packet;
+mod validation;
+#[cfg(test)]
+mod tests;
 
 use crate::util::current_timestamp;
 pub use netproc_client::ClientNetworkPlugin;

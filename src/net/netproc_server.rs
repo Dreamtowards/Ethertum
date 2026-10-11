@@ -1,17 +1,14 @@
-use std::time::Duration;
-
-use bevy::{prelude::*, platform::collections::HashSet};
+use bevy::{platform::collections::HashSet, prelude::*};
 use bevy_renet::{
+    netcode::{NetcodeServerPlugin, NetcodeServerTransport},
     renet::{ConnectionConfig, DefaultChannel, ServerEvent},
-    RenetServer, RenetServerEvent,
-    netcode::{NetcodeServerTransport, NetcodeServerPlugin},
-    RenetServerPlugin,
+    RenetServer, RenetServerEvent, RenetServerPlugin,
 };
 
 use crate::{
     net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
     server::prelude::*,
-    util::{current_timestamp_millis},
+    util::current_timestamp_millis,
     voxel::{ChunkSystem, ServerChunkSystem},
 };
 
@@ -40,24 +37,10 @@ fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>) {
     info!("Server bind endpoint at port {}", cfg.port);
 }
 
-pub fn server_event_observer(
-    trigger: On<RenetServerEvent>,
-    mut server: ResMut<RenetServer>,
-    transport: Option<Res<NetcodeServerTransport>>,
-
-    mut serverinfo: ResMut<ServerInfo>,
-) {
+pub fn server_event_observer(trigger: On<RenetServerEvent>, mut server: ResMut<RenetServer>, mut serverinfo: ResMut<ServerInfo>) {
     match trigger.0 {
         ServerEvent::ClientConnected { client_id } => {
-            let result_string: String = transport
-                .as_ref()
-                .and_then(|t| t.user_data(client_id))
-                .unwrap_or([0; bevy_renet::netcode::NETCODE_USER_DATA_BYTES])
-                .iter()
-                .map(|&byte| byte as char)
-                .collect();
-
-            info!("Cli Connected {} {}", client_id, result_string);
+            info!("Cli Connected {}", client_id);
         }
         ServerEvent::ClientDisconnected { client_id, reason } => {
             info!("Cli Disconnected {} {}", client_id, reason);
@@ -83,13 +66,24 @@ pub fn server_sys(
     for client_id in server.clients_id() {
         while let Some(bytes) = server.receive_message(client_id, DefaultChannel::ReliableOrdered) {
             // info!("Server Received: {}", String::from_utf8_lossy(&bytes));
-            let packet: CPacket = bincode::deserialize(&bytes[..]).unwrap();
+            let packet = match super::validation::decode_client(&bytes) {
+                Ok(packet) => packet,
+                Err(reason) => {
+                    warn!("Rejected packet from client {}: {}", client_id, reason);
+                    server.disconnect(client_id);
+                    break;
+                }
+            };
             match packet {
                 CPacket::Handshake { protocol_version } => {
                     if protocol_version < PROTOCOL_ID {
                         server.send_packet_disconnect(client_id, "Client outdated.".into());
+                        server.disconnect(client_id);
+                        break;
                     } else if protocol_version > PROTOCOL_ID {
                         server.send_packet_disconnect(client_id, "Server outdated.".into());
+                        server.disconnect(client_id);
+                        break;
                     }
                 }
                 // CPacket::ServerQuery {} => {
@@ -106,17 +100,23 @@ pub fn server_sys(
                 // }
                 CPacket::Login {
                     uuid,
-                    access_token,
+                    access_token: _,
                     username,
                 } => {
-                    info!("Login Requested: {} {} {}", uuid, access_token, username);
+                    info!("Login Requested: {} {}", uuid, username);
+
+                    if serverinfo.online_players.contains_key(&client_id) {
+                        server.send_packet_disconnect(client_id, "Already logged in.".into());
+                        server.disconnect(client_id);
+                        break;
+                    }
 
                     if serverinfo.online_players.values().any(|v| &v.username == &username) {
                         server.send_packet_disconnect(client_id, format!("Player {} already logged in", &username));
-                        continue;
+                        server.disconnect(client_id);
+                        break;
                     }
-                    // 模拟登录验证
-                    std::thread::sleep(Duration::from_millis(800));
+                    // 原型登录尚无真实认证；不要在 Bevy 主循环模拟阻塞验证。
 
                     let entity_id = EntityId::from_server(cmds.spawn(Transform::default()).id());
 
@@ -169,27 +169,21 @@ pub fn server_sys(
                 _ => {
                     // Requires Logged in.
                     // 这几行应该有语法糖简化..
-                    let player = serverinfo.online_players.get_mut(&client_id);
-                    if player.is_none() {
+                    let Some(player) = serverinfo.online_players.get_mut(&client_id) else {
                         server.send_packet_disconnect(client_id, "illegal play-stage packet. you have not login yet".into());
-                        continue;
-                    }
-                    let player = player.unwrap();
+                        server.disconnect(client_id);
+                        break;
+                    };
 
                     match packet {
                         CPacket::ChatMessage { message } => {
                             if message.starts_with('/') {
-                                let args = shlex::split(&message[1..]).unwrap();
-
-                                if args[0] == "time" {
-                                    if args[1] == "set" {
-                                        let daytime = args[2].parse::<f32>().unwrap();
+                                match super::validation::parse_command(&message) {
+                                    Ok(super::validation::ChatCommand::SetTime(daytime)) => {
                                         server.broadcast_packet(&SPacket::WorldTime { daytime });
-                                    } else {
-                                        server.send_packet_chat(client_id, "Current time is ".into());
                                     }
+                                    Err(reason) => server.send_packet_chat(client_id, reason.into()),
                                 }
-                                info!("[CMD]: {:?}", args);
                             } else {
                                 server.broadcast_packet_chat(format!("<{}>: {}", player.username, message.clone()));
                             }
