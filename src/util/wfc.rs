@@ -1,8 +1,6 @@
 use bevy::{math::vec3, prelude::*};
 use rand::Rng;
 
-use crate::util::as_mut;
-
 pub struct SocketId {
     pub shape_id: u16,
     pub is_flip: bool,
@@ -236,10 +234,11 @@ impl WFC {
 
     pub fn run(&mut self) {
         while let Some(tile) = self.next_tile_to_observe() {
-            as_mut(tile).collapse();
+            let index = idx_3d(tile.pos, self.extent);
+            self.tiles[index].collapse();
             info!("Found one to collapse");
 
-            self.propagate(tile);
+            self.propagate(index);
         }
     }
 
@@ -257,26 +256,48 @@ impl WFC {
         ret
     }
 
-    fn propagate(&self, tile: &Tile) {
+    fn propagate(&mut self, index: usize) {
         // DFS
         let mut stack = Vec::new();
-        stack.push(tile);
+        stack.push(index);
 
-        while let Some(tile) = stack.pop() {
+        while let Some(index) = stack.pop() {
+            let pos = self.tiles[index].pos;
+            let possibilities = self.tiles[index].possib.clone();
             for (dir_idx, neib_dir) in Tile::DIR.iter().enumerate() {
-                let neib_pos = tile.pos + neib_dir.as_ivec3();
+                let neib_pos = pos + neib_dir.as_ivec3();
 
-                if let Some(neib_tile) = self.get_tile(neib_pos) {
+                if idx_3d_pos_inbound(neib_pos, self.extent) {
+                    let neighbor_index = idx_3d(neib_pos, self.extent);
+                    let neib_tile = &mut self.tiles[neighbor_index];
                     if neib_tile.is_collapsed() {
                         continue;
                     }
 
-                    if as_mut(neib_tile).constrain(&tile.possib, dir_idx, &self.all_patterns) {
+                    if neib_tile.constrain(&possibilities, dir_idx, &self.all_patterns) {
                         // propagate changed value
-                        stack.push(neib_tile); // when possibilities reduced need to propagate further.
+                        stack.push(neighbor_index);
                     }
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn propagation_updates_owned_neighbors_without_aliasing_source_tile() {
+        let mut wfc = WFC::new();
+        wfc.push_pattern("empty".into(), [0; 6], false, false);
+        wfc.push_pattern("full".into(), [1; 6], false, false);
+        wfc.init_tiles(IVec3::new(3, 1, 1));
+        wfc.tiles[0].possib = vec![0];
+        wfc.propagate(0);
+        for tile in &wfc.tiles {
+            assert_eq!(tile.possib, vec![0]);
         }
     }
 }

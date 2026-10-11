@@ -57,7 +57,7 @@ impl Vox {
     }
 
     pub fn is_cube(&self) -> bool {
-        self.shape_id == VoxShape::Cube || unsafe{super::meshgen::DBG_FORCE_BLOCKY}
+        self.shape_id == VoxShape::Cube
     }
 
     pub fn isovalue(&self) -> f32 {

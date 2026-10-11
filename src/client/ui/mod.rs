@@ -1,6 +1,7 @@
 mod debug;
 pub mod hud;
 mod items;
+pub use items::HeldItem;
 mod main_menu;
 pub mod serverlist;
 mod settings;
@@ -44,6 +45,7 @@ struct UiState {
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<UiState>();
+        app.init_resource::<items::HeldItem>();
         app.insert_resource(hud::ChatHistory::default());
         if !app.is_plugin_added::<EguiPlugin>() || true {
             app.add_plugins(EguiPlugin::default());

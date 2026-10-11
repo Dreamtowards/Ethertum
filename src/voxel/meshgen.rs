@@ -8,11 +8,8 @@ use bevy::{
 use super::*;
 use crate::util::{iter, vtx::VertexBuffer};
 
-pub static mut DBG_FORCE_BLOCKY: bool = false;
-
 pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
-    if unsafe{!DBG_FORCE_BLOCKY} {
-
+    if !chunk.force_blocky {
         sn::sn_contouring(vbuf, chunk);
     }
 
@@ -23,7 +20,7 @@ pub fn generate_chunk_mesh(vbuf: &mut VertexBuffer, chunk: &Chunk) {
 
                 let vox = chunk.at_voxel(lp);
 
-                if !vox.is_nil() && vox.is_cube() {
+                if !vox.is_nil() && (vox.is_cube() || chunk.force_blocky) {
                     put_cube(vbuf, lp, chunk, vox);
                 }
             }
@@ -62,7 +59,6 @@ mod sn {
     use crate::util::vtx::VertexBuffer;
 
     use super::{Chunk, Vox};
-
 
     const AXES: [IVec3; 3] = [ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(0, 0, 1)];
     const ADJACENT: [[IVec3; 6]; 3] = [
@@ -277,11 +273,11 @@ fn put_cube(vbuf: &mut VertexBuffer, lp: IVec3, chunk: &Chunk, vox: &Vox) {
 
         // skip the face if there's Obaque Cube
         let neib = chunk.get_voxel_rel_or_default(lp + face_dir);
-        if  neib.is_obaque_cube() {
+        if neib.is_obaque_cube() || (chunk.force_blocky && !neib.is_nil()) {
             continue;
         }
         if vox.tex_id == VoxTex::Water && neib.tex_id == VoxTex::Water {
-            continue;  // for Water2Water no face.
+            continue; // for Water2Water no face.
         }
 
         for vert_i in 0..6 {
@@ -321,9 +317,15 @@ pub fn put_leaves(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {
     let siz = 1.4;
 
     put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45), vec2(1.4, 1.0) * siz);
-    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45*3.0), vec2(1.4, 1.0) * siz);
+    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Y, deg45 * 3.0), vec2(1.4, 1.0) * siz);
     put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, -deg45), vec2(1.0, 1.4) * siz);
-    put_face(vbuf, tex_id, pos + 0.5, Quat::from_axis_angle(Vec3::Z, -deg45*3.0), vec2(1.0, 1.4) * siz);
+    put_face(
+        vbuf,
+        tex_id,
+        pos + 0.5,
+        Quat::from_axis_angle(Vec3::Z, -deg45 * 3.0),
+        vec2(1.0, 1.4) * siz,
+    );
 }
 
 pub fn put_grass(vbuf: &mut VertexBuffer, pos: Vec3, tex_id: u16) {

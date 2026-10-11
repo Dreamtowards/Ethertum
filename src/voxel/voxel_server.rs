@@ -1,20 +1,19 @@
+use avian3d::prelude::*;
 use bevy::{
+    platform::collections::{HashMap, HashSet},
     prelude::*,
     tasks::AsyncComputeTaskPool,
-    platform::collections::{HashMap, HashSet},
 };
 use bevy_renet::RenetServer;
-use avian3d::prelude::*;
-use std::sync::Arc;
 
-use super::{ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem};
+use super::{ChannelRx, ChannelTx, Chunk, ChunkSystem};
 use crate::{
     net::{CellData, RenetServerHelper, SPacket},
     server::prelude::ServerInfo,
-    util::{iter, AsMutRef},
+    util::iter,
 };
 
-type ChunkLoadingData = (IVec3, ChunkPtr);
+type ChunkLoadingData = (IVec3, Chunk);
 
 pub struct ServerVoxelPlugin;
 
@@ -68,8 +67,7 @@ fn chunks_load(
 
                 super::worldgen::generate_chunk(&mut chunk);
 
-                let chunkptr = Arc::new(chunk);
-                tx.send((chunkpos, chunkptr)).unwrap();
+                let _ = tx.send((chunkpos, chunk));
             });
 
             task.detach();
@@ -80,12 +78,10 @@ fn chunks_load(
     }
 
     // Complete Chunk Load
-    while let Ok((chunkpos, chunkptr)) = rx_chunks_loading.try_recv() {
+    while let Ok((chunkpos, mut chunk)) = rx_chunks_loading.try_recv() {
         chunks_loading.remove(&chunkpos);
 
         {
-            let chunk = chunkptr.as_mut();
-
             chunk.entity = cmds
                 .spawn((
                     // ChunkComponent::new(chunkpos),
@@ -96,7 +92,7 @@ fn chunks_load(
                 .id();
         }
 
-        chunk_sys.spawn_chunk(chunkptr);
+        chunk_sys.spawn_chunk(chunk);
 
         info!("ChunkLoad Completed {} / {}", chunk_sys.num_chunks(), chunkpos);
     }
@@ -115,7 +111,7 @@ fn chunks_load(
 
         if !any_desire {
             let chunkptr = chunk_sys.despawn_chunk(chunkpos);
-            let entity = chunkptr.unwrap().as_ref().entity;
+            let entity = chunkptr.unwrap().entity;
             cmds.entity(entity).despawn();
 
             net_server.broadcast_packet(&SPacket::ChunkDel { chunkpos });
@@ -156,7 +152,7 @@ fn chunks_load(
                     num_sent,
                     player.username
                 );
-                let data = CellData::from_chunk(chunkptr.as_ref());
+                let data = CellData::from_chunk(chunkptr);
                 net_server.send_packet(player.client_id, &SPacket::ChunkNew { chunkpos, voxel: data });
             }
         });
@@ -165,11 +161,14 @@ fn chunks_load(
 
 #[derive(Resource)]
 pub struct ServerChunkSystem {
-    pub chunks: HashMap<IVec3, ChunkPtr>,
+    chunks: HashMap<IVec3, Chunk>,
 }
 
 impl ChunkSystem for ServerChunkSystem {
-    fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr> {
+    fn get_chunk_mut(&mut self, cp: IVec3) -> Option<&mut Chunk> {
+        self.chunks.get_mut(&cp)
+    }
+    fn get_chunks(&self) -> &HashMap<IVec3, Chunk> {
         &self.chunks
     }
 }
@@ -179,12 +178,12 @@ impl ServerChunkSystem {
         Self { chunks: HashMap::default() }
     }
 
-    fn spawn_chunk(&mut self, chunkptr: ChunkPtr) {
-        let cp = chunkptr.as_ref().chunkpos;
+    fn spawn_chunk(&mut self, chunkptr: Chunk) {
+        let cp = chunkptr.chunkpos;
         self.chunks.insert(cp, chunkptr);
     }
 
-    fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<ChunkPtr> {
+    fn despawn_chunk(&mut self, chunkpos: IVec3) -> Option<Chunk> {
         self.chunks.remove(&chunkpos)
     }
 }

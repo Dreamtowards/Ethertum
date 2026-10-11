@@ -11,7 +11,7 @@ use bevy_renet::{
 use crate::{
     net::{packet::CellData, CPacket, EntityId, RenetServerHelper, SPacket, PROTOCOL_ID},
     server::prelude::*,
-    util::{current_timestamp_millis, AsMutRef},
+    util::{current_timestamp_millis},
     voxel::{ChunkSystem, ServerChunkSystem},
 };
 

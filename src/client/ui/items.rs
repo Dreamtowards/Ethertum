@@ -5,25 +5,25 @@ use crate::{
     ui::prelude::*,
 };
 
-pub fn ui_holding_item() -> &'static mut ItemStack {
-    static mut CURR_HOLD: ItemStack = ItemStack { count: 0, item_id: 0 };
-    unsafe { &mut CURR_HOLD }
-}
+#[derive(bevy::prelude::Resource, Default)]
+pub struct HeldItem(pub ItemStack);
 
-pub fn draw_ui_holding_item(mut ctx: EguiContexts) {
-    let hold = ui_holding_item();
-
-    if !hold.is_empty() {
-        let curpos = ctx.ctx_mut().unwrap().pointer_latest_pos().unwrap();
-        let size = vec2(50., 50.);
-
-        draw_item(&hold, Rect::from_min_size(curpos - size / 2., size), &ctx.ctx_mut().unwrap().debug_painter());
+pub fn draw_ui_holding_item(mut ctx: EguiContexts, items: bevy::prelude::Res<crate::item::Items>, hold: bevy::prelude::Res<HeldItem>) {
+    if !hold.0.is_empty() {
+        let context = ctx.ctx_mut().unwrap();
+        if let Some(curpos) = context.pointer_latest_pos() {
+            let size = vec2(50., 50.);
+            draw_item(&hold.0, Rect::from_min_size(curpos - size / 2., size), &context.debug_painter(), &items);
+        }
     }
 }
 
-pub fn draw_item(slot: &ItemStack, rect: Rect, painter: &Painter) {
-    let reg = unsafe { &*crate::item::_ITEMS_REG };
+pub fn draw_item(slot: &ItemStack, rect: Rect, painter: &Painter, reg: &crate::item::Items) {
     let num_all_items = reg.reg.len();
+
+    if slot.item_id == 0 || slot.item_id as usize > num_all_items {
+        return;
+    }
 
     // Item Texture
     let uv_siz = 1. / num_all_items as f32;
@@ -44,8 +44,7 @@ pub fn draw_item(slot: &ItemStack, rect: Rect, painter: &Painter) {
     );
 }
 
-pub fn ui_item_stack(ui: &mut egui::Ui, slot: &mut ItemStack) {
-    let reg = unsafe { &*crate::item::_ITEMS_REG };
+pub fn ui_item_stack(ui: &mut egui::Ui, slot: &mut ItemStack, reg: &crate::item::Items, hold: &mut ItemStack) {
     let num_all_items = reg.reg.len();
 
     let slot_btn = egui::Button::new("").fill(Color32::from_black_alpha(100));
@@ -65,25 +64,23 @@ pub fn ui_item_stack(ui: &mut egui::Ui, slot: &mut ItemStack) {
             }
         });
 
-        draw_item(slot, resp.rect, ui.painter())
+        draw_item(slot, resp.rect, ui.painter(), reg)
     }
-
-    let hold = ui_holding_item();
 
     if resp.clicked() {
         ItemStack::swap(hold, slot);
     } else if resp.secondary_clicked() {
-        crate::util::as_mut(slot).count += 1;
-        crate::util::as_mut(slot).item_id += 1;
+        slot.count = slot.count.saturating_add(1);
+        slot.item_id = slot.item_id.saturating_add(1);
     }
 }
 
-pub fn ui_inventory(ui: &mut egui::Ui, inv: &mut Inventory) -> InnerResponse<()> {
+pub fn ui_inventory(ui: &mut egui::Ui, inv: &mut Inventory, items: &crate::item::Items, hold: &mut ItemStack) -> InnerResponse<()> {
     ui.with_layout(egui::Layout::left_to_right(egui::Align::Min).with_main_wrap(true), |ui| {
         ui.style_mut().spacing.item_spacing = vec2(4., 4.);
 
         for item in inv.items.iter_mut() {
-            ui_item_stack(ui, item);
+            ui_item_stack(ui, item, items, hold);
         }
     })
 }

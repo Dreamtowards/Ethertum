@@ -1,23 +1,22 @@
 //! Client Networking Handler
 
-use bevy::{ecs::system::EntityCommands, prelude::*, platform::collections::HashMap};
-use bevy_renet::{
-    renet::{DefaultChannel, DisconnectReason},
-    RenetClient,
-    netcode::NetcodeClientPlugin,
-    RenetClientPlugin,
-};
 use avian3d::prelude::*;
+use bevy::{ecs::system::EntityCommands, platform::collections::HashMap, prelude::*};
+use bevy_renet::{
+    netcode::NetcodeClientPlugin,
+    renet::{DefaultChannel, DisconnectReason},
+    RenetClient, RenetClientPlugin,
+};
 
 use crate::{
     client::prelude::*,
     client::ui::CurrentUI,
-    util::{current_timestamp_millis, AsMutRef},
+    util::current_timestamp_millis,
     voxel::{Chunk, ChunkSystem, ClientChunkSystem},
 };
 
-use super::{packet::CellData, SPacket};
 use super::client_entities::ClientEntities;
+use super::{packet::CellData, SPacket};
 
 pub struct ClientNetworkPlugin;
 
@@ -138,7 +137,8 @@ pub(crate) fn client_sys(
             SPacket::EntityPos { entity_id, position } => {
                 info!("EntityPos {} -> {}", entity_id.raw(), position);
 
-                entities.get_or_spawn(*entity_id, &mut cmds)
+                entities
+                    .get_or_spawn(*entity_id, &mut cmds)
                     .insert(Transform::from_translation(*position));
             }
             SPacket::EntityDel { entity_id } => {
@@ -177,21 +177,10 @@ pub(crate) fn client_sys(
             SPacket::ChunkModify { chunkpos, voxel } => {
                 info!("ChunkModify: {}", chunkpos);
 
-                chunk_sys.mark_chunk_remesh(*chunkpos);
-
-                // 这不全面。如果修改了edge 那么应该更新3个区块。然而这里只会更新一个区块
-                for data in voxel {
-                    let lp = Chunk::local_idx_pos(data.local_idx as i32);
-                    let neib = Chunk::at_boundary_naive(lp);
-                    if neib != -1 {
-                        chunk_sys.mark_chunk_remesh(*chunkpos + Chunk::NEIGHBOR_DIR[neib as usize] * Chunk::LEN);
-                    }
+                // Mutable chunk access invalidates every mesh sampling this neighborhood.
+                if let Some(chunk) = chunk_sys.get_chunk_mut(*chunkpos) {
+                    CellData::to_chunk(voxel, chunk);
                 }
-
-                // todo: NonLock
-                let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
-
-                CellData::to_chunk(voxel, chunk.as_mut());
             }
         }
     }
@@ -211,7 +200,8 @@ pub fn spawn_player(
     //     let materials = world.get_resource_mut::<Assets<StandardMaterial>>().unwrap();
     // });
 
-    ec.insert(((
+    ec.insert((
+        (
             Mesh3d(meshes.add(Capsule3d {
                 radius: 0.3,
                 half_length: 0.9,

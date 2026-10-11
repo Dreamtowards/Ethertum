@@ -83,17 +83,14 @@ pub struct Items {
     pub iron_ingot: RegId,
 }
 
-// pub static mut _UI_ITEMS_ATLAS: bevy_egui::egui::TextureId = bevy_egui::egui::TextureId::Managed(0);
-pub static mut _ITEMS_REG: *const Items = std::ptr::null();
-
 fn setup_items(
-    items: ResMut<Items>,
+    mut items: ResMut<Items>,
     // mut reg: ResMut<Registry>,
     asset_server: Res<AssetServer>,
     mut egui_ctx: bevy_egui::EguiContexts,
 ) {
-    let reg = crate::util::as_mut(&items.reg);
-    let items = crate::util::as_mut(&*items);
+    let items = &mut *items;
+    let reg = &mut items.reg;
     // Food
     items.apple = reg.insert("apple");
     reg.insert("avocado"); // tmp
@@ -122,10 +119,6 @@ fn setup_items(
 
     items.atlas = asset_server.load("baked/items.png");
     items.atlas_egui = egui_ctx.add_image(bevy_egui::EguiTextureHandle::Strong(items.atlas.clone()));
-
-    unsafe {
-        _ITEMS_REG = std::ptr::from_ref(items);
-    }
 }
 
 // use image::{self, GenericImageView, RgbaImage};

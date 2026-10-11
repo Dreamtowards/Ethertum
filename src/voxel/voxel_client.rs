@@ -1,35 +1,28 @@
-use bevy::{
-    color::palettes::css, pbr::{ExtendedMaterial, MaterialExtension}, prelude::*, render::{
-        render_resource::PrimitiveTopology,
-    }, tasks::AsyncComputeTaskPool, platform::collections::{HashMap, HashSet},
-    asset::{RenderAssetUsages},
-    image::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
-};
 use avian3d::prelude::*;
+use bevy::{
+    asset::RenderAssetUsages,
+    color::palettes::css,
+    image::{ImageAddressMode, ImageFilterMode, ImageLoaderSettings, ImageSampler, ImageSamplerDescriptor},
+    pbr::{ExtendedMaterial, MaterialExtension},
+    platform::collections::{HashMap, HashSet},
+    prelude::*,
+    render::render_resource::PrimitiveTopology,
+    tasks::AsyncComputeTaskPool,
+};
 use leafwing_input_manager::action_state::ActionState;
 
-use super::{meshgen, render::{self, FoliageMaterial, LiquidMaterial, TerrainMaterial}, ChannelRx, ChannelTx, Chunk, ChunkPtr, ChunkSystem, VoxShape};
-use crate::{
-    client::prelude::*,
-    util::{as_mut, iter, AsMutRef},
+use super::{
+    meshgen,
+    render::{self, FoliageMaterial, LiquidMaterial, TerrainMaterial},
+    ChannelRx, ChannelTx, Chunk, ChunkSystem, VoxShape,
 };
+use crate::{client::prelude::*, util::iter};
 
 pub struct ClientVoxelPlugin;
 
 impl Plugin for ClientVoxelPlugin {
     fn build(&self, app: &mut App) {
-
         render::init(app);
-        
-        {
-            let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
-            app.insert_resource(ChannelTx(tx));
-            app.insert_resource(ChannelRx(rx));
-
-            let (tx, rx) = crate::channel_impl::unbounded::<Chunk>();
-            app.insert_resource(ChannelTx(tx));
-            app.insert_resource(ChannelRx(rx));
-        }
 
         app.add_systems(First, on_world_init.run_if(condition::load_world));
         app.add_systems(Last, on_world_exit.run_if(condition::unload_world()));
@@ -51,8 +44,8 @@ impl Plugin for ClientVoxelPlugin {
                 draw_gizmos,
                 draw_crosshair_cube.in_set(PhysicsSet::Writeback),
             )
-            .chain()
-            .run_if(condition::in_world),
+                .chain()
+                .run_if(condition::in_world),
         );
 
         // Draw Crosshair
@@ -69,6 +62,12 @@ fn on_world_init(
     // mut meshes: ResMut<Assets<Mesh>>,
 ) {
     info!("Init ClientChunkSystem");
+    let (tx, rx) = crate::channel_impl::unbounded::<ChunkRemeshData>();
+    cmds.insert_resource(ChannelTx(tx));
+    cmds.insert_resource(ChannelRx(rx));
+    let (tx, rx) = crate::channel_impl::unbounded::<ChunkLoadingData>();
+    cmds.insert_resource(ChannelTx(tx));
+    cmds.insert_resource(ChannelRx(rx));
     let mut chunk_sys = ClientChunkSystem::new();
 
     chunk_sys.mtl_terrain = mtls_terrain.add(ExtendedMaterial {
@@ -81,7 +80,7 @@ fn on_world_init(
         extension: TerrainMaterial {
             dram_texture: Some(asset_server.load("baked/atlas_dram.png")),
             ..default()
-        }
+        },
     });
 
     chunk_sys.mtl_foliage = mtls_foliage.add(ExtendedMaterial {
@@ -91,9 +90,7 @@ fn on_world_init(
             perceptual_roughness: 0.0,
             ..default()
         },
-        extension: FoliageMaterial {
-            ..default()
-        }
+        extension: FoliageMaterial { ..default() },
     });
 
     chunk_sys.mtl_liquid = mtls_liquid.add(ExtendedMaterial {
@@ -103,19 +100,16 @@ fn on_world_init(
             ..default()
         },
         extension: LiquidMaterial {
-            normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>(
-                "water_normals.png",
-                |settings| {
-                    settings.is_srgb = false;
-                    settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
-                        address_mode_u: ImageAddressMode::Repeat,
-                        address_mode_v: ImageAddressMode::Repeat,
-                        mag_filter: ImageFilterMode::Linear,
-                        min_filter: ImageFilterMode::Linear,
-                        ..default()
-                    });
-                },
-            ),
+            normals: asset_server.load_with_settings::<Image, ImageLoaderSettings>("water_normals.png", |settings| {
+                settings.is_srgb = false;
+                settings.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+                    address_mode_u: ImageAddressMode::Repeat,
+                    address_mode_v: ImageAddressMode::Repeat,
+                    mag_filter: ImageFilterMode::Linear,
+                    min_filter: ImageFilterMode::Linear,
+                    ..default()
+                });
+            }),
         },
     });
 
@@ -133,17 +127,27 @@ fn on_world_init(
     cmds.insert_resource(chunk_sys);
 }
 
-fn on_world_exit(mut cmds: Commands) {
+fn on_world_exit(mut cmds: Commands, chunk_sys: Option<Res<ClientChunkSystem>>) {
     info!("Clear ClientChunkSystem");
+    if let Some(chunk_sys) = chunk_sys {
+        chunk_sys.cancelled.store(true, Ordering::Relaxed);
+    }
     cmds.remove_resource::<ClientChunkSystem>();
+    cmds.remove_resource::<ChannelTx<ChunkRemeshData>>();
+    cmds.remove_resource::<ChannelRx<ChunkRemeshData>>();
+    cmds.remove_resource::<ChannelTx<ChunkLoadingData>>();
+    cmds.remove_resource::<ChannelRx<ChunkLoadingData>>();
 }
 
-type ChunkLoadingData = Chunk;
+struct ChunkLoadingData {
+    epoch: u64,
+    request: u64,
+    chunk: Chunk,
+}
 
 fn chunks_detect_load_and_unload(
     query_cam: Query<&Transform, With<CharacterControllerCamera>>,
     mut chunk_sys: ResMut<ClientChunkSystem>,
-    mut chunks_loading: Local<HashSet<IVec3>>, // for detect/skip if is loading
     cfg: Res<ClientSettings>,
 
     mut cmds: Commands,
@@ -158,34 +162,45 @@ fn chunks_detect_load_and_unload(
     // Chunks Detect Load/Gen
 
     iter::iter_center_spread(vd.x, vd.y, |rp| {
-        if chunks_loading.len() > 8 {
+        if chunk_sys.chunks_loading.len() >= 8 {
             //chunk_sys.max_concurrent_loading {
             return;
         }
         let chunkpos = rp * Chunk::LEN + vp;
 
         // the chunk already exists, skip.
-        if chunk_sys.has_chunk(chunkpos) || chunks_loading.contains(&chunkpos) {
+        if chunk_sys.has_chunk(chunkpos) || chunk_sys.chunks_loading.contains_key(&chunkpos) {
             return;
         }
 
         let tx = tx_chunk_load.clone();
+        let epoch = chunk_sys.epoch;
+        let request = chunk_sys.next_revision();
+        let cancelled = chunk_sys.cancelled.clone();
         let task = AsyncComputeTaskPool::get().spawn(async move {
-            // info!("Load Chunk: {:?}", chunkpos);
+            if cancelled.load(Ordering::Relaxed) {
+                return;
+            }
             let mut chunk = Chunk::new(chunkpos);
 
             super::worldgen::generate_chunk(&mut chunk);
 
-            tx.send(chunk).unwrap();
+            if !cancelled.load(Ordering::Relaxed) {
+                let _ = tx.send(ChunkLoadingData { epoch, request, chunk });
+            }
         });
         task.detach();
-        chunks_loading.insert(chunkpos);
+        chunk_sys.chunks_loading.insert(chunkpos, request);
     });
 
-    while let Ok(chunk) = rx_chunk_load.try_recv() {
-        chunks_loading.remove(&chunk.chunkpos);
-
-        chunk_sys.spawn_chunk(chunk, &mut cmds, &mut meshes);
+    while let Ok(result) = rx_chunk_load.try_recv() {
+        let cp = result.chunk.chunkpos;
+        if !chunk_sys.accept_load(cp, result.epoch, result.request) {
+            continue;
+        }
+        if super::is_chunk_in_load_distance(vp, cp, vd) {
+            chunk_sys.spawn_chunk(result.chunk, &mut cmds, &mut meshes);
+        }
     }
 
     // Chunks Unload
@@ -198,12 +213,29 @@ fn chunks_detect_load_and_unload(
     }
 }
 
-type ChunkRemeshData = (IVec3, Entity, Mesh, Handle<Mesh>, Option<Collider>, Mesh, Handle<Mesh>, Mesh, Handle<Mesh>);
+type ChunkRemeshData = (
+    IVec3,
+    MeshTicket,
+    Entity,
+    Mesh,
+    Handle<Mesh>,
+    Option<Collider>,
+    Mesh,
+    Handle<Mesh>,
+    Mesh,
+    Handle<Mesh>,
+);
 
-use once_cell::sync::Lazy;
-use std::{cell::RefCell, sync::Arc};
-use thread_local::ThreadLocal;
 use crate::util::vtx::VertexBuffer;
+use once_cell::sync::Lazy;
+use std::{
+    cell::RefCell,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
+    },
+};
+use thread_local::ThreadLocal;
 
 static THREAD_LOCAL_VERTEX_BUFFERS: Lazy<ThreadLocal<RefCell<(VertexBuffer, VertexBuffer, VertexBuffer)>>> = Lazy::new(ThreadLocal::default);
 
@@ -217,7 +249,6 @@ fn chunks_remesh_enqueue(
 
     tx_chunks_meshing: Res<ChannelTx<ChunkRemeshData>>,
     rx_chunks_meshing: Res<ChannelRx<ChunkRemeshData>>,
-
     // mut foliage_mtls: ResMut<Assets<FoliageMaterial>>,
     // time: Res<Time>,
 ) {
@@ -233,18 +264,20 @@ fn chunks_remesh_enqueue(
         if chunk_sys.chunks_meshing.len() >= chunk_sys.max_concurrent_meshing {
             break;
         }
-        if chunk_sys.chunks_meshing.contains(&chunkpos) {
+        if chunk_sys.chunks_meshing.contains_key(&chunkpos) {
             continue;
         }
 
-        let mut has = false;
-        if let Some(chunkptr) = chunk_sys.get_chunk(chunkpos) {
-            has = true;
-
-            let chunkptr = chunkptr.clone();
+        if let Some(chunk) = chunk_sys.snapshot_chunk(chunkpos) {
+            let ticket = chunk_sys.mesh_ticket(chunkpos);
+            chunk_sys.chunks_meshing.insert(chunkpos, ticket);
+            let cancelled = chunk_sys.cancelled.clone();
             let tx = tx_chunks_meshing.clone();
 
             let task = AsyncComputeTaskPool::get().spawn(async move {
+                if cancelled.load(Ordering::Relaxed) {
+                    return;
+                }
                 let mut _vbuf = THREAD_LOCAL_VERTEX_BUFFERS
                     .get_or(|| RefCell::new((VertexBuffer::default(), VertexBuffer::default(), VertexBuffer::default())))
                     .borrow_mut();
@@ -256,7 +289,7 @@ fn chunks_remesh_enqueue(
                 let mesh_handle_foliage;
                 let mesh_handle_liquid;
                 {
-                    let chunk = chunkptr.as_ref();
+                    let chunk = &chunk;
 
                     // Generate Mesh
                     meshgen::generate_chunk_mesh(&mut _vbuf.0, chunk);
@@ -319,20 +352,45 @@ fn chunks_remesh_enqueue(
                 _vbuf.2.to_mesh(&mut mesh_liquid);
                 _vbuf.2.clear();
 
-                tx.send((chunkpos, entity, mesh_terrain, mesh_handle_terrain, collider, mesh_foliage, mesh_handle_foliage, mesh_liquid, mesh_handle_liquid))
-                    .unwrap();
+                if !cancelled.load(Ordering::Relaxed) {
+                    let _ = tx.send((
+                        chunkpos,
+                        ticket,
+                        entity,
+                        mesh_terrain,
+                        mesh_handle_terrain,
+                        collider,
+                        mesh_foliage,
+                        mesh_handle_foliage,
+                        mesh_liquid,
+                        mesh_handle_liquid,
+                    ));
+                }
             });
             task.detach();
 
             // info!("[ReMesh Enqueued] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
         }
-        if has {
-            chunk_sys.chunks_meshing.insert(chunkpos);
-        }
+
         chunk_sys.chunks_remesh.remove(&chunkpos);
     }
 
-    while let Ok((chunkpos, entity, mut mesh_terrain, mesh_handle_terrain, collider, mut mesh_foliage, mesh_handle_foliage, mut mesh_liquid, mesh_handle_liquid)) = rx_chunks_meshing.try_recv() {
+    while let Ok((
+        chunkpos,
+        ticket,
+        entity,
+        mut mesh_terrain,
+        mesh_handle_terrain,
+        collider,
+        mut mesh_foliage,
+        mesh_handle_foliage,
+        mut mesh_liquid,
+        mesh_handle_liquid,
+    )) = rx_chunks_meshing.try_recv()
+    {
+        if !chunk_sys.accept_mesh(chunkpos, ticket) {
+            continue;
+        }
         let terrain_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_terrain);
         let foliage_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_foliage);
         let liquid_visibility = super::chunk_mesh::prepare_chunk_mesh(&mut mesh_liquid);
@@ -358,7 +416,6 @@ fn chunks_remesh_enqueue(
             }
         }
 
-        chunk_sys.chunks_meshing.remove(&chunkpos);
         // info!("[ReMesh Completed] Pos: {}; ReMesh: {}, Meshing: {}: tx: {}, rx: {}", chunkpos, chunk_sys.chunks_remesh.len(), cli.chunks_meshing.len(), tx_chunks_meshing.len(), rx_chunks_meshing.len());
     }
 }
@@ -453,8 +510,7 @@ fn raycast(
             // +0.01*norm: for placing cube like MC.
             let p = hit_result.voxel_pos + lp + if do_place { 1 } else { 0 } * hit_result.normal.normalize_or_zero().as_ivec3();
 
-            if let Some(v) = chunk_sys.get_voxel(p) {
-                let v = v.as_mut();
+            if let Some(v) = chunk_sys.get_voxel_mut(p) {
                 let f = (n as f32 - lp.as_vec3().length()).max(0.) * brush.strength;
 
                 v.set_isovalue(v.isovalue() + if do_break { -f } else { f });
@@ -474,8 +530,6 @@ fn raycast(
                         v.tex_id = 0;
                     }
                 }
-
-                chunk_sys.mark_chunk_remesh(Chunk::as_chunkpos(p)); // CLIS
             }
         });
         // let mut map = HashMap::new();
@@ -540,7 +594,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
         }
 
         // chunks meshing
-        for cp in chunk_sys.chunks_meshing.iter() {
+        for cp in chunk_sys.chunks_meshing.keys() {
             gizmos.cube(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 css::RED,
@@ -555,10 +609,10 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
 
 #[derive(Resource)]
 pub struct ClientChunkSystem {
-    pub chunks: HashMap<IVec3, ChunkPtr>,
+    chunks: HashMap<IVec3, Chunk>,
 
     // mark to ReMesh
-    pub chunks_remesh: HashSet<IVec3>,
+    chunks_remesh: HashSet<IVec3>,
 
     pub mtl_terrain: Handle<ExtendedMaterial<StandardMaterial, TerrainMaterial>>,
     pub mtl_foliage: Handle<ExtendedMaterial<StandardMaterial, FoliageMaterial>>,
@@ -567,12 +621,33 @@ pub struct ClientChunkSystem {
     pub entity: Entity,
 
     pub max_concurrent_meshing: usize,
-    pub chunks_meshing: HashSet<IVec3>,
+    chunks_meshing: HashMap<IVec3, MeshTicket>,
+    chunks_loading: HashMap<IVec3, u64>,
+    revisions: HashMap<IVec3, u64>,
+    revision: u64,
+    epoch: u64,
+    cancelled: Arc<AtomicBool>,
+    force_blocky: bool,
     // pub chunks_load_distance: IVec2, // not real, but send to server,
 }
 
 impl ChunkSystem for ClientChunkSystem {
-    fn get_chunks(&self) -> &HashMap<IVec3, ChunkPtr> {
+    fn get_chunk_mut(&mut self, cp: IVec3) -> Option<&mut Chunk> {
+        self.invalidate_neighborhood(cp);
+        self.chunks.get_mut(&cp)
+    }
+
+    fn get_voxel_mut(&mut self, p: IVec3) -> Option<&mut super::Vox> {
+        // Surface nets/cubes sample a one-voxel halo, including edges and corners.
+        for cp in Chunk::mesh_dependents(p) {
+            self.mark_chunk_remesh(cp);
+        }
+        self.chunks
+            .get_mut(&Chunk::as_chunkpos(p))
+            .map(|chunk| chunk.at_voxel_mut(Chunk::as_localpos(p)))
+    }
+
+    fn get_chunks(&self) -> &HashMap<IVec3, Chunk> {
         &self.chunks
     }
 }
@@ -596,12 +671,105 @@ impl ClientChunkSystem {
             entity: Entity::PLACEHOLDER,
 
             max_concurrent_meshing: 8,
-            chunks_meshing: HashSet::default(),
+            chunks_meshing: HashMap::default(),
+            chunks_loading: HashMap::default(),
+            revisions: HashMap::default(),
+            revision: 0,
+            epoch: NEXT_WORLD_EPOCH.fetch_add(1, Ordering::Relaxed),
+            cancelled: Arc::new(AtomicBool::new(false)),
+            force_blocky: false,
         }
     }
 
-    pub fn mark_chunk_remesh(&self, chunkpos: IVec3) {
-        as_mut(self).chunks_remesh.insert(chunkpos);
+    fn next_revision(&mut self) -> u64 {
+        self.revision = self.revision.checked_add(1).expect("chunk revision overflow");
+        self.revision
+    }
+
+    pub fn mark_chunk_remesh(&mut self, chunkpos: IVec3) {
+        if !self.chunks.contains_key(&chunkpos) {
+            return;
+        }
+        let revision = self.next_revision();
+        self.revisions.insert(chunkpos, revision);
+        self.chunks_remesh.insert(chunkpos);
+    }
+
+    fn invalidate_neighborhood(&mut self, cp: IVec3) {
+        self.mark_chunk_remesh(cp);
+        for dir in Chunk::NEIGHBOR_DIR {
+            self.mark_chunk_remesh(cp + dir * Chunk::LEN);
+        }
+    }
+
+    fn mesh_ticket(&self, cp: IVec3) -> MeshTicket {
+        MeshTicket {
+            epoch: self.epoch,
+            revision: self.revisions[&cp],
+        }
+    }
+
+    fn accept_load(&mut self, cp: IVec3, epoch: u64, request: u64) -> bool {
+        if epoch != self.epoch || self.chunks_loading.get(&cp) != Some(&request) {
+            return false;
+        }
+        self.chunks_loading.remove(&cp);
+        !self.has_chunk(cp)
+    }
+
+    fn accept_mesh(&mut self, cp: IVec3, ticket: MeshTicket) -> bool {
+        // An old result must never clear a newer task's tracking entry.
+        if ticket.epoch != self.epoch || self.chunks_meshing.get(&cp) != Some(&ticket) {
+            return false;
+        }
+        self.chunks_meshing.remove(&cp);
+        self.chunks.contains_key(&cp) && self.revisions.get(&cp) == Some(&ticket.revision)
+    }
+
+    pub fn force_blocky(&self) -> bool {
+        self.force_blocky
+    }
+
+    pub fn num_chunks_meshing(&self) -> usize {
+        self.chunks_meshing.len()
+    }
+
+    pub fn num_chunks_remesh(&self) -> usize {
+        self.chunks_remesh.len()
+    }
+
+    pub fn set_force_blocky(&mut self, enabled: bool) {
+        if self.force_blocky == enabled {
+            return;
+        }
+        self.force_blocky = enabled;
+        let positions: Vec<_> = self.chunks.keys().copied().collect();
+        for cp in positions {
+            self.chunks.get_mut(&cp).unwrap().force_blocky = enabled;
+            self.mark_chunk_remesh(cp);
+        }
+    }
+
+    /// Population/tree generation edits a detached neighborhood synchronously.
+    /// Only changed voxel arrays are installed; render handles and entities stay owned here.
+    pub fn edit_neighborhood(&mut self, cp: IVec3, edit: impl FnOnce(&mut Chunk)) {
+        let Some(snapshot) = self.snapshot_chunk(cp) else {
+            return;
+        };
+        let mut snapshot = snapshot.into_chunk();
+        edit(&mut snapshot);
+        let neighbors = std::mem::take(&mut snapshot.neighbor_chunks);
+        for updated in std::iter::once(snapshot).chain(neighbors.into_iter().flatten().map(|c| *c)) {
+            let cp = updated.chunkpos;
+            let Some(current) = self.chunks.get_mut(&cp) else {
+                continue;
+            };
+            current.is_populated = updated.is_populated;
+            if !Arc::ptr_eq(&current.voxel, &updated.voxel) {
+                current.voxel = updated.voxel;
+                self.invalidate_neighborhood(cp);
+            }
+        }
     }
 
     pub fn spawn_chunk(&mut self, mut chunk: Chunk, cmds: &mut Commands, meshes: &mut Assets<Mesh>) {
@@ -611,7 +779,7 @@ impl ClientChunkSystem {
 
         chunk.mesh_handle_terrain = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
         chunk.mesh_handle_foliage = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
-        chunk.mesh_handle_liquid  = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
+        chunk.mesh_handle_liquid = meshes.add(Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD));
 
         chunk.entity = cmds
             .spawn((
@@ -626,14 +794,16 @@ impl ClientChunkSystem {
                 avian3d::prelude::RigidBody::Static,
             ))
             .with_children(|parent| {
-                parent.spawn(((
+                parent.spawn((
+                    (
                         Mesh3d(chunk.mesh_handle_foliage.clone()),
                         MeshMaterial3d(self.mtl_foliage.clone()),
                         Visibility::Visible, // Hidden is required since Mesh is empty. or WGPU will crash
                     ),
                     aabb,
                 ));
-                parent.spawn(((
+                parent.spawn((
+                    (
                         Mesh3d(chunk.mesh_handle_liquid.clone()),
                         MeshMaterial3d(self.mtl_liquid.clone()),
                         Visibility::Visible,
@@ -644,80 +814,51 @@ impl ClientChunkSystem {
             .set_parent_in_place(self.entity)
             .id();
 
-        let chunkptr = Arc::new(chunk);
-
-        let chunkpos;
-        {
-            let chunk = chunkptr.as_mut();
-            chunkpos = chunk.chunkpos;
-            chunk.chunkptr_weak = Arc::downgrade(&chunkptr);
-
-            // let mut neighbors_completed = Vec::new();
-
-            for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
-                let neib_dir = Chunk::NEIGHBOR_DIR[neib_idx];
-                let neib_chunkpos = chunkpos + neib_dir * Chunk::LEN;
-
-                // set neighbor_chunks cache
-                chunk.neighbor_chunks[neib_idx] = {
-                    if let Some(neib_chunkptr) = self.get_chunk(neib_chunkpos) {
-                        let neib_chunk = neib_chunkptr.as_mut();
-
-                        // update neighbor's `neighbor_chunk`
-                        neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = Some(Arc::downgrade(&chunkptr));
-
-                        if neib_chunk.is_neighbors_all_loaded() && !neib_chunk.is_populated {
-                            // neighbors_completed.push(neib_chunk.chunkpos);
-                            neib_chunk.is_populated = true;
-                            super::worldgen::populate_chunk(neib_chunk); // todo: ChunkGen Thread
-
-                            self.mark_chunk_remesh(neib_chunk.chunkpos);
-
-                            // fixed: chunk border mesh outdated issue due to population update.
-                            for (idx, nneib) in neib_chunk.neighbor_chunks.iter().enumerate() {
-                                if nneib.is_some() {
-                                    self.mark_chunk_remesh(neib_chunk.chunkpos + Chunk::NEIGHBOR_DIR[idx] * Chunk::LEN);
-                                }
-                            }
-                        }
-                        
-                        Some(Arc::downgrade(neib_chunkptr))
-                    } else {
-                        None
-                    }
-                }
-            }
-
-            // if chunk.is_neighbors_complete() {
-            self.mark_chunk_remesh(chunkpos);
-            // }
-            // for cp in neighbors_completed {
-            //     self.mark_chunk_remesh(cp);
-            // }
+        self.chunks_loading.remove(&chunkpos);
+        if let Some(previous) = self.chunks.remove(&chunkpos) {
+            cmds.entity(previous.entity).try_despawn();
         }
+        chunk.force_blocky = self.force_blocky;
+        self.chunks.insert(chunkpos, chunk);
+        self.invalidate_neighborhood(chunkpos);
 
-        self.chunks.insert(chunkpos, chunkptr);
-
-        // // There is no need to cast shadows for chunks below the surface.
-        // if chunkpos.y <= 64 {
-        //     entity_commands.insert(NotShadowCaster);
-        // }
+        // Newly loaded neighbors can complete the central chunk too.
+        for cp in std::iter::once(chunkpos).chain(Chunk::NEIGHBOR_DIR.map(|d| chunkpos + d * Chunk::LEN)) {
+            if self.get_chunk(cp).is_some_and(|c| !c.is_populated) && Chunk::NEIGHBOR_DIR.iter().all(|d| self.has_chunk(cp + *d * Chunk::LEN)) {
+                self.edit_neighborhood(cp, |chunk| {
+                    chunk.is_populated = true;
+                    super::worldgen::populate_chunk(chunk);
+                });
+            }
+        }
     }
 
-    pub fn despawn_chunk(&mut self, chunkpos: IVec3, cmds: &mut Commands) -> Option<ChunkPtr> {
+    pub fn despawn_chunk(&mut self, chunkpos: IVec3, cmds: &mut Commands) -> Option<Chunk> {
         let chunk = self.chunks.remove(&chunkpos)?;
-
-        // update neighbors' `neighbors_chunk`
-        for neib_idx in 0..Chunk::NEIGHBOR_DIR.len() {
-            if let Some(neib_chunkptr) = chunk.get_chunk_neib(neib_idx) {
-                let neib_chunk = neib_chunkptr.as_mut(); // problematic: may cause data tiring
-
-                neib_chunk.neighbor_chunks[Chunk::neighbor_idx_opposite(neib_idx)] = None;
-            }
-        }
-
-        cmds.entity(chunk.entity).despawn();
-
+        self.chunks_remesh.remove(&chunkpos);
+        self.chunks_meshing.remove(&chunkpos);
+        self.chunks_loading.remove(&chunkpos);
+        self.revisions.remove(&chunkpos);
+        self.invalidate_neighborhood(chunkpos);
+        cmds.entity(chunk.entity).try_despawn();
         Some(chunk)
     }
 }
+
+static NEXT_WORLD_EPOCH: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MeshTicket {
+    epoch: u64,
+    revision: u64,
+}
+
+impl Drop for ClientChunkSystem {
+    fn drop(&mut self) {
+        self.cancelled.store(true, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+#[path = "chunk_tests.rs"]
+mod tests;

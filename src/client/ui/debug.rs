@@ -7,13 +7,12 @@ use bevy_egui::{
     egui::{self, Align2, Color32, FontId, Frame, Id, LayerId, Layout, Widget},
     EguiContexts,
 };
+use bevy_renet::netcode::NetcodeClientTransport;
 use bevy_renet::RenetClient;
-use bevy_renet::{netcode::NetcodeClientTransport};
 
 use crate::{
     client::prelude::*,
     ui::{color32_of, CurrentUI, UiExtra},
-    util::{as_mut, AsMutRef},
     voxel::{self, lighting::VoxLightQueue, worldgen, Chunk, ChunkSystem, ClientChunkSystem, HitResult, Vox, VoxLight, VoxShape},
 };
 
@@ -153,7 +152,7 @@ pub fn ui_menu_panel(
                             ui.toggle_value(&mut cli.dbg_gizmo_all_loaded_chunks, "Gizmo Loaded Chunks");
                             ui.toggle_value(&mut cli.dbg_gizmo_curr_chunk, "Gizmo Current Chunk");
                             ui.toggle_value(&mut cli.dbg_gizmo_remesh_chunks, "Gizmo ReMesh Chunks");
-                            
+
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
@@ -164,16 +163,12 @@ pub fn ui_menu_panel(
                                     // }
                                     let mut queue = VoxLightQueue::new();
 
-                                    queue.push((
-                                        chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().clone(), 
-                                        Chunk::local_idx(Chunk::as_localpos(campos)) as u16,
-                                        VoxLight::new(0, 15, 3, 4),
-                                    ));
+                                    queue.push((campos, VoxLight::new(0, 15, 3, 4)));
 
                                     use crate::voxel::lighting;
-                                    
+
                                     for chunkpos in chunk_sys.get_chunks().keys() {
-                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), *chunkpos, IVec2::new(2,2)) {
+                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), *chunkpos, IVec2::new(2, 2)) {
                                             let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
 
                                             lighting::collect_chunk_lights(chunk, &mut queue);
@@ -182,38 +177,40 @@ pub fn ui_menu_panel(
                                         }
                                     }
 
-
-                                    lighting::compute_voxel_light(&mut queue, &mut Vec::new());
+                                    lighting::compute_voxel_light(&mut *chunk_sys, &mut queue);
                                 }
-                                ui.toggle_value( unsafe{&mut voxel::meshgen::DBG_FORCE_BLOCKY}, "Is Force Blocky");
+                                let mut force_blocky = chunk_sys.force_blocky();
+                                if ui.toggle_value(&mut force_blocky, "Is Force Blocky").changed() {
+                                    chunk_sys.set_force_blocky(force_blocky);
+                                }
 
                                 if ui.button("ReMesh All Chunks").clicked() {
                                     // let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
-                                    for chunkpos in chunk_sys.get_chunks().keys() {
-                                        as_mut(&*chunk_sys).mark_chunk_remesh(*chunkpos);
+                                    for chunkpos in Vec::from_iter(chunk_sys.get_chunks().keys().copied()) {
+                                        chunk_sys.mark_chunk_remesh(chunkpos);
                                     }
                                 }
                                 if ui.button("ReMesh Nr Chunks").clicked() {
                                     // let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
-                                    for chunkpos in chunk_sys.get_chunks().keys() {
-                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), *chunkpos, IVec2::new(2,2)) {
-                                            as_mut(&*chunk_sys).mark_chunk_remesh(*chunkpos);
+                                    for chunkpos in Vec::from_iter(chunk_sys.get_chunks().keys().copied()) {
+                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), chunkpos, IVec2::new(2, 2)) {
+                                            chunk_sys.mark_chunk_remesh(chunkpos);
                                         }
                                     }
                                 }
                                 if ui.button("Gen Tree").clicked() {
-                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_mut();
-
-                                    worldgen::gen_tree(chunk, Chunk::as_localpos(campos), 0.8);
+                                    chunk_sys.edit_neighborhood(Chunk::as_chunkpos(campos), |chunk| {
+                                        worldgen::gen_tree(chunk, Chunk::as_localpos(campos), 0.8);
+                                    });
                                 }
                                 if ui.button("Gen Floor").clicked() {
-
                                     // crate::util::iter::iter_center_spread(10, 1, |p| {
                                     // });
-                                    let chunk = chunk_sys.get_chunk(Chunk::as_chunkpos(campos)).unwrap().as_mut();
-                                    for x in 0..16 {
-                                        for z in 0..16 {
-                                            *chunk.at_voxel_mut(IVec3::new(x, 0, z)) = Vox::new(1, VoxShape::Cube, 0.);
+                                    if let Some(chunk) = chunk_sys.get_chunk_mut(Chunk::as_chunkpos(campos)) {
+                                        for x in 0..16 {
+                                            for z in 0..16 {
+                                                *chunk.at_voxel_mut(IVec3::new(x, 0, z)) = Vox::new(1, VoxShape::Cube, 0.);
+                                            }
                                         }
                                     }
                                 }
@@ -329,8 +326,8 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         cam_visible_entities_num = cam_visible_entities.entities.len();
 
         let num_chunks_loading = -1; //chunk_sys.chunks_loading.len();
-        let num_chunks_remesh = chunk_sys.chunks_remesh.len();
-        let num_chunks_meshing = chunk_sys.chunks_meshing.len();
+        let num_chunks_remesh = chunk_sys.num_chunks_remesh();
+        let num_chunks_meshing = chunk_sys.num_chunks_meshing();
 
         let mut hit_str = "none".into();
         if hit_result.is_hit {
@@ -344,10 +341,16 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
         let campos_v = cam_pos.floor().as_ivec3();
         if let Some(chunk) = chunk_sys.get_chunk(Chunk::as_chunkpos(campos_v)) {
             let vox = chunk.at_voxel(Chunk::as_localpos(campos_v));
-            
+
             cam_cell_str = format!(
-"Vox: tex: {}, shape: {:?}, isoval: {}, light: [{}]
-Chunk: is_populated: {}", vox.tex_id, vox.shape_id, vox.isovalue(), vox.light, chunk.is_populated);
+                "Vox: tex: {}, shape: {:?}, isoval: {}, light: [{}]
+Chunk: is_populated: {}",
+                vox.tex_id,
+                vox.shape_id,
+                vox.isovalue(),
+                vox.light,
+                chunk.is_populated
+            );
         }
 
         str_world = format!(

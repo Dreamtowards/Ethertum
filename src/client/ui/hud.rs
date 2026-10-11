@@ -1,6 +1,10 @@
 use std::collections::VecDeque;
 
-use crate::{client::client_world::ClientPlayerInfo, prelude::*, voxel::{ChunkSystem, ClientChunkSystem, VoxShape, VoxelBrush}};
+use crate::{
+    client::client_world::ClientPlayerInfo,
+    prelude::*,
+    voxel::{ChunkSystem, ClientChunkSystem, VoxShape, VoxelBrush},
+};
 
 use bevy_egui::{
     egui::{text::CCursorRange, Align, Frame, Id, Layout, TextEdit, Vec2},
@@ -188,11 +192,15 @@ pub fn hud_chat(
         });
 }
 
-pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: ResMut<ClientPlayerInfo>,
+pub fn hud_hotbar(
+    items: Res<crate::item::Items>,
+    mut held: ResMut<super::items::HeldItem>,
+    mut ctx: EguiContexts,
+    cfg: Res<ClientSettings>,
+    mut player: ResMut<ClientPlayerInfo>,
     mut voxbrush: ResMut<VoxelBrush>,
     // chunk_sys: Res<ClientChunkSystem>,
 ) {
-
     // new_egui_window("VoxBrush")
     //     .anchor(Align2::LEFT_BOTTOM, [cfg.hud_padding, -cfg.hud_padding])
     //     .frame(Frame::default().fill(Color32::from_black_alpha(30)))
@@ -241,7 +249,7 @@ pub fn hud_hotbar(mut ctx: EguiContexts, cfg: Res<ClientSettings>, mut player: R
                 for i in 0..ClientPlayerInfo::HOTBAR_SLOTS {
                     let item = player.inventory.items.get_mut(i as usize).unwrap();
 
-                    ui_item_stack(ui, item);
+                    ui_item_stack(ui, item, &items, &mut held.0);
                 }
             });
         });

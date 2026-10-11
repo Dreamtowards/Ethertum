@@ -10,36 +10,6 @@ pub mod vtx {
 
 pub mod registry;
 
-// Unsafe as_mut()
-
-#[allow(invalid_reference_casting)]
-pub fn as_mut<T>(v: &T) -> &mut T {
-    unsafe { &mut *((v as *const T) as *mut T) }
-}
-
-pub trait AsMutRef<T> {
-    fn as_mut(&self) -> &mut T;
-}
-
-impl AsMutRef<crate::voxel::Chunk> for Arc<crate::voxel::Chunk> {
-    fn as_mut(&self) -> &mut crate::voxel::Chunk {
-        as_mut(self.as_ref())
-    }
-}
-
-impl AsMutRef<crate::voxel::Vox> for crate::voxel::Vox {
-    fn as_mut(&self) -> &mut crate::voxel::Vox {
-        as_mut(self)
-    }
-}
-
-// impl<T, U> AsRefMut<U> for T where T: AsRef<U> {
-//     fn as_ref_mut(&self) -> &mut U {
-//         as_mut(self.as_ref())
-//     }
-// }
-
-
 // Time
 use std::time::{Duration, SystemTime};
 
@@ -86,7 +56,6 @@ pub fn hash3(v: IVec3) -> Vec3 {
     Vec3::new(hash(v.x), hash(v.y), hash(v.z))
 }
 
-
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -97,8 +66,6 @@ pub fn hashcode<T: Hash>(t: &T) -> u64 {
 }
 
 // Iter
-
-use std::sync::Arc;
 
 pub mod iter {
     use bevy::math::{ivec3, IVec3};

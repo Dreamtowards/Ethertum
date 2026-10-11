@@ -1,6 +1,7 @@
 //! `cargo run --example world_smoke --locked`
 //! Exercises the real integrated server, renderer and world exit/reentry path.
 //! Two clients: start with `--listen PORT`, then another with `--peer 127.0.0.1:PORT`.
+//! Add `--edit` to verify local edits spanning a chunk corner and collider rebuilds.
 use avian3d::prelude::{LinearVelocity, Position, SpatialQuery, SpatialQueryFilter};
 use bevy::{
     app::AppExit,
@@ -16,6 +17,7 @@ use ethertia::{
     client::prelude::*,
     net::{CPacket, RenetClientHelper},
     server::prelude::*,
+    voxel::{ChunkSystem, ClientChunkSystem, Vox, VoxShape},
 };
 
 #[derive(Resource, Default)]
@@ -28,6 +30,7 @@ struct Smoke {
     expect_peer: bool,
     peer_address: Option<String>,
     seen_peer: Option<Entity>,
+    edit: bool,
 }
 
 fn main() -> AppExit {
@@ -41,6 +44,7 @@ fn main() -> AppExit {
     let mut arguments = std::env::args().skip(1);
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
+            "--edit" => smoke.edit = true,
             "--listen" => {
                 let port: u16 = arguments.next().expect("listen port").parse().expect("valid listen port");
                 assert_ne!(port, 0);
@@ -112,6 +116,7 @@ fn step(
     server: Res<ServerInfo>,
     server_cfg: Res<ServerSettings>,
     world: Option<Res<WorldInfo>>,
+    mut chunks: Option<ResMut<ClientChunkSystem>>,
     cameras: Query<Entity, With<CharacterControllerCamera>>,
     mut players: ParamSet<(
         Query<(Entity, &mut Transform, &mut Position, &mut LinearVelocity, &mut CharacterController)>,
@@ -166,8 +171,62 @@ fn step(
             position.0.x = 24.0;
             transform.translation = position.0;
             velocity.0 = Vec3::ZERO;
-            smoke.phase = 3;
+            smoke.phase = if smoke.edit { 30 } else { 3 };
             smoke.next_at = now + 8.0;
+        }
+        30 => {
+            let chunks = chunks.as_mut().expect("loaded chunk system");
+            for x in 15..=16 {
+                for y in 47..=48 {
+                    for z in 15..=16 {
+                        let voxel = chunks.get_voxel_mut(IVec3::new(x, y, z)).expect("corner chunks streamed");
+                        assert!(voxel.is_nil(), "edit fixture must start in air");
+                        *voxel = Vox::new(1, VoxShape::Cube, 0.0);
+                    }
+                }
+            }
+            smoke.phase = 31;
+            smoke.next_at = now + 4.0;
+        }
+        31 | 32 => {
+            let spatial_query = players.p1();
+            for x in 15..=16 {
+                for z in 15..=16 {
+                    let hit = spatial_query.cast_ray(
+                        Vec3::new(x as f32 + 0.5, 52.0, z as f32 + 0.5),
+                        Dir3::NEG_Y,
+                        100.0,
+                        false,
+                        &SpatialQueryFilter::default(),
+                    );
+                    if smoke.phase == 31 {
+                        assert!(
+                            hit.is_some_and(|hit| (hit.distance - 3.0).abs() < 0.05),
+                            "placed corner cubes need current colliders"
+                        );
+                    } else {
+                        assert!(
+                            hit.is_none_or(|hit| hit.distance > 5.0),
+                            "deleted corner cubes must not retain old colliders"
+                        );
+                    }
+                }
+            }
+            if smoke.phase == 31 {
+                let chunks = chunks.as_mut().unwrap();
+                for x in 15..=16 {
+                    for y in 47..=48 {
+                        for z in 15..=16 {
+                            *chunks.get_voxel_mut(IVec3::new(x, y, z)).unwrap() = Vox::default();
+                        }
+                    }
+                }
+                smoke.phase = 32;
+                smoke.next_at = now + 4.0;
+            } else {
+                info!("Corner edit smoke passed: eight chunks rebuilt after placement and removal");
+                smoke.phase = 3;
+            }
         }
         3 => {
             let (entity, origin) = {

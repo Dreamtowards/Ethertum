@@ -1,29 +1,45 @@
-
-use std::sync::Weak;
+use std::sync::Arc;
 
 use crate::prelude::*;
 
+/// An owned, read-only neighborhood. Its voxel arrays never change with the world.
+#[derive(Clone)]
+pub struct ChunkSnapshot(Chunk);
 
-// Chunk is "Heavy" type (big size, stored a lot voxels). thus copy/clone are not allowed.
+impl ChunkSnapshot {
+    pub(super) fn new(chunk: Chunk) -> Self {
+        Self(chunk)
+    }
+    pub(super) fn into_chunk(self) -> Chunk {
+        self.0
+    }
+}
+
+impl std::ops::Deref for ChunkSnapshot {
+    type Target = Chunk;
+    fn deref(&self) -> &Chunk {
+        &self.0
+    }
+}
+
+// World systems own chunks. Clones share immutable voxel storage until a write.
+#[derive(Clone)]
 pub struct Chunk {
     // shoud Box?
-    voxel: [Vox; Self::LEN3],
+    pub(super) voxel: Arc<[Vox; Self::LEN3]>,
 
     pub chunkpos: IVec3,
 
     pub is_populated: bool,
+    pub(super) force_blocky: bool,
 
     pub entity: Entity,
     pub mesh_handle_terrain: Handle<Mesh>, // solid terrain
     pub mesh_handle_foliage: Handle<Mesh>,
     pub mesh_handle_liquid: Handle<Mesh>,
 
-    // cached neighbor chunks that loaded to the ChunkSystem.
-    // for Quick Access without global find neighbor chunk by chunkpos
-    pub neighbor_chunks: [Option<Weak<Chunk>>; Self::NEIGHBOR_DIR.len()],
-
-    // Self Arc. for export self Arc in get_chunk_neib().  assigned by ChunkSystem::spawn_chunk()
-    pub chunkptr_weak: Weak<Chunk>,  
+    // Detached neighbors, populated only when preparing meshing/population snapshots.
+    pub(super) neighbor_chunks: [Option<Box<Chunk>>; Self::NEIGHBOR_DIR.len()],
 }
 
 impl Chunk {
@@ -33,11 +49,11 @@ impl Chunk {
 
     pub fn new(chunkpos: IVec3) -> Self {
         Self {
-            voxel: [Vox::default(); Self::LEN3],
+            voxel: Arc::new([Vox::default(); Self::LEN3]),
             chunkpos,
             is_populated: false,
+            force_blocky: false,
             neighbor_chunks: Default::default(),
-            chunkptr_weak: Weak::default(),
             entity: Entity::PLACEHOLDER,
             mesh_handle_terrain: Handle::default(),
             mesh_handle_foliage: Handle::default(),
@@ -55,8 +71,8 @@ impl Chunk {
         &self.voxel[Chunk::local_idx(localpos)]
     }
 
-    pub fn at_voxel_mut(&self, localpos: IVec3) -> &mut Vox {
-        self.at_voxel(localpos).as_mut()
+    pub fn at_voxel_mut(&mut self, localpos: IVec3) -> &mut Vox {
+        &mut Arc::make_mut(&mut self.voxel)[Chunk::local_idx(localpos)]
     }
 
     pub fn get_voxel_rel(&self, relpos: IVec3) -> Option<Vox> {
@@ -68,16 +84,15 @@ impl Chunk {
         }
     }
 
-    pub fn set_voxel_rel(&self, relpos: IVec3, mut visitor: impl FnMut(&mut Vox)) -> Option<Vox> {
-        let vox;
-        let neib_chunkptr;
-        if Chunk::is_localpos(relpos) {
-            vox = self.at_voxel(relpos);
+    pub fn set_voxel_rel(&mut self, relpos: IVec3, mut visitor: impl FnMut(&mut Vox)) -> Option<Vox> {
+        let vox = if Chunk::is_localpos(relpos) {
+            self.at_voxel_mut(relpos)
         } else {
-            neib_chunkptr = self.get_chunk_rel(relpos)?;
-            vox = neib_chunkptr.at_voxel(Chunk::as_localpos(relpos));
-        }
-        visitor(vox.as_mut());
+            self.neighbor_chunks[Self::neighbor_idx(relpos)?]
+                .as_mut()?
+                .at_voxel_mut(Chunk::as_localpos(relpos))
+        };
+        visitor(vox);
         Some(*vox)
     }
     pub fn get_voxel_rel_or_default(&self, relpos: IVec3) -> Vox {
@@ -93,40 +108,55 @@ impl Chunk {
     // light sources
     pub fn for_voxel_lights(&self, mut visitor: impl FnMut(&Vox, usize)) {
         self.for_voxels(|v, i| {
-            if v.tex_id == VoxTex::Log {  // v.id.light_emission != 0
+            if v.tex_id == VoxTex::Log {
+                // v.id.light_emission != 0
                 visitor(v, i);
             }
         });
     }
 
-    pub fn get_chunk_rel(&self, relpos: IVec3) -> Option<ChunkPtr> {
+    pub fn get_chunk_rel(&self, relpos: IVec3) -> Option<&Chunk> {
         if Chunk::is_localpos(relpos) {
-            return self.chunkptr_weak.upgrade();
+            return Some(self);
         }
         self.get_chunk_neib(Chunk::neighbor_idx(relpos)?)
     }
 
-    pub fn get_chunk_neib(&self, neib_idx: usize) -> Option<ChunkPtr> {
-        // if neib_idx == usize::MAX {
-        //     return Some(self.chunkptr_weak.upgrade()?);
-        // }
-        if let Some(neib_weak) = &self.neighbor_chunks[neib_idx] {
-            // assert!(neib_chunk.chunkpos == self.chunkpos + Self::NEIGHBOR_DIR[neib_idx] * Chunk::LEN, "self.chunkpos = {}, neib {} pos {}", self.chunkpos, neib_idx, neib_chunk.chunkpos);
-            return Some(neib_weak.upgrade()?);
-        }
-        None
+    pub fn get_chunk_neib(&self, neib_idx: usize) -> Option<&Chunk> {
+        self.neighbor_chunks.get(neib_idx)?.as_deref()
     }
 
-
-
     pub fn as_chunkpos(p: IVec3) -> IVec3 {
-        fn _floor16(x: i32) -> i32 { x & (!15) }
+        fn _floor16(x: i32) -> i32 {
+            x & (!15)
+        }
         IVec3::new(_floor16(p.x), _floor16(p.y), _floor16(p.z))
     }
 
     pub fn as_localpos(p: IVec3) -> IVec3 {
-        fn _mod16(x: i32) -> i32 { x & 15 }
+        fn _mod16(x: i32) -> i32 {
+            x & 15
+        }
         IVec3::new(_mod16(p.x), _mod16(p.y), _mod16(p.z))
+    }
+
+    /// Mesh sampling covers [-1, 16] on each axis. A boundary edit can affect
+    /// face, edge and corner neighbors; an interior edit affects only its owner.
+    pub fn mesh_dependents(p: IVec3) -> Vec<IVec3> {
+        let ranges = [p.x, p.y, p.z].map(|v| {
+            let first = v.saturating_sub(1) & !15;
+            let last = v.saturating_add(1) & !15;
+            (first, last)
+        });
+        let mut result = Vec::with_capacity(8);
+        for x in (ranges[0].0..=ranges[0].1).step_by(16) {
+            for y in (ranges[1].0..=ranges[1].1).step_by(16) {
+                for z in (ranges[2].0..=ranges[2].1).step_by(16) {
+                    result.push(ivec3(x, y, z));
+                }
+            }
+        }
+        result
     }
 
     /// mod(p, 16) == 0
@@ -224,12 +254,6 @@ impl Chunk {
         idx / 2 * 2 + (idx + 1) % 2
     }
 
-
-
-
-
-
-
     // Voxel Light
 
     // pub fn at_lights(&self, localpos: IVec3) -> &VoxLight {
@@ -250,5 +274,4 @@ impl Chunk {
     // pub fn set_light(&mut self, local_idx: u16, chan: u8, val: u8) {
     //     self.at_lights_mut(local_idx).set(chan, val);
     // }
-
 }

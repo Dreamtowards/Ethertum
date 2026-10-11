@@ -1,3 +1,5 @@
+#![deny(invalid_reference_casting)]
+
 // Client
 pub mod client;
 pub use client::ui;
@@ -18,9 +20,8 @@ pub static VERSION: &str = std::env!("CARGO_PKG_VERSION");
 pub static VERSION_NAME: &str = concat!(std::env!("CARGO_PKG_VERSION"), " 2024.03c5");
 
 pub mod prelude {
-    pub use bevy::prelude::*;
-    pub use bevy::math::{ivec3, vec3};
-    pub use serde::{Deserialize, Serialize};
-    pub use crate::util::AsMutRef;
     pub use crate::voxel::*;
+    pub use bevy::math::{ivec3, vec3};
+    pub use bevy::prelude::*;
+    pub use serde::{Deserialize, Serialize};
 }

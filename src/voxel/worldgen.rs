@@ -30,8 +30,7 @@ pub fn generate_chunk(chunk: &mut Chunk) {
                 let mut tex = VoxTex::Nil; //(p.x / 2 % 24).abs() as u16;
                 if val > 0.0 {
                     tex = VoxTex::Stone;
-                }
-                else if p.y < 0 && val < 0. {
+                } else if p.y < 0 && val < 0. {
                     val = -0.1;
                     tex = VoxTex::Water;
                 }
@@ -67,7 +66,7 @@ pub fn populate_chunk(chunk: &mut Chunk) {
                     air_dist += 1;
                 }
 
-                let p = chunk.chunkpos + lp;
+                let p = chunkpos + lp;
                 if c.tex_id == VoxTex::Stone {
                     let mut replace = c.tex_id;
                     if p.y < 2 && air_dist <= 2 && perlin.get([p.x as f64 / 32., p.z as f64 / 32.]) > 0.1 {
@@ -169,7 +168,7 @@ pub fn gen_tree(chunk: &mut Chunk, lp: IVec3, siz: f32) {
         // }
 
         chunk.set_voxel_rel(lp, |vox| {
-            vox.tex_id =VoxTex::Leaves;
+            vox.tex_id = VoxTex::Leaves;
             vox.shape_id = VoxShape::Leaves;
         });
     });
