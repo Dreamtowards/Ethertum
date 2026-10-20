@@ -27,6 +27,7 @@ pub fn ui_menu_panel(
     net_transport: Option<Res<NetcodeClientTransport>>,
 
     mut app_exit_events: MessageWriter<AppExit>,
+    mut gallery: ResMut<super::editor_widgets::GallerySession>,
 ) {
     // const BLUE: Color = Color::rgb(0.188, 0.478, 0.776);
     // const PURPLE: Color = Color::rgb(0.373, 0.157, 0.467);
@@ -229,6 +230,11 @@ pub fn ui_menu_panel(
                             let cli = cl.data();
                             ui.toggle_value(&mut cli.dbg_text, "Debug Text");
                             ui.toggle_value(&mut cli.dbg_inspector, "Inspector");
+                            let mut open = cli.curr_ui == CurrentUI::WidgetGallery;
+                            if ui.checkbox(&mut open, "Bevy UI / Feathers widgets").changed() {
+                                if open { gallery.open(cli); } else { gallery.close(cli); }
+                                ui.close();
+                            }
                         });
                     });
                 });

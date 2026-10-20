@@ -26,7 +26,7 @@ bevy = { version = "0.19.1", features = ["file_watcher", "trace_chrome", "bevy_s
 
 
 [dependencies]
-bevy = { version = "0.19.1", features = ["bevy_solari", "jpeg"] }
+bevy = { version = "0.19.1", features = ["bevy_solari", "jpeg", "bevy_feathers"] }
 
 avian3d = "0.7"
 bevy_renet = "5.0"

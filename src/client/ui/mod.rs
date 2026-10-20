@@ -3,6 +3,8 @@ pub mod hud;
 mod items;
 pub use items::HeldItem;
 mod main_menu;
+pub(crate) mod editor_widgets;
+mod widget_gallery;
 pub mod serverlist;
 mod settings;
 
@@ -50,6 +52,7 @@ impl Plugin for UiPlugin {
         if !app.is_plugin_added::<EguiPlugin>() || true {
             app.add_plugins(EguiPlugin::default());
         }
+        app.add_plugins(editor_widgets::EditorWidgetsPlugin);
         
         {
             app
@@ -67,17 +70,18 @@ impl Plugin for UiPlugin {
                     /* test */
                     (ui_example_system,),
                     /* debug */
+                    // 测试页的导航键单独交给 Feathers，正常 egui 页面保持原有输入。
                     debug::ui_menu_panel.run_if(|cli: Res<ClientInfo>| cli.dbg_menubar),
-                    debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text).before(debug::ui_menu_panel),
+                    debug::hud_debug_text.run_if(|cli: Res<ClientInfo>| cli.dbg_text && cli.curr_ui != CurrentUI::WidgetGallery).before(debug::ui_menu_panel),
                     /* hud */
                     (hud::hud_hotbar, hud::hud_chat, hud::hud_playerlist.run_if(condition::manipulating)).run_if(condition::in_world),
                     items::draw_ui_holding_item,
                     /* menu */
                     (
+                        main_menu::ui_main_menu.run_if(condition::in_ui(CurrentUI::MainMenu)).after(debug::ui_menu_panel),
                         settings::ui_settings.run_if(condition::in_ui(CurrentUI::Settings)),
                         main_menu::ui_pause_menu.run_if(condition::in_ui(CurrentUI::PauseMenu)),
                         // Menus
-                        main_menu::ui_main_menu.run_if(condition::in_ui(CurrentUI::MainMenu)),
                         serverlist::ui_localsaves.run_if(condition::in_ui(CurrentUI::LocalWorldList)),
                         serverlist::ui_create_world.run_if(condition::in_ui(CurrentUI::LocalWorldNew)),
                         serverlist::ui_serverlist.run_if(condition::in_ui(CurrentUI::ServerList)),
@@ -149,6 +153,7 @@ pub enum CurrentUI {
     None,
     #[default]
     MainMenu,
+    WidgetGallery,
     PauseMenu,
     Settings,
     ServerList,

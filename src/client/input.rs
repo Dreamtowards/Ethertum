@@ -98,13 +98,16 @@ pub fn input_handle(
     player: Option<ResMut<ClientPlayerInfo>>,
     mut cli: ResMut<ClientInfo>,
     cfg: Res<ClientSettings>,
+    mut gallery: ResMut<crate::ui::editor_widgets::GallerySession>,
 ) {
     let action_state = query_input.single().unwrap();
     let mut window = query_window.single_mut().unwrap();
 
     // ESC
     if action_state.just_pressed(&InputAction::ESC) {
-        if worldinfo.is_some() {
+        if cli.curr_ui == CurrentUI::WidgetGallery {
+            gallery.close(&mut cli);
+        } else if worldinfo.is_some() {
             cli.curr_ui = if cli.curr_ui == CurrentUI::None {
                 CurrentUI::PauseMenu
             } else {
