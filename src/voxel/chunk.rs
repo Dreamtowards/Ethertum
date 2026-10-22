@@ -134,6 +134,13 @@ impl Chunk {
         self.neighbor_chunks.get(neib_idx)?.as_deref()
     }
 
+    /// Convert a finite, i32-range world position to its aligned chunk origin.
+    /// Floor before integer conversion so -0.1 belongs to -16, not 0.
+    /// Network callers still validate position bounds before reaching this API.
+    pub fn world_to_chunkpos(p: Vec3) -> IVec3 {
+        Self::as_chunkpos(p.floor().as_ivec3())
+    }
+
     pub fn as_chunkpos(p: IVec3) -> IVec3 {
         fn _floor16(x: i32) -> i32 {
             x & (!15)

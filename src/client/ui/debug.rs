@@ -157,7 +157,9 @@ pub fn ui_menu_panel(
                             ui.separator();
 
                             if let Some(mut chunk_sys) = chunk_sys {
-                                let campos = query_cam.single().unwrap().translation.as_ivec3();
+                                let camera_position = query_cam.single().unwrap().translation;
+                                let campos = camera_position.floor().as_ivec3();
+                                let camera_chunkpos = Chunk::world_to_chunkpos(camera_position);
                                 if ui.button("Compute Voxel Light").clicked() {
                                     // for chunk in chunk_sys.get_chunks().values() {
                                     //     Chunk::compute_voxel_light(chunk.as_mut());
@@ -169,7 +171,7 @@ pub fn ui_menu_panel(
                                     use crate::voxel::lighting;
 
                                     for chunkpos in chunk_sys.get_chunks().keys() {
-                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), *chunkpos, IVec2::new(2, 2)) {
+                                        if voxel::is_chunk_in_load_distance(camera_chunkpos, *chunkpos, IVec2::new(2, 2)) {
                                             let chunk = chunk_sys.get_chunk(*chunkpos).unwrap();
 
                                             lighting::collect_chunk_lights(chunk, &mut queue);
@@ -194,20 +196,20 @@ pub fn ui_menu_panel(
                                 if ui.button("ReMesh Nr Chunks").clicked() {
                                     // let ls = Vec::from_iter(chunk_sys.get_chunks().keys().cloned());
                                     for chunkpos in Vec::from_iter(chunk_sys.get_chunks().keys().copied()) {
-                                        if voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(campos), chunkpos, IVec2::new(2, 2)) {
+                                        if voxel::is_chunk_in_load_distance(camera_chunkpos, chunkpos, IVec2::new(2, 2)) {
                                             chunk_sys.mark_chunk_remesh(chunkpos);
                                         }
                                     }
                                 }
                                 if ui.button("Gen Tree").clicked() {
-                                    chunk_sys.edit_neighborhood(Chunk::as_chunkpos(campos), |chunk| {
+                                    chunk_sys.edit_neighborhood(camera_chunkpos, |chunk| {
                                         worldgen::gen_tree(chunk, Chunk::as_localpos(campos), 0.8);
                                     });
                                 }
                                 if ui.button("Gen Floor").clicked() {
                                     // crate::util::iter::iter_center_spread(10, 1, |p| {
                                     // });
-                                    if let Some(chunk) = chunk_sys.get_chunk_mut(Chunk::as_chunkpos(campos)) {
+                                    if let Some(chunk) = chunk_sys.get_chunk_mut(camera_chunkpos) {
                                         for x in 0..16 {
                                             for z in 0..16 {
                                                 *chunk.at_voxel_mut(IVec3::new(x, 0, z)) = Vox::new(1, VoxShape::Cube, 0.);
@@ -345,7 +347,7 @@ RAM: {mem_usage_phys:.2} MB, vir {mem_usage_virtual:.2} MB | {mem_used:.2} / {me
 
         let mut cam_cell_str = "none".into();
         let campos_v = cam_pos.floor().as_ivec3();
-        if let Some(chunk) = chunk_sys.get_chunk(Chunk::as_chunkpos(campos_v)) {
+        if let Some(chunk) = chunk_sys.get_chunk(Chunk::world_to_chunkpos(cam_pos)) {
             let vox = chunk.at_voxel(Chunk::as_localpos(campos_v));
 
             cam_cell_str = format!(

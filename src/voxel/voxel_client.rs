@@ -156,7 +156,7 @@ fn chunks_detect_load_and_unload(
     tx_chunk_load: Res<ChannelTx<ChunkLoadingData>>,
     rx_chunk_load: Res<ChannelRx<ChunkLoadingData>>,
 ) {
-    let vp = Chunk::as_chunkpos(query_cam.single().unwrap().translation.as_ivec3()); // viewer pos
+    let vp = Chunk::world_to_chunkpos(query_cam.single().unwrap().translation); // viewer pos
     let vd = cfg.chunks_load_distance;
 
     // Chunks Detect Load/Gen
@@ -257,7 +257,7 @@ fn chunks_remesh_enqueue(
     let mut chunks_remesh = Vec::from_iter(chunk_sys.chunks_remesh.iter().cloned());
 
     // Sort by Distance from the Camera.
-    let cam_cp = Chunk::as_chunkpos(query_cam.single().unwrap().translation.as_ivec3());
+    let cam_cp = Chunk::world_to_chunkpos(query_cam.single().unwrap().translation);
     chunks_remesh.sort_unstable_by_key(|cp: &IVec3| bevy::math::FloatOrd(cp.distance_squared(cam_cp) as f32));
 
     for chunkpos in chunks_remesh {
@@ -578,7 +578,7 @@ fn draw_gizmos(mut gizmos: Gizmos, chunk_sys: Res<ClientChunkSystem>, cli: Res<C
 
     if cli.dbg_gizmo_curr_chunk {
         if let Ok(trans) = query_cam.single() {
-            let cp = Chunk::as_chunkpos(trans.translation.as_ivec3());
+            let cp = Chunk::world_to_chunkpos(trans.translation);
             gizmos.cube(
                 Transform::from_translation(cp.as_vec3() + 0.5 * Chunk::LEN as f32).with_scale(Vec3::splat(Chunk::LEN as f32)),
                 Srgba::gray(0.7),

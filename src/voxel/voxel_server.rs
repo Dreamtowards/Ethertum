@@ -48,7 +48,7 @@ fn chunks_load(
     // Dispatch Chunk Load
     for player in server.online_players.values() {
         let vd = player.chunks_load_distance;
-        let cp = Chunk::as_chunkpos(player.position.as_ivec3());
+        let cp = Chunk::world_to_chunkpos(player.position);
 
         iter::iter_center_spread(vd.x, vd.y, |rp| {
             let chunkpos = rp * Chunk::LEN + cp;
@@ -104,7 +104,7 @@ fn chunks_load(
         let mut any_desire = false;
 
         for player in server.online_players.values_mut() {
-            if crate::voxel::is_chunk_in_load_distance(Chunk::as_chunkpos(player.position.as_ivec3()), chunkpos, player.chunks_load_distance) {
+            if crate::voxel::is_chunk_in_load_distance(Chunk::world_to_chunkpos(player.position), chunkpos, player.chunks_load_distance) {
                 any_desire = true;
             }
         }
@@ -128,7 +128,7 @@ fn chunks_load(
     // 野蛮的方法 把所有区块发给所有玩家
     for player in server.online_players.values_mut() {
         let vd = player.chunks_load_distance;
-        let cp = Chunk::as_chunkpos(player.position.as_ivec3());
+        let cp = Chunk::world_to_chunkpos(player.position);
 
         let mut num_sent = 0;
 

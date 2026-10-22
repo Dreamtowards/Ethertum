@@ -1,6 +1,49 @@
 use super::*;
 use crate::voxel::{Vox, VoxTex};
 
+#[test]
+fn floating_world_positions_use_floor_on_every_axis_at_chunk_boundaries() {
+    let cases = [
+        (-32.1, -48),
+        (-16.1, -32),
+        (-16.0, -16),
+        (-15.9, -16),
+        (-0.1, -16),
+        (-0.0, 0),
+        (0.0, 0),
+        (15.9, 0),
+        (16.0, 16),
+        (32.0, 32),
+    ];
+    for (x, cx) in cases {
+        for (y, cy) in cases {
+            for (z, cz) in cases {
+                let p = vec3(x, y, z);
+                let cp = Chunk::world_to_chunkpos(p);
+                assert_eq!(cp, ivec3(cx, cy, cz), "position {p}");
+                assert!(Chunk::is_chunkpos(cp));
+                assert!(p.cmpge(cp.as_vec3()).all());
+                assert!(p.cmplt((cp + IVec3::splat(16)).as_vec3()).all());
+            }
+        }
+    }
+}
+
+#[test]
+fn negative_fractional_position_agrees_with_local_index_and_load_distance() {
+    let p = vec3(-0.1, -16.1, 15.9);
+    let cp = Chunk::world_to_chunkpos(p);
+    let voxel_pos = p.floor().as_ivec3();
+    let local = Chunk::as_localpos(voxel_pos);
+    assert_eq!(cp, ivec3(-16, -32, 0));
+    assert_eq!(local, IVec3::splat(15));
+    assert_eq!(cp + local, voxel_pos);
+    assert_eq!(Chunk::local_idx(local), 4095);
+    assert_eq!(Chunk::local_idx_pos(4095), local);
+    assert!(crate::voxel::is_chunk_in_load_distance(cp, cp, IVec2::ZERO));
+    assert!(!crate::voxel::is_chunk_in_load_distance(cp, ivec3(0, -16, 0), IVec2::ZERO));
+}
+
 fn insert(world: &mut World, sys: &mut ClientChunkSystem, cp: IVec3) {
     let mut meshes = world.remove_resource::<Assets<Mesh>>().unwrap_or_default();
     sys.spawn_chunk(Chunk::new(cp), &mut world.commands(), &mut meshes);
