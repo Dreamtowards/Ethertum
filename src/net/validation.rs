@@ -70,7 +70,7 @@ pub(super) fn decode_server(bytes: &[u8]) -> Result<SPacket, &'static str> {
         SPacket::ChunkDel { chunkpos } => valid_chunk(*chunkpos, &[]),
         SPacket::WorldTime { daytime } => daytime.is_finite() && (0.0..=1.0).contains(daytime),
         SPacket::Chat { message } | SPacket::Disconnect { reason: message } => message.len() <= 4096,
-        SPacket::PlayerList { playerlist } => playerlist.len() <= 64 && playerlist.iter().all(|(name, _)| valid_username(name)),
+        SPacket::PlayerList { playerlist } => playerlist.len() <= super::MAX_CLIENTS as usize && playerlist.iter().all(|(name, _)| valid_username(name)),
         _ => true,
     };
     if valid {

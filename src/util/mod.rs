@@ -9,6 +9,7 @@ pub mod vtx {
 }
 
 pub mod registry;
+pub(crate) mod settings;
 
 // Time
 use std::time::{Duration, SystemTime};

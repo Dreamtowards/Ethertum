@@ -32,9 +32,18 @@ impl Plugin for ServerNetworkPlugin {
     }
 }
 
-fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>) {
-    cmds.insert_resource(super::new_netcode_server_transport(cfg.port, 64));
-    info!("Server bind endpoint at port {}", cfg.port);
+fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>, mut exit: MessageWriter<AppExit>) {
+    let result = cfg.validate().and_then(|_| super::new_netcode_server_transport(cfg.port, cfg.num_player_limit as usize));
+    match result {
+        Ok(transport) => {
+            cmds.insert_resource(transport);
+            info!("Server bind endpoint at port {} (limit {})", cfg.port, cfg.num_player_limit);
+        }
+        Err(error) => {
+            error!("Server startup failed: {error:#}");
+            exit.write(AppExit::error());
+        }
+    }
 }
 
 pub fn server_event_observer(trigger: On<RenetServerEvent>, mut server: ResMut<RenetServer>, mut serverinfo: ResMut<ServerInfo>) {

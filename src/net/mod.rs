@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use anyhow::Context;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket},
     time::Duration,
@@ -25,11 +26,14 @@ pub use netproc_client::ClientNetworkPlugin;
 pub use netproc_server::ServerNetworkPlugin;
 pub use packet::{CPacket, CellData, SPacket};
 
-const PROTOCOL_ID: u64 = 1;
+pub(crate) const PROTOCOL_ID: u64 = 1;
+pub(crate) const MAX_CLIENTS: u32 = 64;
 
-pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -> NetcodeServerTransport {
+pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -> anyhow::Result<NetcodeServerTransport> {
+    anyhow::ensure!(public_addr_port != 0, "Game port must not be zero");
+    anyhow::ensure!((1..=MAX_CLIENTS as usize).contains(&max_clients), "Player limit must be in 1..={MAX_CLIENTS}");
     let public_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), public_addr_port);
-    let socket = UdpSocket::bind(public_addr).unwrap();
+    let socket = UdpSocket::bind(public_addr).with_context(|| format!("Cannot bind game endpoint {public_addr}"))?;
     let server_config = ServerConfig {
         current_time: current_timestamp(),
         max_clients,
@@ -37,7 +41,8 @@ pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -
         public_addresses: vec![public_addr],
         authentication: ServerAuthentication::Unsecure,
     };
-    NetcodeServerTransport::new(server_config, socket).unwrap()
+    NetcodeServerTransport::new(server_config, socket)
+        .map_err(|error| anyhow::anyhow!("Cannot initialize game endpoint {public_addr}: {error}"))
 }
 
 pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<Vec<u8>>) -> NetcodeClientTransport {
