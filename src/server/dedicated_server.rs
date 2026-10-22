@@ -208,6 +208,8 @@ pub struct PlayerInfo {
     pub client_id: ClientId, // network client id. renet
 
     pub entity_id: EntityId,
+    /// Full local ECS handle, including generation; never reconstructed from the wire ID.
+    pub server_entity: Entity,
     pub position: Vec3,
     pub ping_rtt: u32,
 

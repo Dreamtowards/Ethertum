@@ -165,6 +165,111 @@ fn login(app: &mut App, client: &mut RenetClient) {
     );
 }
 
+// Exercise the same Renet event emitter and observer used in the game, without
+// installing a socket transport or changing the existing parser-only fixtures.
+fn lifecycle_fixture() -> (App, RenetClient) {
+    let (mut app, client) = server_fixture();
+    app.add_observer(super::netproc_server::server_event_observer)
+        .add_systems(PreUpdate, bevy_renet::RenetServerPlugin::emit_server_events_system);
+    (app, client)
+}
+
+#[test]
+fn repeated_server_login_and_disconnect_releases_owned_entities() {
+    let (mut app, mut client) = lifecycle_fixture();
+    let baseline = app.world_mut().query::<&Transform>().iter(app.world()).count();
+    let mut previous = None;
+    for _ in 0..16 {
+        login(&mut app, &mut client);
+        let player = &app.world().resource::<ServerInfo>().online_players[&1];
+        let entity = player.server_entity;
+        assert_ne!(Some(entity), previous, "reconnect must use a new full ECS handle");
+        assert!(app.world().get::<Transform>(entity).is_some());
+        assert_eq!(EntityId::from_server(entity), player.entity_id);
+        assert_eq!(app.world_mut().query::<&Transform>().iter(app.world()).count(), baseline + 1);
+
+        app.world_mut().resource_mut::<RenetServer>().disconnect_local_client(1, &mut client);
+        app.update();
+        assert!(app.world().resource::<ServerInfo>().online_players.is_empty());
+        assert!(app.world().get_entity(entity).is_err());
+        assert_eq!(app.world_mut().query::<&Transform>().iter(app.world()).count(), baseline);
+        previous = Some(entity);
+        client = app.world_mut().resource_mut::<RenetServer>().new_local_client(1);
+    }
+}
+
+#[test]
+fn disconnect_preserves_other_player_and_broadcasts_delete_only_once() {
+    use bevy_renet::{renet::{DisconnectReason, ServerEvent}, RenetServerEvent};
+
+    let (mut app, mut first) = lifecycle_fixture();
+    login(&mut app, &mut first);
+    let departing = app.world().resource::<ServerInfo>().online_players[&1].server_entity;
+    let departing_id = app.world().resource::<ServerInfo>().online_players[&1].entity_id;
+    let mut second = app.world_mut().resource_mut::<RenetServer>().new_local_client(2);
+    second.send_message(DefaultChannel::ReliableOrdered, bytes(&CPacket::Login {
+        uuid: 2, access_token: 0, username: "Other".into(),
+    }));
+    app.world_mut().resource_mut::<RenetServer>().process_local_client(2, &mut second).unwrap();
+    app.update();
+    let survivor = app.world().resource::<ServerInfo>().online_players[&2].server_entity;
+    app.world_mut().resource_mut::<RenetServer>().process_local_client(2, &mut second).unwrap();
+    while second.receive_message(DefaultChannel::ReliableOrdered).is_some() {}
+
+    app.world_mut().resource_mut::<RenetServer>().disconnect_local_client(1, &mut first);
+    app.update();
+    // Deliberately replay a disconnect notification after cleanup.
+    app.world_mut().trigger(RenetServerEvent(ServerEvent::ClientDisconnected {
+        client_id: 1, reason: DisconnectReason::Transport,
+    }));
+    app.update();
+    assert!(app.world().get_entity(departing).is_err());
+    assert!(app.world().get::<Transform>(survivor).is_some());
+    let players = &app.world().resource::<ServerInfo>().online_players;
+    assert_eq!(players.len(), 1);
+    assert_eq!(players[&2].server_entity, survivor);
+
+    app.world_mut().resource_mut::<RenetServer>().process_local_client(2, &mut second).unwrap();
+    let mut deletes = 0;
+    let mut departures = 0;
+    while let Some(data) = second.receive_message(DefaultChannel::ReliableOrdered) {
+        match decode_server(&data).unwrap() {
+            SPacket::EntityDel { entity_id } if entity_id == departing_id => deletes += 1,
+            SPacket::Chat { message } if message.contains("Tester left.") => departures += 1,
+            _ => {}
+        }
+    }
+    assert_eq!(deletes, 1);
+    assert_eq!(departures, 1);
+}
+
+#[test]
+fn disconnect_tolerates_an_entity_already_removed_elsewhere() {
+    let (mut app, mut client) = lifecycle_fixture();
+    login(&mut app, &mut client);
+    let entity = app.world().resource::<ServerInfo>().online_players[&1].server_entity;
+    assert!(app.world_mut().despawn(entity));
+    let unrelated = app.world_mut().spawn(Transform::default()).id();
+    app.world_mut().resource_mut::<RenetServer>().disconnect_local_client(1, &mut client);
+    app.update();
+    assert!(app.world().resource::<ServerInfo>().online_players.is_empty());
+    assert!(app.world().get::<Transform>(unrelated).is_some());
+}
+
+#[test]
+fn rejected_packet_then_transport_removal_releases_server_entity() {
+    let (mut app, mut client) = lifecycle_fixture();
+    login(&mut app, &mut client);
+    let entity = app.world().resource::<ServerInfo>().online_players[&1].server_entity;
+    deliver(&mut app, &mut client, vec![255; 4]);
+    assert!(app.world().resource::<RenetServer>().disconnect_reason(1).is_some());
+    // Netcode removes a rejected connection and queues its disconnect event.
+    app.world_mut().resource_mut::<RenetServer>().remove_connection(1);
+    app.update();
+    assert!(app.world().resource::<ServerInfo>().online_players.is_empty());
+    assert!(app.world().get_entity(entity).is_err());
+}
+
 #[test]
 fn server_survives_bad_commands_and_processes_next_valid_message() {
     let (mut app, mut client) = server_fixture();

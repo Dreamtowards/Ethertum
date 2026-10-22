@@ -46,7 +46,7 @@ fn bind_server_endpoint(mut cmds: Commands, cfg: Res<ServerSettings>, mut exit: 
     }
 }
 
-pub fn server_event_observer(trigger: On<RenetServerEvent>, mut server: ResMut<RenetServer>, mut serverinfo: ResMut<ServerInfo>) {
+pub fn server_event_observer(trigger: On<RenetServerEvent>, mut server: ResMut<RenetServer>, mut serverinfo: ResMut<ServerInfo>, mut cmds: Commands) {
     match trigger.0 {
         ServerEvent::ClientConnected { client_id } => {
             info!("Cli Connected {}", client_id);
@@ -55,6 +55,9 @@ pub fn server_event_observer(trigger: On<RenetServerEvent>, mut server: ResMut<R
             info!("Cli Disconnected {} {}", client_id, reason);
 
             if let Some(player) = serverinfo.online_players.remove(&client_id) {
+                // Remove the owned entity as well as its network record. A repeated
+                // disconnect or an entity already removed elsewhere is harmless.
+                cmds.entity(player.server_entity).try_despawn();
                 server.broadcast_packet_chat(format!("Player {} left. ({}/N)", player.username, serverinfo.online_players.len()));
 
                 server.broadcast_packet(&SPacket::EntityDel { entity_id: player.entity_id });
@@ -127,7 +130,8 @@ pub fn server_sys(
                     }
                     // 原型登录尚无真实认证；不要在 Bevy 主循环模拟阻塞验证。
 
-                    let entity_id = EntityId::from_server(cmds.spawn(Transform::default()).id());
+                    let server_entity = cmds.spawn(Transform::default()).id();
+                    let entity_id = EntityId::from_server(server_entity);
 
                     // Login Success
                     server.send_packet(client_id, &SPacket::LoginSuccess { player_entity: entity_id });
@@ -167,6 +171,7 @@ pub fn server_sys(
                             user_id: uuid,
                             client_id,
                             entity_id,
+                            server_entity,
                             position: Vec3::ZERO,
                             chunks_loaded: HashSet::default(),
                             chunks_load_distance: IVec2::new(-1, -1), // 4 2
