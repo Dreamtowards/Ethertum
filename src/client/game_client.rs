@@ -229,10 +229,17 @@ impl<'w, 's> EthertiaClient<'w, 's> {
     pub fn connect_server(&mut self, server_addr: String) {
         info!("Connecting to {}", server_addr);
 
+        if let Err(error) = self.cfg.validate() {
+            self.clientinfo.disconnected_reason = format!("Invalid client settings: {error:#}");
+            self.data().curr_ui = CurrentUI::DisconnectedReason;
+            return;
+        }
+
         let mut addrs = match server_addr.trim().to_socket_addrs() {
             Ok(addrs) => addrs.collect::<Vec<_>>(),
             Err(err) => {
                 error!("Failed to resolve DNS of server_addr: {}", err);
+                self.clientinfo.disconnected_reason = format!("Cannot resolve {server_addr}: {err}");
                 self.data().curr_ui = CurrentUI::DisconnectedReason;
                 return;
             }
@@ -240,6 +247,16 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         let addr = match addrs.pop() {
             Some(addr) => addr,
             None => {
+                self.clientinfo.disconnected_reason = format!("No address found for {server_addr}");
+                self.data().curr_ui = CurrentUI::DisconnectedReason;
+                return;
+            }
+        };
+
+        let transport = match crate::net::new_netcode_client_transport(addr, Some(b"userData123".to_vec())) {
+            Ok(transport) => transport,
+            Err(error) => {
+                self.clientinfo.disconnected_reason = format!("Connection failed: {error:#}");
                 self.data().curr_ui = CurrentUI::DisconnectedReason;
                 return;
             }
@@ -258,10 +275,7 @@ impl<'w, 's> EthertiaClient<'w, 's> {
         });
 
         self.cmds.insert_resource(net_client);
-        self.cmds.insert_resource(crate::net::new_netcode_client_transport(
-            addr,
-            Some("userData123".to_string().into_bytes()),
-        ));
+        self.cmds.insert_resource(transport);
 
         // clear DisconnectReason on new connect, to prevents display old invalid reason.
         self.clientinfo.disconnected_reason.clear();

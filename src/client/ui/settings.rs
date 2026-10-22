@@ -47,6 +47,7 @@ pub fn ui_settings(
 
     mut cli: ResMut<ClientInfo>,
     mut cfg: ResMut<ClientSettings>,
+    settings_status: Res<crate::client::settings::ClientSettingsStatus>,
     mut worldinfo: Option<ResMut<WorldInfo>>,
     //mut egui_settings: ResMut<EguiSettings>,
     mut query_char: Query<&mut CharacterController>,
@@ -60,6 +61,10 @@ pub fn ui_settings(
 ) {
     let is_world_loaded = worldinfo.is_some();
     new_egui_window("Settings").show(ctx.ctx_mut().unwrap(), |ui| {
+        if let Some(error) = &settings_status.load_error {
+            ui.colored_label(Color32::YELLOW, format!("Using default settings: {error}"));
+            ui.label("The original file is preserved. Repair or move client.settings.json and restart to enable saving.");
+        }
         let curr_settings_panel = *settings_panel;
 
         ui_lr_panel(
@@ -120,8 +125,14 @@ pub fn ui_settings(
                         //     egui::Slider::new(&mut chunk_sys.max_concurrent_meshing, 0..=50),
                         // );
 
-                        ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cfg.chunks_load_distance.x, -1..=25));
-                        ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cfg.chunks_load_distance.y, -1..=25));
+                        let mut loading = cfg.chunks_load_distance != IVec2::splat(-1);
+                        if ui.checkbox(&mut loading, "Load chunks").changed() {
+                            cfg.chunks_load_distance = if loading { ClientSettings::default().chunks_load_distance } else { IVec2::splat(-1) };
+                        }
+                        if loading {
+                            ui_setting_line(ui, "Chunk Load Distance X", egui::Slider::new(&mut cfg.chunks_load_distance.x, 0..=crate::net::MAX_LOAD_DISTANCE_XZ));
+                            ui_setting_line(ui, "Chunk Load Distance Y", egui::Slider::new(&mut cfg.chunks_load_distance.y, 0..=crate::net::MAX_LOAD_DISTANCE_Y));
+                        }
 
                         ui.label("Voxel Brush:");
 

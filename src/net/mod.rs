@@ -25,9 +25,12 @@ use crate::util::current_timestamp;
 pub use netproc_client::ClientNetworkPlugin;
 pub use netproc_server::ServerNetworkPlugin;
 pub use packet::{CPacket, CellData, SPacket};
+pub(crate) use validation::{valid_load_distance, valid_username};
 
 pub(crate) const PROTOCOL_ID: u64 = 1;
 pub(crate) const MAX_CLIENTS: u32 = 64;
+pub(crate) const MAX_LOAD_DISTANCE_XZ: i32 = 16;
+pub(crate) const MAX_LOAD_DISTANCE_Y: i32 = 8;
 
 pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -> anyhow::Result<NetcodeServerTransport> {
     anyhow::ensure!(public_addr_port != 0, "Game port must not be zero");
@@ -45,18 +48,19 @@ pub fn new_netcode_server_transport(public_addr_port: u16, max_clients: usize) -
         .map_err(|error| anyhow::anyhow!("Cannot initialize game endpoint {public_addr}: {error}"))
 }
 
-pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<Vec<u8>>) -> NetcodeClientTransport {
+pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<Vec<u8>>) -> anyhow::Result<NetcodeClientTransport> {
     // let server_addr = "127.0.0.1:5000".parse().unwrap();
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    let local_addr = if server_addr.is_ipv4() { "0.0.0.0:0" } else { "[::]:0" };
+    let socket = UdpSocket::bind(local_addr).with_context(|| format!("Cannot bind client endpoint {local_addr}"))?;
     let current_time = current_timestamp();
     let client_id = current_time.as_millis() as u64;
 
-    let user_data = user_data.map(|vec| {
+    let user_data = user_data.map(|vec| -> anyhow::Result<_> {
         let mut data = [0u8; NETCODE_USER_DATA_BYTES];
-        assert!(vec.len() <= NETCODE_USER_DATA_BYTES);
+        anyhow::ensure!(vec.len() <= NETCODE_USER_DATA_BYTES, "Connection user data exceeds {NETCODE_USER_DATA_BYTES} bytes");
         data[..vec.len()].copy_from_slice(&vec[..]);
-        data
-    });
+        Ok(data)
+    }).transpose()?;
 
     let authentication = ClientAuthentication::Unsecure {
         protocol_id: PROTOCOL_ID,
@@ -64,7 +68,8 @@ pub fn new_netcode_client_transport(server_addr: SocketAddr, user_data: Option<V
         server_addr,
         user_data,
     };
-    NetcodeClientTransport::new(current_time, authentication, socket).unwrap()
+    NetcodeClientTransport::new(current_time, authentication, socket)
+        .map_err(|error| anyhow::anyhow!("Cannot initialize client connection to {server_addr}: {error}"))
 }
 
 fn net_channel_config(max_memory_usage_bytes: usize) -> Vec<ChannelConfig> {

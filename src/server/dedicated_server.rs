@@ -151,6 +151,25 @@ mod settings_tests {
     use super::*;
 
     #[test]
+    fn reads_settings_file_and_rejects_invalid_configuration() {
+        let dir = std::env::temp_dir().join(format!("ethertia-server-settings-{}", std::process::id()));
+        std::fs::create_dir(&dir).unwrap();
+        let path = dir.join("server.settings.json");
+        assert_eq!(ServerSettings::load(&path).unwrap().num_player_limit, crate::net::MAX_CLIENTS);
+        std::fs::write(&path, r#"{"port":4567,"num_player_limit":12,"motd":"From disk"}"#).unwrap();
+        let cfg = ServerSettings::load(&path).unwrap();
+        assert_eq!((cfg.port, cfg.num_player_limit), (4567, 12));
+        assert_eq!(cfg.motd, "From disk");
+        std::fs::write(&path, r#"{"num_player_limit":80}"#).unwrap();
+        assert!(ServerSettings::load(&path).is_err());
+        std::fs::write(&path, "{").unwrap();
+        assert!(ServerSettings::load(&path).is_err());
+        assert!(ServerSettings::load(&dir).is_err());
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
+    }
+
+    #[test]
     fn custom_settings_and_legacy_defaults_are_validated() {
         let cfg: ServerSettings = serde_json::from_str(r#"{"port":4567,"num_player_limit":12,"motd":"Custom"}"#).unwrap();
         cfg.validate().unwrap();

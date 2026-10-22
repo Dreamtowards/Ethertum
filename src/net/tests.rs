@@ -15,6 +15,16 @@ fn bytes<T: serde::Serialize>(packet: &T) -> Vec<u8> {
 }
 
 #[test]
+fn client_transport_rejects_oversized_user_data_without_panicking() {
+    let result = super::new_netcode_client_transport(
+        "127.0.0.1:4060".parse().unwrap(),
+        Some(vec![0; super::NETCODE_USER_DATA_BYTES + 1]),
+    );
+    let Err(error) = result else { panic!("oversized user data unexpectedly accepted"); };
+    assert!(error.to_string().contains("Connection user data exceeds"));
+}
+
+#[test]
 fn decode_rejects_corruption_and_length_attacks_with_legacy_wire_format() {
     assert!(matches!(decode_client(&bytes(&CPacket::PlayerList)), Ok(CPacket::PlayerList)));
     for bad in [vec![], vec![255; 4], vec![0; MAX_PACKET_BYTES + 1]] {

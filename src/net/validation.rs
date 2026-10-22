@@ -30,8 +30,14 @@ fn valid_position(p: Vec3) -> bool {
     p.is_finite() && p.abs().max_element() <= MAX_WORLD_COORD
 }
 
-fn valid_username(name: &str) -> bool {
+pub(crate) fn valid_username(name: &str) -> bool {
     !name.trim().is_empty() && name.len() <= MAX_USERNAME_BYTES && !name.chars().any(char::is_control)
+}
+
+pub(crate) fn valid_load_distance(distance: bevy::math::IVec2) -> bool {
+    // Only the paired -1/-1 sentinel disables loading.
+    distance == bevy::math::IVec2::splat(-1)
+        || ((0..=super::MAX_LOAD_DISTANCE_XZ).contains(&distance.x) && (0..=super::MAX_LOAD_DISTANCE_Y).contains(&distance.y))
 }
 
 fn valid_chunk(cp: IVec3, cells: &[CellData]) -> bool {
@@ -47,10 +53,7 @@ pub(super) fn decode_client(bytes: &[u8]) -> Result<CPacket, &'static str> {
         CPacket::Login { username, .. } => valid_username(username),
         CPacket::ChatMessage { message } => message.len() <= MAX_CHAT_BYTES,
         CPacket::PlayerPos { position } => valid_position(*position),
-        CPacket::LoadDistance { load_distance } => {
-            // -1/-1 是现有协议的禁用加载状态；其他请求限制遍历范围。
-            *load_distance == bevy::math::IVec2::splat(-1) || ((0..=16).contains(&load_distance.x) && (0..=8).contains(&load_distance.y))
-        }
+        CPacket::LoadDistance { load_distance } => valid_load_distance(*load_distance),
         CPacket::ChunkModify { chunkpos, voxel } => valid_chunk(*chunkpos, voxel),
         _ => true,
     };

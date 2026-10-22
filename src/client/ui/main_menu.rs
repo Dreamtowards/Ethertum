@@ -13,6 +13,7 @@ pub fn ui_main_menu(
     mut app_exit_events: MessageWriter<AppExit>,
     mut ctx: EguiContexts,
     mut cli: EthertiaClient,
+    settings_status: Res<crate::client::settings::ClientSettingsStatus>,
     // cmds: Commands,
     // mut dbg_server_addr: Local<String>,
 ) {
@@ -22,6 +23,9 @@ pub fn ui_main_menu(
     // let img = ctx.add_image(asset_server.load("proto.png"));
 
     egui::CentralPanel::default().show(ctx.ctx_mut().unwrap(), |ui| {
+        if let Some(error) = &settings_status.load_error {
+            ui.colored_label(Color32::YELLOW, format!("Using default settings; original configuration preserved: {error}"));
+        }
         let h = ui.available_height();
 
         // ui.painter().image(
